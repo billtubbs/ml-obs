@@ -21,11 +21,12 @@ Clone this repository to your local machine and either add the root to your MATL
 
 A number of unit test scripts are included.  You can run all the tests by running the MATLAB `runtests` command from the root directory.
 
-## Tutorial
+## Tutorials
 
-See the following LiveScript for an introduction on how to use these functions:
+See the following LiveScripts for examples of how to use these functions:
 
-- [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx)
+- [kalman_example_SISO.mlx](kalman_example_SISO.mlx) - Kalman filter simulation on a simple single-input, single-output system
+- [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model RODD observer example on a 2x2 multivariable system
 
 ## References
 
