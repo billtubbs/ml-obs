@@ -10,8 +10,16 @@ Observers currently included:
 - [kalman_filter.m](kalman_filter.m) - dynamic Kalman filter
 
 Multi-model observers:
-- [mkf_filter.m](mkf_filter.m) - general purpose multi-model Kalman filter
-- [mkf_filter_RODD.m](mkf_filter_RODD.m) - multi-model Kalman filter for state estimation in the presence of randomly-occurring deterministic disturbances (RODDs) as described in Robertson et al. (1995).
+- [mkf_filter.m](mkf_filter.m) - general purpose multi-model Kalman filter observer
+- [mkf_filter_RODD.m](mkf_filter_RODD.m) - multi-model Kalman filter observer for state estimation in the presence of randomly-occurring deterministic disturbances (RODDs) as described in Robertson et al. (1995).
+
+## Installation
+
+Clone this repository to your local machine and either add the root to your MATLAB path or work withing the main folder.
+
+## Testing
+
+A number of unit test scripts are included.  You can run all the tests by running the MATLAB `runtests` command from the root directory.
 
 ## Tutorial
 
