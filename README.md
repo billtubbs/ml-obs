@@ -20,7 +20,7 @@ Clone this repository to your local machine and either add the root to your MATL
 ## Minimal example
 
 Suppose you have some input-output measurement data from a process:
-```
+```Matlab
 % Measured inputs
 u = [     0     0     1     1     1     1     1     1     1     1 ...
           1     1     1     1     1     1     1     1     1     1 ...
@@ -40,7 +40,7 @@ Ts = 0.5;
 And, suppose you know the following linear model is a good representation
 of the process dynamics:
 
-```
+```Matlab
 % Discrete-time transfer function
 Gpd = tf(0.3, [1 -0.7], Ts);
 
@@ -52,7 +52,7 @@ D = 0;
 ```
 
 Define a Kalman filter observer for this process:
-```
+```Matlab
 % Kalman filter parameters
 P0 = 1000;  % estimated variance of the initial state estimate
 Q = 0.01;  % estimated process noise variance
@@ -61,7 +61,7 @@ obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF1');
 ```
 
 Simulate the observer and record the output estimates:
-```
+```Matlab
 % Number of sample periods
 nT = size(y_m,1) - 1;
 % Array to store observer estimates
@@ -80,7 +80,7 @@ end
 ```
 
 Compare observer output estimates to measurement data
-```
+```Matlab
 figure(1)
 t = Ts*(0:nT)';
 plot(t,y_m,'o',t,y_est,'o-')
