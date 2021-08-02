@@ -17,9 +17,85 @@ Multi-model observers:
 
 Clone this repository to your local machine and either add the root to your MATLAB path or work within the main folder.
 
-## Tutorials
+## Minimal example
 
-See the following LiveScripts for examples of how to use these functions:
+Suppose you have some input-output measurement data from a process:
+```
+% Measured inputs
+u = [     0     0     1     1     1     1     1     1     1     1 ...
+          1     1     1     1     1     1     1     1     1     1 ...
+          1]';
+
+% Output measurements
+y_m = [    0.2688    0.9169   -1.1294    0.7311    0.6694 ...
+           0.0032    0.5431    1.0032    2.6715    2.3024 ...
+           0.2674    2.4771    1.3345    0.9487    1.3435 ...
+           0.8878    0.9311    1.7401    1.7012    1.7063 ...
+           1.3341]';
+
+% Sampling period
+Ts = 0.5;
+```
+
+And, suppose you know the following linear model is a good representation
+of the process dynamics:
+
+```
+% Discrete-time transfer function
+Gpd = tf(0.3, [1 -0.7], Ts);
+
+% State-space representation of above process model
+A = 0.7;
+B = 1;
+C = 0.3;
+D = 0;
+```
+
+Define a Kalman filter observer for this process:
+```
+% Kalman filter parameters
+P0 = 1000;  % estimated variance of the initial state estimate
+Q = 0.01;  % estimated process noise variance
+R = 0.5^2;  % estimated measurement noise variance
+obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF1');
+```
+
+Simulate the observer and record the output estimates:
+```
+% Number of sample periods
+nT = size(y_m,1) - 1;
+% Array to store observer estimates
+y_est = nan(nT,1);
+% Save initial estimate (at t=0)
+y_est(1,:) = obs.ykp1_est;
+for i = 1:nT
+
+    % update observer
+    obs = update_KF(obs, u(i), y_m(i));
+
+    % get estimate of output at next sample time
+    y_est(i+1,:) = obs.ykp1_est;
+
+end
+```
+
+Compare observer output estimates to measurement data
+```
+figure(1)
+t = Ts*(0:nT)';
+plot(t,y_m,'o',t,y_est,'o-')
+grid on
+xlabel('Time')
+ylabel('Process output')
+legend('y_m(k)','y_est(k)')
+title("Observer estimates compared to process measurements")
+```
+
+<img src='images/siso_kf_example_plot.png' width=600>
+
+## Other examples
+
+See the following LiveScripts for more detailed examples of how to use the functions:
 
 - [kalman_example_SISO.mlx](kalman_example_SISO.mlx) - Kalman filter simulation on a simple single-input, single-output system
 - [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model RODD observer example on a 2x2 multivariable system
