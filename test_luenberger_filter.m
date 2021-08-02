@@ -1,14 +1,28 @@
-% Test functions kalman_filter_ss.m and update_KF.m
+% Test functions luenberger_filter.m and update_KF.m
 
 clear all
 
-% SISO system example from GEL-7029 in file Kalman_Filter.mlx
+% Simulation settings
+nT = 200; % number of points
+Ts = 3; % sampling period
+t = Ts*(0:nT)'; % time vector
 
-sys_test_siso
+% SISO system example from GEL-7029 in file Luenb_no_integr.mlx
+A = [0.82 0; 0 0.9];
+B = [1; -1];
+C = [-0.5 1];
+D = 0;
+Qp = diag([0.3; 0.2]); % covariance - process noise
+Rp = 0.4; % variance - measurement noise
+
+% Dimensions
+n = size(A, 1); % number of states
+nu = size(B, 2);  % number of inputs
+ny = size(C, 1); % number of outputs
 
 % Check if benchmark simulation data file exists
-if ~isfile('results/Kalman_Filter_sim_benchmark.csv')
-    error("Run 'Kalman_Filter_benchmark.mlx' to generate benchmark data.")
+if ~isfile('results/Luenberger_Filter_sim_benchmark.csv')
+    error("Run 'Luenb_no_integr_benchmark.mlx' to generate benchmark data.")
 end
 
 
@@ -19,31 +33,16 @@ Q = diag([0.1; 0.1]);
 R = 0.5;
 N = zeros(n,ny);
 
-% Define steady-state Kalman filter using kalman_filter_ss function
-KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS");
+% Define Luenberger observer
+poles = [0.9; 0.9];
+LB = luenberger_filter(A,B,C,D,Ts,poles,"LB1");
 
-K_test = [0.7727; 0.7557];
-P_test = [1.5098    1.2170;
-          1.2170    1.2191];
+K_test = [0.16; 0];
 
-assert(KFSS.static_gain == true)
-assert(isequal(round(KFSS.K, 4), K_test))
-assert(isequal(round(KFSS.P, 4), P_test))
-assert(isequal(KFSS.xkp1_est, zeros(2, 1)))
-assert(KFSS.ykp1_est == 0)
-
-% Define dynamic Kalman filter using kalman_filter function
-P0 = diag([1e-4 1e-4]);
-KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KFSS");
-
-assert(KF.static_gain == false)
-assert(all(isnan(KF.K)))
-assert(isequal(KF.P, P0))
-assert(isequal(KF.xkp1_est, zeros(2, 1)))
-assert(KF.ykp1_est == 0)
-
-% number of points to simulate
-nT = 100;
+assert(LB.static_gain == true)
+assert(isequal(round(LB.K, 4), K_test))
+assert(isequal(LB.xkp1_est, zeros(2, 1)))
+assert(LB.ykp1_est == 0)
 
 % seed random number generator
 rng(0)
@@ -52,7 +51,11 @@ rng(0)
 v = sqrt(Rp)*randn(nT,1);
 
 % Process noise for the whole simulation
-w = sqrt(Qp)*randn(2,nT); 
+w = sqrt(Qp)*randn(2,nT);
+
+% Output disturbance
+p = zeros(nT,1);
+p(t>=300) = 1; % step at time t=300
 
 u0 = 1;  % initial value of u
 x0 = inv(eye(length(A)) - A)*B*u0;  % steady-state value of x
@@ -66,15 +69,15 @@ U = [zeros(10,1); ones(nT+1-10, 1)]; % process input for the whole simulation
 % Matrices to collect simulation data
 xNprocess = zeros(n, nT+1); % process states
 yNprocess = zeros(ny, nT+1); % process outputs
-xNkalman1 = zeros(n, nT+1); % estimated states
-yNkalman1 = zeros(ny, nT+1); % estimated process outputs
+xNobserver = zeros(n, nT+1); % estimated states
+yNobserver = zeros(ny, nT+1); % estimated process outputs
 xNkalman2 = zeros(n, nT+1); % estimated states
 yNkalman2 = zeros(ny, nT+1); % estimated process outputs
 
 for i = 1:nT
 
     % Process output in current timestep
-    y = C*x + v(i);
+    y = C*x + v(i) + p(i);
     
     % Record process states and output
     xNprocess(:, i) = x;
@@ -83,17 +86,12 @@ for i = 1:nT
     % Process states in next timestep
     x = A*x + B*U(i) + w(:,i);
 
-    % Steady-state KF update
-    KFSS = update_KF(KFSS, U(i), y);
-
-    % Dynamic KF update
-    KF = update_KF(KF, U(i), y);
+    % Lunberger filter update
+    LB = update_KF(LB, U(i), y);
 
     % Record Kalman filter estimates in next timestep
-    xNkalman1(:, i+1) = KF.xkp1_est;
-    yNkalman1(:, i+1) = KF.ykp1_est;
-    xNkalman2(:, i+1) = KFSS.xkp1_est;
-    yNkalman2(:, i+1) = KFSS.ykp1_est;
+    xNobserver(:, i+1) = LB.xkp1_est;
+    yNobserver(:, i+1) = LB.ykp1_est;
 
 end
 t = Ts * (0:nT)';
@@ -132,25 +130,30 @@ t = Ts * (0:nT)';
 % Display results
 sim_results = [table(t,U) ...
     array2table(xNprocess', 'VariableNames', {'x1', 'x2'}) ...
-    array2table(xNkalman1', 'VariableNames', {'x1_est_KF', 'x2_est_KF'}) ...
-    array2table(xNkalman2', 'VariableNames', {'x1_est_KFSS', 'x2_est_KFSS'}) ...
+    array2table(xNobserver', 'VariableNames', {'x1_est', 'x2_est'}) ...
     array2table(yNprocess', 'VariableNames', {'y'}) ...
-    array2table(yNkalman1', 'VariableNames', {'y_est_KF'}) ...
-    array2table(yNkalman2', 'VariableNames', {'y_est_KFSS'})];
+    array2table(yNobserver', 'VariableNames', {'y_est'}) ...
+];
 
 %head(sim_results)
 
+% Verify results by comparing with Luenb_no_integr_benchmark.mlx
 
-% Verify results by comparing with Kalman_Filter.mlx
-
-filename = 'Kalman_Filter_sim_benchmark.csv';
+filename = 'Luenberger_Filter_sim_benchmark.csv';
 bench_sim_results = readtable(fullfile('results', filename));
 
 %head(bench_sim_results)
 
+% Check states
 assert(isequal( ...
-    round(sim_results{1:100, {'x1', 'x2'}}, 7), ...
-    round(bench_sim_results{1:100, {'xNprocess_1', 'xNprocess_2'}}, 7) ...
+    round(sim_results{1:200, {'x1', 'x2'}}, 6), ...
+    round(bench_sim_results{1:200, {'x1', 'x2'}}, 6) ...
+))
+
+% Check state estimates
+assert(isequal( ...
+    round(sim_results{1:200, {'x1_est', 'x2_est'}}, 6), ...
+    round(bench_sim_results{1:200, {'x1_est', 'x2_est'}}, 6) ...
 ))
 
 

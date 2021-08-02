@@ -12,8 +12,10 @@ function obs = update_KF(obs, uk, yk)
 %       sample time k.
 %
 
-    % Update observer gain and covariance matrix
-    [obs.K, obs.P] = kalman_update(obs.P, obs.A, obs.C, obs.Q, obs.R);
+    if ~obs.static_gain
+        % Update observer gain and covariance matrix
+        [obs.K, obs.P] = kalman_update(obs.P, obs.A, obs.C, obs.Q, obs.R);
+    end
 
     % Update state and output estimates for next timestep
     obs.xkp1_est = obs.A * obs.xkp1_est + obs.B * uk + ...

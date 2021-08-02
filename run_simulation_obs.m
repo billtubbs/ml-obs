@@ -134,9 +134,7 @@ function sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, ...
                     % steady-state observers
 
                     % Update observer estimates
-                    obs.xkp1_est = obs.A * obs.xkp1_est + obs.B * uk_m ...
-                        + obs.K * (yk_m - obs.C * obs.xkp1_est);
-                    obs.ykp1_est = obs.C * obs.xkp1_est;
+                    obs = update_KF(obs, uk_m, yk_m);
 
                 case {'SKF', 'SKF1', 'SKF2'}  % Scheduled Kalman filters
 
