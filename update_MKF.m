@@ -1,7 +1,7 @@
 function obs = update_MKF(obs, uk, yk)
 % obs = update_MKF(obs) updates the multi-model Kalman
 % filter and calcultes the estimates of the states and 
-% output in current time period.
+% output at the next sample time..
 %
 % Arguments:
 %   obs : struct containing the multi-model Kalman filter
