@@ -12,9 +12,6 @@ function obs = update_MKF(obs, uk, yk)
 %       in current sample period.
 %
 
-    % Debugging option
-    show_plots = false;
-    
     % Update sequence index (i should be initialized at 0
     % and 1 <= obs.i <= obs.nf)
     obs.i = mod(obs.i, obs.nf) + 1;
@@ -50,26 +47,6 @@ function obs = update_MKF(obs, uk, yk)
 
         % Calculate normal probability density (multivariate)
         obs.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
-
-        % Display pdf and yk
-        if show_plots && f <= 7
-            figure(50+f); clf
-            %s3 = 3*sqrt(yk_cov);
-            s3 = 0.5;
-            x = linspace(yk_est - s3, yk_est + s3, 101);
-            y = normpdf(x, yk_est, sqrt(diag(yk_cov)));
-            plot(x, y); hold on
-            p_yk_est = normpdf(0, 0, sqrt(diag(yk_cov)));
-            stem(yk_est, p_yk_est)
-            p_yk = normpdf(yk, yk_est, sqrt(diag(yk_cov)));
-            plot(yk, p_yk, 'ok', 'MarkerFaceColor', 'k')
-            xlim([yk_est-s3 yk_est+s3])
-            ylim([0 10])
-            grid on
-            title(sprintf('Filter %d',f))
-            legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$','Interpreter','Latex')
-            set(gcf,'Position',[f*250-150 50 250 250])
-        end
 
         % Current model indicator values from each
         % filter's sequence
@@ -109,31 +86,15 @@ function obs = update_MKF(obs, uk, yk)
     % Bayesian update of Pr(Gamma(k)|Y(k))
     cond_pds = obs.p_yk_g_seq_Ykm1 .* p_seq_g_Ykm1;
     obs.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
-    
+
     % Save variables for debugging purposes
     obs.p_gamma_k = p_gamma_k;
     obs.p_seq_g_Ykm1 = p_seq_g_Ykm1;
-    
-    if show_plots
-        % Plot gamma_k, p_yk_g_seq_Ykm1 and 
-        figure(50)
-        subplot(3,1,1)
-        bar(1:obs.n_filt, obs.p_yk_g_seq_Ykm1)
-        title('$p(y(k)|\Gamma(k),Y(k-1))$','Interpreter','Latex')
-        subplot(3,1,2)
-        bar(1:obs.n_filt, p_gamma_k)
-        ylim([0, 1])
-        title('Shock probabilities $\gamma(k)$','Interpreter','Latex')
-        subplot(3,1,3)
-        bar(1:obs.n_filt, obs.p_seq_g_Yk)
-        xlabel('Filter')
-        title('$p(\Gamma(k)|Y(k))$','Interpreter','Latex')
-    end
 
-        % Compute multi-model observer state and output estimates
-        obs.xkp1_est = sum(Xkf_est .* obs.p_seq_g_Yk, 1)';
-        obs.ykp1_est = sum(Ykf_est .* obs.p_seq_g_Yk, 1)';
-        assert(~any(isnan(obs.xkp1_est)))
-        assert(~any(isnan(obs.ykp1_est)))
+    % Compute multi-model observer state and output estimates
+    obs.xkp1_est = sum(Xkf_est .* obs.p_seq_g_Yk, 1)';
+    obs.ykp1_est = sum(Ykf_est .* obs.p_seq_g_Yk, 1)';
+    assert(~any(isnan(obs.xkp1_est)))
+    assert(~any(isnan(obs.ykp1_est)))
 
 end
