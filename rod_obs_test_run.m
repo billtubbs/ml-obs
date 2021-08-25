@@ -8,13 +8,14 @@
 
 addpath('tblvertcat')
 
-%% Count number of MKF observers
+%% Count number of MKF/AFMM observers
 
 n_obs = numel(observers);
 n_obs_mkf = 0;
 observers_mkf = double.empty(1, 0);
 for i=1:n_obs
-    if startsWith(observers{i}.label, "MKF")
+    if startsWith(observers{i}.label, "MKF") ...
+            || startsWith(observers{i}.label, "AFMM")
         n_obs_mkf = n_obs_mkf + 1;
         observers_mkf(n_obs_mkf) = i;
     end
@@ -29,10 +30,9 @@ U = zeros(nT+1, nu);
 % Create measured input signals
 switch sum(u_meas)
     case 1
-        % TODO: Why does adding a step here change the results?
-        U(t >= 5, u_meas(1)) = -1;  % add a step
+        U(t >= 5, u_meas(1)) = 1;  % add a step
     case 2
-        U(t >= 5, u_meas(1)) = -1;  % add a step
+        U(t >= 5, u_meas(1)) = 1;  % add a step
         U(t >= 150, u_meas(2)) = 1;  % add a step
 end
 
@@ -193,7 +193,8 @@ for f = 1:n_obs
     counts = zeros(1, n);
     for i = 1:sum(n_shocks)
         errors = X_errors(rows(i):min(end, rows(i)+shock_period-1), (1:n)+(f-1)*n);
-        sum_sq_errors(1:size(errors,1),:) = sum_sq_errors(1:size(errors,1),:) + errors.^2;
+        sum_sq_errors(1:size(errors,1),:) = ...
+            sum_sq_errors(1:size(errors,1),:) + errors.^2;
         counts = counts + size(errors, 1);
     end
     shock_mses = sum_sq_errors ./ counts;

@@ -63,7 +63,8 @@ function sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, ...
     n_obs_mkf = 0;
     observers_mkf = nan(1, n_obs_mkf);
     for i = 1:n_obs
-        if startsWith(observers{i}.label, "MKF")
+        if startsWith(observers{i}.label, "MKF") ...
+                || startsWith(observers{i}.label, "AFMM")
             n_obs_mkf = n_obs_mkf + 1;
             observers_mkf(n_obs_mkf) = i;
         end
@@ -87,11 +88,24 @@ function sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, ...
         observers{j}.ykp1_est = zeros(ny,1);
         observers{j}.error = zeros(ny,1);
     end
+    
+    % Choose debugging point
+    k_stop = -1;  % no debugging
+    %k_stop = 184;
+    show_plots = false;
 
     % Start simulation at k = 0 (i = 1)
     for ki = 0:nT
         
         i = find(ki == k);
+        
+        % Use this for debugging - set k_stop above
+        if ki == k_stop
+            show_plots = true;
+            k_stop = ki + 1;
+        else
+            show_plots = false;
+        end
         
         % Calculate current process outputs
         yk = C*xk;
@@ -154,7 +168,7 @@ function sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, ...
                     % multi-model Kalman filters
 
                     % Update observer estimates
-                    obs = update_MKF(obs, uk_m, yk_m);
+                    obs = update_MKF(obs, uk_m, yk_m, show_plots);
 
                     % Save simulation data for plotting later
                     f_mkf = find(observers_mkf == j);
@@ -165,6 +179,22 @@ function sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, ...
                     end
                     MKF_p_seq_g_Yk{f_mkf}(i, :) = obs.p_seq_g_Yk';
 
+                case {'AFMM', 'AFMM1', 'AFMM2'}
+                    % adaptive multi-model Kalman filters
+
+                    % Update observer estimates
+                    obs = update_AFMM(obs, uk_m, yk_m);
+
+                    % Save simulation data for plotting later
+                    f_mkf = find(observers_mkf == j);
+                    MKF_i{f_mkf}(i) = obs.i;
+                    for f = 1:obs.n_filt
+                        MKF_X_est{f_mkf}(i, n*(f-1)+1:n*f) = ...
+                            obs.filters{f}.xkp1_est';
+                    end
+                    MKF_p_seq_g_Yk{f_mkf}(i, :) = obs.p_seq_g_Yk';
+
+
                 otherwise
                     error('Value error: observer type not recognized')
 
@@ -173,6 +203,13 @@ function sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, ...
             % save changes
             observers{j} = obs;
 
+        end
+
+        % Use this for step-by-step debugging
+        if show_plots
+            fprintf("%d: t = %g\n", ki, t(i));
+            disp("k_stop reached");  % debug here
+            show_plots = false;
         end
 
         % Calculate process states in next timestep

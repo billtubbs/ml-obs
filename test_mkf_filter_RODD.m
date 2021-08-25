@@ -6,6 +6,9 @@ plot_dir = 'plots';
 seed = 0;
 rng(seed)
 
+
+%% Test observers for SISO system
+
 % Load system and disturbance model from file
 sys_rodin_step
 
@@ -16,7 +19,8 @@ sigma_W = [0; 0];
 % Load observers from file
 obs_rodin_step
 
-assert(MKF1.epsilon == 0.01)
+% Test
+assert(MKF1.epsilon == epsilon)
 assert(isequal(MKF1.sigma_wp, sigma_wp))
 assert(MKF1.n_filt == 7)
 assert(MKF1.i == 0)
@@ -29,8 +33,10 @@ assert(isequal(MKF1.B{1}, B) && isequal(MKF1.B{2}, B))
 assert(isequal(MKF1.C{1}, C) && isequal(MKF1.C{2}, C))
 assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
 assert(MKF1.Ts == Ts)
+assert(isequal(size(MKF1.Q), [1 2]))
 assert(isequal(MKF1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
 assert(isequal(MKF1.Q{2}, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequal(size(MKF1.R), [1 2]))
 assert(isequal(MKF1.R{1}, R) && isequal(MKF1.R{2}, R))
 assert(numel(MKF1.filters) == MKF1.n_filt)
 assert(isequal(size(MKF1.seq), [MKF1.n_filt 1]))
@@ -41,8 +47,9 @@ assert(isequal(size(MKF1.xkp1_est), [n 1]))
 assert(isequal(size(MKF1.ykp1_est), [ny 1]))
 assert(isequal(MKF1.p_gamma, [1-MKF1.epsilon; MKF1.epsilon]))
 
-assert(MKF2.epsilon == 0.01)
-assert(MKF2.n_filt == 16)
+assert(MKF2.epsilon == epsilon)
+assert(isequal(MKF2.sigma_wp, sigma_wp))
+assert(MKF2.n_filt == 56)
 assert(MKF2.i == 0)
 assert(MKF2.n == n)
 assert(MKF2.nu == nu)
@@ -53,8 +60,10 @@ assert(isequal(MKF2.B{1}, B) && isequal(MKF2.B{2}, B))
 assert(isequal(MKF2.C{1}, C) && isequal(MKF2.C{2}, C))
 assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
 assert(MKF2.Ts == Ts)
+assert(isequal(size(MKF2.Q), [1 2]))
 assert(isequal(MKF2.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
 assert(isequal(MKF2.Q{2}, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequal(size(MKF1.R), [1 2]))
 assert(isequal(MKF2.R{1}, R) && isequal(MKF2.R{2}, R))
 assert(numel(MKF2.filters) == MKF2.n_filt)
 assert(isequal(size(MKF2.seq), [MKF2.n_filt 1]))
@@ -88,7 +97,6 @@ U_sim = [U Wp];
 Du = zeros(size(U_sim));
 Du(t >= t_shock, 1) = du0;
 
-
 % Custom MKF test observer
 
 % Devise a custom multi-model filter with a shock indicator 
@@ -108,18 +116,19 @@ R2 = {sigma_M^2, sigma_M^2};
 seq = {zeros(1, nT+1); zeros(1, nT+1)};
 seq{2}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
-MKF3 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,p_gamma,'MKF3');
+T = repmat(p_gamma', 2, 1);
+MKF3 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF3');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
-MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,p_gamma,'MKF4');
+T = repmat(p_gamma', 2, 1);
+MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF4');
 
 % Choose observers to test
 observers = {KF2, KF3, SKF, MKF1, MKF2, MKF3, MKF4};
 
 % Note: KF1 is too slow to pass static error test here
-
 
 % Simulate system
 X = zeros(nT+1,n);
@@ -149,7 +158,7 @@ assert(isequal(X, X2))
 assert(isequal(Y, Y2))
 
 % Choose measurement noise for plant
-sigma_MP = 0;
+sigma_MP = 0;  % Set to zero for testing
 Y_m = Y + sigma_MP'.*randn(size(Y));
 
 
@@ -182,13 +191,16 @@ for i = 1:n_obs
     % Compute mean-squared error
     Y_est = sim_results.Y_est;
     MSE(obs.label) = mean((Y_est - Y).^2);
-    %fprintf("Observer %s tested\n", obs.label)
+    %fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
+    
+    % Save updated observer
+    observers{i} = obs;
 
 end
 
 MSE_test_values = containers.Map(...
     {'KF2', 'KF3', 'SKF', 'MKF1', 'MKF2', 'MKF3', 'MKF4'}, ...
-    [0.000934 0.003524 0.000929 0.004914 0.005950 0.002709 0.000929]' ...
+    [0.000934 0.003524 0.000929 0.004914 0.005016 0.002709 0.000929]' ...
 );
 
 for label = MSE.keys
@@ -197,23 +209,23 @@ end
 
 
 % % Display results of last simulation
-% 
+
 % X_est = sim_results.X_est;
 % E_obs = sim_results.E_obs;
 % K_obs = sim_results.K_obs;
 % trP_obs = sim_results.trP_obs;
-% 
+
 % table(t,alpha,U,Du,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
 % 
 % % Display gains and trace of covariance matrix
 % table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
 %     'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
-% 
-% % Show table of mean-squared errors
+
+% Show table of mean-squared errors
 % table(MSE.keys', cell2mat(MSE.values'), ...
 %     'VariableNames', {'Observer', 'MSE'})
-% 
-% 
+
+
 % % Plot of inputs and outputs
 % 
 % set(groot,'defaultAxesTickLabelInterpreter','latex');
@@ -335,6 +347,132 @@ end
 %         title('Filter correction gains (k1)')
 % 
 % end
+
+
+%% Test initialization of MKF observers on 2x2 system
+
+% Sample time
+Ts = 1;
+
+% Discrete time state space model
+A = [ 0.8890       0  1 -1;
+           0  0.9394  1  1;
+           0       0  1  0;
+           0       0  0  1];
+B = [ 1 -1  0  0;
+      1  1  0  0;
+      0  0  1  0;
+      0  0  0  1];
+C = [-0.07769  0       0  0;
+            0  0.09088 0  0];
+D = zeros(2, 4);
+Gpss = ss(A,B,C,D,Ts);
+
+% Dimensions
+n = size(A, 1);
+nu = size(B, 2);
+ny = size(C, 1);
+
+% Designate measured input and output signals
+u_meas = [true; true; false; false];
+y_meas = [true; true];
+
+% RODD random variable parameters
+epsilon = [0.01; 0.01];
+sigma_M = [0.1; 0.1];
+sigma_wp = [0.01 1; 0.01 1];
+
+% Multiple model filter 1
+label = 'MKF1';
+P0 = 1000*eye(n);
+Q0 = diag([0.01 0.01 1 1]);
+R = diag(sigma_M.^2);
+f = 3;  % 5 fusion horizon
+m = 1;  % 1 maximum number of shocks
+d = 2;  % 10 spacing parameter
+MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,label);
+
+% Multiple model filter 2
+label = 'MKF2';
+P0 = 1000*eye(n);
+Q0 = diag([0.01 0.01 1 1]);
+R = diag(sigma_M.^2);
+f = 5;  % 10 fusion horizon
+m = 2;  % 2 maximum number of shocks
+d = 2;  % 5 spacing parameter
+MKF2 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,label);
+
+% Tests for MKF1
+assert(isequal(MKF1.epsilon, epsilon))
+assert(isequal(MKF1.sigma_wp, sigma_wp))
+assert(MKF1.n_filt == 7)
+assert(MKF1.i == 0)
+assert(MKF1.n == n)
+assert(MKF1.nu == nu)
+assert(MKF1.ny == ny)
+assert(MKF1.nj == 3)
+assert(isequal(MKF1.A{1}, A) && isequal(MKF1.A{2}, A))
+assert(isequal(MKF1.B{1}, B) && isequal(MKF1.B{2}, B))
+assert(isequal(MKF1.C{1}, C) && isequal(MKF1.C{2}, C))
+assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
+assert(MKF1.Ts == Ts)
+assert(isequal(size(MKF1.Q), [1 3]))
+assert(isequal(MKF1.Q{1}, ...
+    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 1).^2])))
+assert(isequal(MKF1.Q{2}, ...
+    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 2).^2])))
+assert(isequal(MKF1.Q{3}, ...
+    diag([0.01 0.01 sigma_wp(1, 2).^2 sigma_wp(2, 1).^2])))
+assert(isequal(size(MKF1.R), [1 3]))
+assert(isequal(MKF1.R{1}, R) && isequal(MKF1.R{2}, R) && isequal(MKF1.R{3}, R))
+assert(numel(MKF1.filters) == MKF1.n_filt)
+assert(isequal(size(MKF1.seq), [MKF1.n_filt 1]))
+assert(isequal(size(cell2mat(MKF1.seq)), [MKF1.n_filt MKF1.f*MKF1.d]))
+assert(MKF1.beta == sum(MKF1.p_seq))
+assert(MKF1.nf == size(MKF1.seq{1}, 2))
+assert(isequal(size(MKF1.xkp1_est), [n 1]))
+assert(isequal(size(MKF1.ykp1_est), [ny 1]))
+assert(isequal(round(MKF1.p_gamma, 6), [0.980198; 0.009901; 0.009901]))
+
+% Tests for MKF2
+assert(isequal(MKF2.epsilon, epsilon))
+assert(isequal(MKF2.sigma_wp, sigma_wp))
+assert(MKF2.n_filt == 56)
+assert(MKF2.i == 0)
+assert(MKF2.n == n)
+assert(MKF2.nu == nu)
+assert(MKF2.ny == ny)
+assert(MKF2.nj == 4)
+assert(isequal(MKF2.A{1}, A) && isequal(MKF2.A{2}, A))
+assert(isequal(MKF2.B{1}, B) && isequal(MKF2.B{2}, B))
+assert(isequal(MKF2.C{1}, C) && isequal(MKF2.C{2}, C))
+assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
+assert(MKF2.Ts == Ts)
+assert(isequal(size(MKF2.Q), [1 4]))
+assert(isequal(MKF2.Q{1}, ...
+    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 1).^2])))
+assert(isequal(MKF2.Q{2}, ...
+    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 2).^2])))
+assert(isequal(MKF2.Q{3}, ...
+    diag([0.01 0.01 sigma_wp(1, 2).^2 sigma_wp(2, 1).^2])))
+assert(isequal(MKF2.Q{4}, ...
+    diag([0.01 0.01 sigma_wp(1, 2).^2 sigma_wp(2, 2).^2])))
+assert(isequal(size(MKF2.R), [1 4]))
+assert(isequal(MKF2.R{1}, R) && isequal(MKF2.R{2}, R))
+assert(isequal(MKF2.R{3}, R) && isequal(MKF2.R{4}, R))
+assert(numel(MKF2.filters) == MKF2.n_filt)
+assert(isequal(size(MKF2.seq), [MKF2.n_filt 1]))
+assert(isequal(size(cell2mat(MKF2.seq)), [MKF2.n_filt MKF2.f*MKF2.d]))
+assert(MKF2.beta == sum(MKF2.p_seq))
+assert(MKF2.nf == size(MKF2.seq{1}, 2))
+assert(isequal(size(MKF2.xkp1_est), [n 1]))
+assert(isequal(size(MKF2.ykp1_est), [ny 1]))
+assert(isequal(round(MKF2.p_gamma, 6), ...
+    [0.9801; 0.0099; 0.0099; 0.0001]))
+
+% TODO: What about a simulation test?
 
 
 function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...

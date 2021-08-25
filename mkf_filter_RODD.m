@@ -1,6 +1,6 @@
-function MKF = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label)
-% MKF = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %   Q0,R,f,m,d,label)
 %
 % Creates a struct for simulating a multi-model Kalman 
@@ -31,7 +31,7 @@ function MKF = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
 %     Detection and estimation of randomly occurring 
 %     deterministic disturbances. Proceedings of 1995 American
-%     Control Conference - ACC?95, 6, 4453?4457. 
+%     Control Conference - ACC?95, 6, 4453-4457. 
 %     https://doi.org/10.1109/ACC.1995.532779
 %
 
@@ -48,21 +48,30 @@ function MKF = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     S = combinations_lte(f*n_dist, m);
 
     % Probability of no-shock / shock each period
+    % TODO: Is this actually used?
     p = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d)';
     p = [ones(size(p))-p; p];
 
+    % Probabilities of no-shock, shock
+    p_gamma = [1-epsilon epsilon]';
+
+    % Check size of process covariance default matrix
+    assert(isequal(size(Q0), [n n]))
+
     if n_dist == 1
 
+        % Number of Q matrices needed
         nj = 2;
-        % TODO: This only works if n = 2
-        assert(n == 2)
-        Q = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
-             diag([Q0(1,1) sigma_wp(1,2)^2])};
 
-        % Probabilities of no-shock, shock
-        p_gamma = [1-epsilon epsilon]';
+        % Generate required Q matrices
+        Q = cell(1, nj);
+        for i = 1:nj
+            var_x = diag(Q0);
+            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(:, i).^2';
+            Q{i} = diag(var_x);
+        end
 
-    else
+    elseif n_dist > 1
         
         % Note: In the case of more than one input disturbance,
         % there may be multiple combinations of disturbances
@@ -86,23 +95,32 @@ function MKF = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
         S = mat2cell(S, ones(n_filt, 1), f);
 
         % Generate required Q matrices
-        assert(isequal(size(Q0), [n n]))
         Q = cell(1, nj);
         for i = 1:nj
             ind = Z(i, :) + 1;
             var_x = diag(Q0);
             idx = sub2ind(size(sigma_wp), 1:n_dist, ind);
-            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx)';
+            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2';
             Q{i} = diag(var_x);
         end
-        
-        % Probabilities of no-shock, shock
-        p_gamma = [1-epsilon epsilon]';
-        
-        % Indicator value probabilities
+
+        % Modified indicator value probabilities
         p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
+
+        % Normalize so that sum(Pr(gamma(k))) = 1
+        % TODO: Is this the right thing to do for sub-optimal approach?
+        p_gamma = p_gamma ./ sum(p_gamma);
+
+    else
         
+        error("Value error: no unmeasured inputs")
+
     end
+
+    % Transition probability matrix
+    % Note that for RODD disturbances Pr(gamma(k)) is
+    % assumed to be an independent random variable.
+    T = repmat(p_gamma', nj, 1);
 
     % Create lengthened indicator sequences by inserting
     % zeros between periods when shocks occur.
@@ -113,6 +131,12 @@ function MKF = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
         seq{i} = zeros(size(S{i}, 1), f*d);
         seq{i}(:, (1:f) * d) = S{i};
     end
+
+    % Sequence probabilities Pr(Gamma(k))
+    p_seq = prob_Gammas(seq, p_gamma);
+
+    % Tolerance parameter (total probability of defined sequences)
+    beta = sum(p_seq);
 
     % System model does not change
     A = repmat({A}, 1, nj);
@@ -125,22 +149,21 @@ function MKF = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     P0_init = repmat({P0}, 1, n_filt);
 
     % Create MKF observer struct
-    MKF = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,p_gamma,label);
+    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,label);
 
     % Add additional variables used by RODD observer
-    MKF.S = S;
-    MKF.P0 = P0;
-    MKF.Q0 = Q0;
-    MKF.epsilon = epsilon;
-    MKF.sigma_wp = sigma_wp;
-    MKF.f = f;
-    MKF.m = m;
-    MKF.d = d;
-    MKF.p = p;
-
-    % Additional unused variables included for compatibility
-    % with other types of MKF filters
-    MKF.nj = nj;  % number of switching systems
-    MKF.T = [1-epsilon epsilon; 1 0];  % transition probability matrix
+    obs.S = S;
+    obs.P0 = P0;
+    obs.Q0 = Q0;
+    obs.epsilon = epsilon;
+    obs.sigma_wp = sigma_wp;
+    obs.f = f;
+    obs.m = m;
+    obs.d = d;
+    obs.p = p;
+    obs.beta = beta;
+    obs.p_gamma = p_gamma;
+    obs.p_seq = p_seq;
+    obs.nj = nj;
 
 end

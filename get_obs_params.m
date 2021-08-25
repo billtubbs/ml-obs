@@ -45,6 +45,7 @@ function T = get_obs_params(obs)
             params.Q0 = obs.Q0;
             params.R = obs.R;
             params.epsilon = obs.epsilon;
+            params.sigma_wp = obs.sigma_wp;
             params.f = obs.f;
             params.m = obs.m;
             params.d = obs.d;
@@ -64,6 +65,19 @@ function T = get_obs_params(obs)
             params.beta = obs.beta;
             T = objects2tablerow(containers.Map({obs.label}, {params}));
             
+        case {'AFMM', 'AFMM1', 'AFMM2'}  % adaptive multi-model Kalman filter
+
+            % Params to return
+            params.P0 = obs.P0;
+            params.Q0 = obs.Q0;
+            params.R = obs.R;
+            params.epsilon = obs.epsilon;
+            params.sigma_wp = obs.sigma_wp;
+            params.n_filt = obs.n_filt;
+            params.f = obs.f;
+            params.n_min = obs.n_min;
+            T = objects2tablerow(containers.Map({obs.label}, {params}));
+
         otherwise
             error('Value error: observer type not recognized')
 end

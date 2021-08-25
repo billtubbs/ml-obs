@@ -55,8 +55,8 @@ assert(isequal(size(R1), size(R2)))
 %% Kalman filter with multi-model switching system
 
 % Transition probabilities
-p_gamma = [0.9; 0.1];
-assert(sum(p_gamma) == 1)
+T = [0.9 0.1; 0.9 0.1];
+assert(all(sum(T, 2) == 1))
 
 % System indicator sequences
 seq = {
@@ -75,7 +75,7 @@ D = {D1, D2};
 Q = {Q1, Q2};
 R = {R1, R2};
 P0 = repmat({diag([1e-4 1e-4])}, n_filt, 1);
-MKF = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,p_gamma,"MKF");
+MKF = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,"MKF");
 
 assert(MKF.n_filt == n_filt)
 assert(MKF.n_filt == numel(MKF.filters))
@@ -84,12 +84,11 @@ assert(MKF.n == n)
 assert(MKF.nu == nu)
 assert(MKF.ny == ny)
 assert(MKF.Ts == Ts)
-assert(MKF.beta == sum(MKF.p_seq))
 assert(MKF.nf == size(MKF.seq{1}, 2))
 assert(MKF.nj == 2)
 assert(isequal(size(MKF.xkp1_est), [n 1]))
 assert(isequal(size(MKF.ykp1_est), [ny 1]))
-assert(isequal(MKF.p_gamma, p_gamma))
+assert(isequal(MKF.T, T))
 
 % Simulation settings
 nT = 50;
@@ -101,7 +100,7 @@ Wp = sigma_w * randn(size(t));
 U_sim = [U Wp];
 
 % Switching sequence
-Gamma = int8(rand(nT+1, 1) > p_gamma(1));
+Gamma = int8(rand(nT+1, 1) > T(1, 1));
 
 % Simulate system
 X = zeros(nT+1,n);
@@ -161,15 +160,23 @@ for i=1:nT+1
     end
 end
 
+% Combine results
+sim_results = table(t,Gamma,U,Wp,X,Y,X_est,Y_est,E_obs,K_obs,trP_obs);
 
-% % Display results
-% 
-% table(t,Gamma,U,Wp,X,Y,X_est,Y_est,E_obs,K_obs,trP_obs)
-% 
-% % Compute mean-squared error
-% mse = mean((Y_est - Y).^2)
-% 
-% 
+% Display results
+%sim_results
+
+% Compare simulation results to saved data
+results_dir = 'results';
+filename = 'mkf_test_sim_results.csv';
+test_sim_results = readtable(fullfile(results_dir, filename));
+assert(all(abs(sim_results{:, 'X_est'} ...
+    - test_sim_results{:, {'X_est_1', 'X_est_2'}}) < 1e-10, [1 2]))
+
+% Compute mean-squared error
+mse = mean((Y_est - Y).^2);
+assert(round(mse, 4) == 0.0188)
+
 % % Plot of inputs and outputs
 % 
 % figure(1); clf

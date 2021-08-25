@@ -80,17 +80,17 @@ MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % seq_mod(5:6, :) = circshift(seq_mod(5:6,:),-1,2);
 % seq_mod(6,2:3) = [0 1];
 % MKF1m = MKF1;  % make a copy
-% MKF1m.seq = mat2cell(seq_mod, ones(7,1), 9);
+% MKF1m.seq = mat2cell(seq_mod, ones(MKF1.n_filt,1), MKF1.nf);
 % MKF1m.label = strcat(MKF1.label, 'm');
 
 % Multiple model filter 2
 label = 'MKF2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 nan]);
+Q0 = diag([Q1 1]);
 R = sigma_M^2;
-f = 5;  % 10 fusion horizon
-m = 2;  % 2 maximum number of shocks
-d = 3;  % 2 spacing parameter
+f = 10;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 1;  % spacing parameter
 MKF2 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
@@ -106,8 +106,30 @@ MKF2 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % seq_mod(36:36, 7:end) = circshift(seq_mod(36:36, 7:end), -1, 2);
 % seq_mod(37:41, 9:end) = circshift(seq_mod(37:41, 9:end), -1, 2);
 % MKF2m = MKF2;  % make a copy
-% MKF2m.seq = mat2cell(seq_mod, ones(56,1), 20);
+% MKF2m.seq = mat2cell(seq_mod, ones(MKF1.n_filt,1), MKF2.nf);
 % MKF2m.label = strcat(MKF2.label, 'm');
 
 % General MKF equivalent to MKF2
 %MKF3 = mkf_filter({A,A},{B,B},{C,C},{D,D},Ts,repmat({P0},1,MKF2.n_filt),Q,R,MKF2.S,MKF2.p_seq,d,'MKF3');
+
+% Multiple model AFMM filter 1
+label = 'AFMM1';
+P0 = 1000*eye(n);
+Q0 = diag([Q1 1]);
+R = sigma_M^2;
+f = 100;  % sequence history length
+n_filt = 5;  % number of filters
+n_min = 2;  % minimum life of cloned filters
+AFMM1 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label);
+
+% Multiple model AFMM filter 2
+label = 'AFMM2';
+P0 = 1000*eye(n);
+Q0 = diag([Q1 1]);
+R = sigma_M^2;
+f = 100;  % sequence history length
+n_filt = 10;  % number of filters
+n_min = 3;  % minimum life of cloned filters
+AFMM2 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label);

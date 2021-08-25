@@ -1,4 +1,4 @@
-%% System model definition
+%% SISO system model for testing observers
 %
 % Discrete transfer function polynomial models for a
 % first-order process with a RODD step disturbance at
