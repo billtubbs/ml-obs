@@ -11,7 +11,8 @@ Observers currently included:
 
 Multi-model observers:
 - [mkf_filter.m](mkf_filter.m) - general purpose multi-model Kalman filter observer
-- [mkf_filter_RODD.m](mkf_filter_RODD.m) - multi-model Kalman filter observer for state estimation in the presence of randomly-occurring deterministic disturbances (RODDs) as described in Robertson et al. [[2]](#2).
+- [mkf_filter_RODD.m](mkf_filter_RODD.m) - multi-model Kalman filter observer for state estimation in the presence of randomly-occurring deterministic disturbances (RODDs) as described in Robertson et al. [[2]](#2)
+- [mkf_filter_AFMM.m](mkf_filter_AFMM.m) - multi-model Kalman filter using the adaptive forgetting through multiple models (AFMM) algorithm for state estimation in the presence of infrequently-occurring deterministic disturbances as described in Eriksson and Isaksson [[3]](#3).
 
 ## Installation
 
@@ -98,7 +99,7 @@ title("Observer estimates compared to process measurements")
 See the following LiveScripts for more detailed examples of how to use the functions:
 
 - [kalman_example_SISO.mlx](kalman_example_SISO.mlx) - Kalman filter simulation on a simple single-input, single-output system
-- [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model RODD observer example on a 2x2 multivariable system
+- [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model observer examples on a 2x2 multivariable system
 
 ## Testing
 
@@ -109,3 +110,5 @@ A number of unit test scripts are included.  You can run all the tests by runnin
 <a id="1">[1]</a> Kalman, R. E. (1960). A New Approach to Linear Filtering and Prediction Problems. Journal of Basic Engineering. 82: 35–45. https://doi.org/10.1115%2F1.3662552.
 
 <a id="2">[2]</a> Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). Detection and estimation of randomly occurring deterministic disturbances. Proceedings of 1995 American Control Conference - ACC 95, 6, 4453–4457. https://doi.org/10.1109/ACC.1995.532779
+
+<a id="3">[3]</a> Eriksson, P.-G., & Isaksson, A. J. (1996). Classification of Infrequent Disturbances. IFAC Proceedings Volumes, 29(1), 6614–6619. https://doi.org/10.1016/S1474-6670(17)58744-3
