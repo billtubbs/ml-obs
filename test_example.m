@@ -1,4 +1,6 @@
-%% Test Minimal example used in ReadMe
+% Test Minimal example used in ReadMe
+
+clear all
 
 % Measured inputs
 u = [     0     0     1     1     1     1     1     1     1     1 ...
@@ -30,6 +32,7 @@ Q = 0.01;  % estimated process noise variance
 R = 0.5^2;  % estimated measurement noise variance
 obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF1');
 
+
 %% Simulate the observer and record the output estimates:
 
 % Number of sample periods
@@ -58,7 +61,7 @@ y_est_test = [
 assert(isequal(round(y_est, 4), y_est_test))
 
 
-%% Compare observer output estimates to measurement data
+% Plot observer output estimates to measurement data
 
 % figure(1)
 % t = Ts*(0:nT)';
