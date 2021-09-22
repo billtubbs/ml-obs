@@ -32,9 +32,6 @@ function obs = update_AFMM(obs, uk, yk)
 %     6614–6619. https://doi.org/10.1016/S1474-6670(17)58744-3
 %
 
-    % Run generic MKF updates and probability calcs first
-    obs = update_MKF(obs, uk, yk);
-
     % Filter pruning algorithm
     %
     % - As described in Eriksson and Isaksson (1996):
@@ -57,7 +54,7 @@ function obs = update_AFMM(obs, uk, yk)
     % sequences are created each time step, so the
     % holding group needs to be n_dist*obs.n_min in size.
 
-    % Index of most likely sequence
+    % Index of current most likely sequence
     [~, f_max] = max(obs.p_seq_g_Yk);
 
     % Set next sequence value to 0 (no shock) for
@@ -102,9 +99,8 @@ function obs = update_AFMM(obs, uk, yk)
     % forgetting factor as described in Anderson (1995)
     % equation (4.3).
     
-    % TODO: When to re-normalize probabilities?
-    % Doing it here does not seem to change anything so is it 
-    % correct to do it as part of update_MKF above? 
-    %obs.p_seq_g_Yk = obs.p_seq_g_Yk ./ sum(obs.p_seq_g_Yk);
+    % Run generic MKF updates and probability calcs first
+    obs = update_MKF(obs, uk, yk);
+
 
 end

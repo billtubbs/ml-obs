@@ -17,8 +17,8 @@ function obs = update_MKF(obs, uk, yk, show_plots)
         show_plots = false;
     end
 
-    % Update sequence index (i should be initialized at 0
-    % and 1 <= obs.i <= obs.nf)
+    % increment sequence index (i should be initialized at 0
+    % and 1 <= obs.i <= obs.nf thereafter)
     obs.i = mod(obs.i, obs.nf) + 1;
 
     % Arrays to collect estimates from each filter
@@ -113,6 +113,8 @@ function obs = update_MKF(obs, uk, yk, show_plots)
     % Bayesian update of Pr(Gamma(k)|Y(k))
     cond_pds = obs.p_yk_g_seq_Ykm1 .* p_seq_g_Ykm1;
     obs.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
+    % Note: above calculation normalizes p_seq_g_Yk so that
+    % assert(abs(sum(obs.p_seq_g_Yk) - 1) < 1e-15) % is always true
 
     % Save variables for debugging purposes
     obs.p_gamma_k = p_gamma_k;
