@@ -19,7 +19,7 @@ sigma_W = [0; 0];
 % Load observers from file
 obs_rodin_step
 
-% Test
+% Check observer attributes
 assert(MKF1.epsilon == epsilon)
 assert(isequal(MKF1.sigma_wp, sigma_wp))
 assert(MKF1.n_filt == 7)
@@ -43,8 +43,8 @@ assert(isequal(size(MKF1.seq), [MKF1.n_filt 1]))
 assert(isequal(size(cell2mat(MKF1.seq)), [MKF1.n_filt MKF1.f*MKF1.d]))
 assert(MKF1.beta == sum(MKF1.p_seq))
 assert(MKF1.nf == size(MKF1.seq{1}, 2))
-assert(isequal(size(MKF1.xkp1_est), [n 1]))
-assert(isequal(size(MKF1.ykp1_est), [ny 1]))
+assert(isequal(MKF1.xkp1_est, zeros(n,1)))
+assert(isequal(MKF1.ykp1_est, zeros(ny,1)))
 assert(isequal(MKF1.p_gamma, [1-MKF1.epsilon; MKF1.epsilon]))
 
 assert(MKF2.epsilon == epsilon)
@@ -70,10 +70,16 @@ assert(isequal(size(MKF2.seq), [MKF2.n_filt 1]))
 assert(isequal(size(cell2mat(MKF2.seq)), [MKF2.n_filt MKF2.f*MKF2.d]))
 assert(MKF2.beta == sum(MKF2.p_seq))
 assert(MKF2.nf == size(MKF2.seq{1}, 2))
-assert(isequal(size(MKF2.xkp1_est), [n 1]))
-assert(isequal(size(MKF2.ykp1_est), [ny 1]))
+assert(isequal(MKF2.xkp1_est, zeros(n,1)))
+assert(isequal(MKF2.ykp1_est, zeros(ny,1)))
 assert(isequal(MKF2.p_gamma, [1-MKF2.epsilon; MKF2.epsilon]))
 
+% Check optional definition with an initial state estimate works
+x0 = [0.1; 0.5];
+MKF_testx0 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,label,x0);
+assert(isequal(MKF_testx0.xkp1_est, x0))
+assert(isequal(MKF_testx0.ykp1_est, C * x0))
 
 % Simulation settings
 nT = 100;

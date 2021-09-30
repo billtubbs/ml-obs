@@ -18,10 +18,15 @@ end
 Q = diag([0.1; 0.1]);
 R = 0.5;
 N = zeros(n,ny);
+x0 = [0.1; 0.5];
 
 % Define steady-state Kalman filter using kalman_filter_ss function
-KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS");
+KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS",x0);
+assert(isequal(KFSS.xkp1_est, x0))
+assert(KFSS.ykp1_est == C * x0)
 
+% Re-define with no initial state specified (should be set to zero)
+KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS");
 K_test = [0.7727; 0.7557];
 P_test = [1.5098    1.2170;
           1.2170    1.2191];
@@ -29,7 +34,7 @@ P_test = [1.5098    1.2170;
 assert(KFSS.static_gain == true)
 assert(isequal(round(KFSS.K, 4), K_test))
 assert(isequal(round(KFSS.P, 4), P_test))
-assert(isequal(KFSS.xkp1_est, zeros(2, 1)))
+assert(isequal(KFSS.xkp1_est, zeros(n, 1)))
 assert(KFSS.ykp1_est == 0)
 
 % Define dynamic Kalman filter using kalman_filter function

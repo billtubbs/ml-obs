@@ -75,6 +75,12 @@ D = {D1, D2};
 Q = {Q1, Q2};
 R = {R1, R2};
 P0 = repmat({diag([1e-4 1e-4])}, n_filt, 1);
+x0 = [0.1; 0.5];
+MKF = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,"MKF",x0);
+assert(isequal(MKF.xkp1_est, x0))
+assert(isequal(MKF.ykp1_est, C{1} * x0))
+
+% Re-define with no initial state specified (should be set to zero)
 MKF = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,"MKF");
 
 assert(MKF.n_filt == n_filt)
@@ -86,9 +92,9 @@ assert(MKF.ny == ny)
 assert(MKF.Ts == Ts)
 assert(MKF.nf == size(MKF.seq{1}, 2))
 assert(MKF.nj == 2)
-assert(isequal(size(MKF.xkp1_est), [n 1]))
-assert(isequal(size(MKF.ykp1_est), [ny 1]))
 assert(isequal(MKF.T, T))
+assert(isequal(MKF.xkp1_est, zeros(n, 1)))
+assert(MKF.ykp1_est == 0)
 
 % Simulation settings
 nT = 50;

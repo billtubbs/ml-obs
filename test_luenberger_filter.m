@@ -35,7 +35,15 @@ N = zeros(n,ny);
 
 % Define Luenberger observer
 poles = [0.9; 0.9];
+x0 = [0.1; 0.5];
+LB = luenberger_filter(A,B,C,D,Ts,poles,"LB1",x0);
+assert(isequal(LB.xkp1_est, x0))
+assert(LB.ykp1_est == C * x0)
+
+% Re-define with no initial state specified (should be set to zero)
 LB = luenberger_filter(A,B,C,D,Ts,poles,"LB1");
+assert(isequal(LB.xkp1_est, zeros(n, 1)))
+assert(LB.ykp1_est == 0)
 
 K_test = [0.16; 0];
 

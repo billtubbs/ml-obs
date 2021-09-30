@@ -1,11 +1,11 @@
-function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label)
-% MKF = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label)
+function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
+% obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
 %
 % Creates a struct for simulating a multi-model Kalman filter
 % for state estimation of a Markov jump linear system.
 %
 % Arguments:
-%	A, B, C, D : cell arrays containing discrete time system
+%	A, B, C, D : cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : sample period.
 %   P0 : cell array of initial values of covariance matrices
@@ -18,8 +18,19 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label)
 %   T : transition probabity matrix of the Markov switching
 %       process.
 %   label : string name.
+%   x0 : intial state estimates (optional).
 %
 
+    % Number of switching systems
+    nj = numel(A);
+
+    % System dimensions
+    n = size(A{1}, 1);
+    nu = size(B{1}, 2);
+    ny = size(C{1}, 1);
+    if nargin == 11
+        x0 = zeros(n,1);
+    end
     obs.A = A;
     obs.B = B;
     obs.C = C;
@@ -36,14 +47,6 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label)
 
     % Initialize covariance matrix of estimation errors
     obs.P = P0;
-
-    % Number of switching systems
-    nj = numel(A);
-
-    % System dimensions
-    n = size(A{1}, 1);
-    nu = size(B{1}, 2);
-    ny = size(C{1}, 1);
 
     % Check system matrix dimensions. All systems must
     % have same input/output dimensions and number of
@@ -86,12 +89,12 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label)
         label_i = sprintf('%s%02d',label,i);
         % Initialize each filter with system #1
         obs.filters{i} = kalman_filter(A{1},B{1},C{1},D{1},Ts,P0{i}, ...
-            Q{1},R{1},label_i);
+            Q{1},R{1},label_i,x0);
     end
 
     % Initialize estimates to zero
-    obs.xkp1_est = zeros(n, 1);
-    obs.ykp1_est = zeros(ny, 1);
+    obs.xkp1_est = x0;
+    obs.ykp1_est = obs.C{1} * obs.xkp1_est;
 
     % Save useful variables in struct
     obs.nj = nj;

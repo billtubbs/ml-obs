@@ -1,7 +1,7 @@
 function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label)
+    Q0,R,n_filt,f,n_min,label,x0)
 % obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,n_filt,f,n_min,label)
+%     Q0,R,n_filt,f,n_min,label,x0)
 %
 % Creates a struct for simulating the multi-model Kalman
 % filter using the adaptive forgetting through multiple
@@ -28,6 +28,7 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %   n_min : minimum life of cloned filters in number of
 %       sample periods.
 %   label : string name.
+%   x0 : intial state estimates (optional).
 %
 % Reference:
 %  -  Eriksson, P.-G., & Isaksson, A. J. (1996). Classification
@@ -36,6 +37,14 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %
 
     % TODO: Could re-introduce spacing parameter d
+
+    % Number of states
+    n = size(A, 1);
+    
+    % Initial state estimates
+    if nargin == 15
+        x0 = zeros(n,1);
+    end
 
     % Number of input disturbances
     n_dist = sum(~u_meas);
@@ -96,7 +105,7 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     P0_init = repmat({P0}, 1, n_filt);
 
     % Create MKF observer struct
-    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,label);
+    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,label,x0);
 
     % Add additional variables used by AFMM observer
     obs.f = f;

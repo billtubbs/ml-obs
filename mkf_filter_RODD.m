@@ -1,7 +1,7 @@
 function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,label)
+    Q0,R,f,m,d,label,x0)
 % obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%   Q0,R,f,m,d,label)
+%   Q0,R,f,m,d,label,x0)
 %
 % Creates a struct for simulating a multi-model Kalman 
 % filter for state estimation in the presence of randomly-
@@ -26,6 +26,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %   m : maximum number of disturbances over fusion horizon.
 %   d : spacing parameter in number of sample periods.
 %   label : string name.
+%   x0 : intial state estimates (optional).
 %
 % Reference:
 %  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
@@ -37,6 +38,11 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 
     % Number of states
     n = size(A, 1);
+    
+    % Initial state estimates
+    if nargin == 15
+        x0 = zeros(n,1);
+    end
 
     % Number of input disturbances
     n_dist = sum(~u_meas);
@@ -149,7 +155,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     P0_init = repmat({P0}, 1, n_filt);
 
     % Create MKF observer struct
-    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,label);
+    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,label,x0);
 
     % Add additional variables used by RODD observer
     obs.S = S;

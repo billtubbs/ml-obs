@@ -21,14 +21,19 @@ V = 0.8; % estimate of Vp used in the filter design
 P0 = eye(n)*1000; % Initialize covariance matrix
 Q = diag(repmat(W,n,1));
 R = diag(repmat(V,ny,1));
+x0 = [0.1; 0.5];
 
 % Define dynamic Kalman filter using kalman_filter function
-KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KF");
+KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KF",x0);
+assert(isequal(KF.xkp1_est, x0))
+assert(KF.ykp1_est == C * x0)
 
+% Re-define with no initial state specified (should be set to zero)
+KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KF");
 assert(KF.static_gain == false)
 assert(all(isnan(KF.K)))
 assert(isequal(KF.P, P0))
-assert(isequal(KF.xkp1_est, zeros(2, 1)))
+assert(isequal(KF.xkp1_est, zeros(n, 1)))
 assert(KF.ykp1_est == 0)
 
 % number of points to simulate

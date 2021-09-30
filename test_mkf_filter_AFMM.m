@@ -6,201 +6,213 @@ plot_dir = 'plots';
 seed = 0;
 rng(seed)
 
-% % Load system and disturbance model from file
-% sys_rodin_step
-% 
-% % Set noise variances for observer design
-% sigma_M = 0.1;
-% sigma_W = [0; 0];
-% 
-% % Specify covariance for state variable 1
-% % This is used by all observers
-% Q1 = 0.01;
-% 
-% % Kalman filter 1 - tuned to sigma_wp(1)
-% % Covariance matrices
-% P0 = 1000*eye(n);
-% Q = diag([Q1 sigma_wp(1)^2]);
-% R = sigma_M^2;
-% KF1 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF1');
-% 
-% % Kalman filter 2 - tuned to sigma_wp(2)
-% % Covariance matrices
-% P0 = 1000*eye(n);
-% Q = diag([Q1 sigma_wp(2)^2]);
-% R = sigma_M^2;
-% KF2 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF2');
-% 
-% % Kalman filter 3 - manually tuned
-% % Covariance matrices
-% P0 = 1000*eye(n);
-% Q = diag([Q1 0.1^2]);
-% R = sigma_M^2;
-% KF3 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF3');
-% 
-% % Multiple model RODD filter 1
-% label = 'MKF1';
-% P0 = 1000*eye(n);
-% Q0 = diag([Q1 1]);
-% R = sigma_M^2;
-% f = 3;  % fusion horizon
-% m = 2;  % maximum number of shocks
-% d = 5;  % spacing parameter
-% MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,f,m,d,label);
-% 
-% % Multiple model AFMM filter 1
-% label = 'AFMM1';
-% P0 = 1000*eye(n);
-% Q0 = diag([Q1 1]);
-% R = sigma_M^2;
-% f = 100;  % sequence history length
-% n_filt = 8;  % number of filters
-% n_min = 3;  % minimum life of cloned filters
-% AFMM1 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,n_filt,f,n_min,label);
-% 
-% assert(AFMM1.epsilon == 0.01)
-% assert(isequal(AFMM1.sigma_wp, sigma_wp))
-% assert(AFMM1.n_filt == n_filt)
-% assert(isequal(AFMM1.f_hold, 1:n_min))
-% assert(isequal(AFMM1.f_main, n_min+1:n_filt))
-% assert(AFMM1.i == 0)
-% assert(AFMM1.n == n)
-% assert(AFMM1.nu == nu)
-% assert(AFMM1.ny == ny)
-% assert(AFMM1.nj == 2)
-% assert(isequal(AFMM1.A{1}, A) && isequal(AFMM1.A{2}, A))
-% assert(isequal(AFMM1.B{1}, B) && isequal(AFMM1.B{2}, B))
-% assert(isequal(AFMM1.C{1}, C) && isequal(AFMM1.C{2}, C))
-% assert(isequal(AFMM1.D{1}, D) && isequal(AFMM1.D{2}, D))
-% assert(AFMM1.Ts == Ts)
-% assert(isequal(AFMM1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
-% assert(isequal(AFMM1.Q{2}, [0.01 0; 0 sigma_wp(2)^2]))
-% assert(isequal(AFMM1.R{1}, R) && isequal(AFMM1.R{2}, R))
-% assert(numel(AFMM1.filters) == AFMM1.n_filt)
-% assert(isequal(size(AFMM1.seq), [AFMM1.n_filt 1]))
-% assert(isequal(size(cell2mat(AFMM1.seq)), [AFMM1.n_filt AFMM1.f]))
-% assert(AFMM1.nf == size(AFMM1.seq{1}, 2))
-% assert(isequal(size(AFMM1.xkp1_est), [n 1]))
-% assert(isequal(size(AFMM1.ykp1_est), [ny 1]))
-% assert(isequal(AFMM1.p_gamma, [1-AFMM1.epsilon; AFMM1.epsilon]))
-% 
-% % Multiple model AFMM filter 2
-% label = 'AFMM2';
-% P0 = 1000*eye(n);
-% Q0 = diag([Q1 1]);
-% R = sigma_M^2;
-% f = 100;  % sequence history length
-% n_filt = 20;  % number of filters
-% n_min = 5;  % minimum life of cloned filters
-% AFMM2 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,n_filt,f,n_min,label);
-% 
-% % Simulation settings
-% nT = 100;
-% t = Ts*(0:nT)';
-% 
-% % Choose time and amplitude of input disturbance
-% t_shock = 10;
-% du0 = 1;
-% 
-% % Inputs
-% %U = (idinput(size(t)) + 1)/2;
-% U = zeros(size(t));
-% U(t >= 1) = -1;
-% alpha = zeros(size(t));
-% alpha(t == 9.5) = 1;  % this is used by the SKF observer
-% %Wp = 1*alpha;
-% Wp = zeros(size(t));  % Set RODD disturbance to 0 for this test
-% U_sim = [U Wp];
-% 
-% % Apply the input disturbance
-% Du = zeros(size(U_sim));
-% Du(t >= t_shock, 1) = du0;
-% 
-% % Choose observers to test
-% observers = {KF3, AFMM1};
-% 
-% % Note: KF1 is too slow to pass static error test here
-% 
-% % Simulate system
-% X = zeros(nT+1,n);
-% Y = zeros(nT+1,ny);
-% xk = zeros(n,1);
-% 
-% for i=1:nT+1
-% 
-%     % Inputs
-%     uk = U_sim(i,:)' + Du(i,:)';
-% 
-%     % Compute y(k)
-%     yk = C*xk + D*uk;
-% 
-%     % Store results
-%     X(i, :) = xk';
-%     Y(i, :) = yk';
-%     
-%     % Compute x(k+1)
-%     xk = A*xk + B*uk;
-% 
-% end
-% 
-% % Check simulation output is correct
-% [Y2, t, X2] = lsim(Gpss,U_sim + Du,t);
-% assert(isequal(X, X2))
-% assert(isequal(Y, Y2))
-% 
-% % Choose measurement noise for plant
-% sigma_MP = 0;  % Set to zero for testing
-% Y_m = Y + sigma_MP'.*randn(size(Y));
-% 
-% 
-% % Simulate observers
-% 
-% % Set disturbance inputs to zero for observer
-% % simulation since they are not measured.
-% U_obs = [U zeros(nT+1,1)];
-% 
-% n_obs = numel(observers);
-% MSE = containers.Map();
-% 
-% for i = 1:n_obs
-% 
-%     obs = observers{i};
-%     [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_obs,Y_m,obs,alpha);
-% 
-%     if all(sigma_MP == 0)
-% 
-%         % Check observer errors are zero prior to
-%         % input disturbance
-%         assert(all(abs(sim_results.X_est(1:20,:) - X(1:20, :)) < 1e-10, [1 2]))
-%         assert(all(abs(sim_results.Y_est(1:20,:) - Y(1:20, :)) < 1e-10))
-% 
-%         % Check observer static errors are small at the end
-%         assert(abs(sim_results.Y_est(end, :) - Y(end, :)) < 1e-4);
-%         assert(abs(sim_results.X_est(end, 2) - du0) < 1e-4);
-%     end
-%     
-%     % Compute mean-squared error
-%     Y_est = sim_results.Y_est;
-%     MSE(obs.label) = mean((Y_est - Y).^2);
-%     %fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
-%     
-%     % Save updated observer
-%     observers{i} = obs;
-% 
-% end
-% 
-% MSE_test_values = containers.Map(...
-%     {'KF2', 'KF3', 'AFMM1', 'AFMM2'}, ...
-%     [0.000934 0.003524 0.002896 0.002993]' ...
-% );
-% 
-% for label = MSE.keys
-%    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
-% end
-% 
+%% Test observers for SISO system
+
+% Load system and disturbance model from file
+sys_rodin_step
+
+% Set noise variances for observer design
+sigma_M = 0.1;
+sigma_W = [0; 0];
+
+% Load observers from file
+obs_rodin_step
+
+% Check observer attributes
+assert(AFMM1.epsilon == 0.01)
+assert(isequal(AFMM1.sigma_wp, sigma_wp))
+assert(AFMM1.n_filt == 5)
+assert(AFMM1.n_min == 2)
+assert(isequal(AFMM1.f_hold, 1:2))
+assert(isequal(AFMM1.f_main, 3:5))
+assert(AFMM1.i == 0)
+assert(AFMM1.n == n)
+assert(AFMM1.nu == nu)
+assert(AFMM1.ny == ny)
+assert(AFMM1.nj == 2)
+assert(isequal(AFMM1.A{1}, A) && isequal(AFMM1.A{2}, A))
+assert(isequal(AFMM1.B{1}, B) && isequal(AFMM1.B{2}, B))
+assert(isequal(AFMM1.C{1}, C) && isequal(AFMM1.C{2}, C))
+assert(isequal(AFMM1.D{1}, D) && isequal(AFMM1.D{2}, D))
+assert(AFMM1.Ts == Ts)
+assert(isequal(AFMM1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
+assert(isequal(AFMM1.Q{2}, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequal(AFMM1.R{1}, R) && isequal(AFMM1.R{2}, R))
+assert(numel(AFMM1.filters) == AFMM1.n_filt)
+assert(isequal(size(AFMM1.seq), [AFMM1.n_filt 1]))
+assert(isequal(size(cell2mat(AFMM1.seq)), [AFMM1.n_filt AFMM1.f]))
+assert(AFMM1.nf == size(AFMM1.seq{1}, 2))
+assert(isequal(size(AFMM1.xkp1_est), [n 1]))
+assert(isequal(size(AFMM1.ykp1_est), [ny 1]))
+assert(isequal(AFMM1.p_gamma, [1-AFMM1.epsilon; AFMM1.epsilon]))
+
+assert(AFMM2.epsilon == 0.01)
+assert(isequal(AFMM2.sigma_wp, sigma_wp))
+assert(AFMM2.n_filt == 10)
+assert(AFMM2.n_min == 3)
+assert(isequal(AFMM2.f_hold, 1:3))
+assert(isequal(AFMM2.f_main, 4:10))
+assert(AFMM2.i == 0)
+assert(AFMM2.n == n)
+assert(AFMM2.nu == nu)
+assert(AFMM2.ny == ny)
+assert(AFMM2.nj == 2)
+assert(isequal(AFMM2.A{1}, A) && isequal(AFMM2.A{2}, A))
+assert(isequal(AFMM2.B{1}, B) && isequal(AFMM2.B{2}, B))
+assert(isequal(AFMM2.C{1}, C) && isequal(AFMM2.C{2}, C))
+assert(isequal(AFMM2.D{1}, D) && isequal(AFMM2.D{2}, D))
+assert(AFMM2.Ts == Ts)
+assert(isequal(AFMM2.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
+assert(isequal(AFMM2.Q{2}, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequal(AFMM2.R{1}, R) && isequal(AFMM2.R{2}, R))
+assert(numel(AFMM2.filters) == AFMM2.n_filt)
+assert(isequal(size(AFMM2.seq), [AFMM2.n_filt 1]))
+assert(isequal(size(cell2mat(AFMM2.seq)), [AFMM2.n_filt AFMM2.f]))
+assert(AFMM2.nf == size(AFMM2.seq{1}, 2))
+assert(isequal(size(AFMM2.xkp1_est), [n 1]))
+assert(isequal(size(AFMM2.ykp1_est), [ny 1]))
+assert(isequal(AFMM2.p_gamma, [1-AFMM2.epsilon; AFMM2.epsilon]))
+
+% Check optional definition with an initial state estimate works
+x0 = [0.1; 0.5];
+AFMM_testx0 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label,x0);
+assert(isequal(AFMM_testx0.xkp1_est, x0))
+assert(isequal(AFMM_testx0.ykp1_est, C * x0))
+
+% Simulation settings
+nT = 100;
+t = Ts*(0:nT)';
+
+% Choose time and amplitude of input disturbance
+t_shock = 10;
+du0 = 1;
+
+% Inputs
+%U = (idinput(size(t)) + 1)/2;
+U = zeros(size(t));
+U(t >= 1) = -1;
+alpha = zeros(size(t));
+alpha(t == 9.5) = 1;  % this is used by the SKF observer
+%Wp = 1*alpha;
+Wp = zeros(size(t));  % Set RODD disturbance to 0 for this test
+U_sim = [U Wp];
+
+% Apply the input disturbance
+Du = zeros(size(U_sim));
+Du(t >= t_shock, 1) = du0;
+
+% Custom MKF test observer
+
+% Devise a custom multi-model filter with a shock indicator 
+% sequence that perfectly reflects the shock occurence in
+% this test simulation (t = t_shock)
+% Multiple model filter 1
+A2 = repmat({A}, 1, 2);
+B2 = repmat({B}, 1, 2);
+C2 = repmat({C}, 1, 2);
+D2 = repmat({D}, 1, 2);
+P0 = 1000*eye(n);
+Q0 = diag([Q1 1]);
+P0_init = repmat({P0}, 1, 2);
+Q2 = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
+      diag([Q0(1,1) sigma_wp(1,2)^2])};
+R2 = {sigma_M^2, sigma_M^2};
+seq = {zeros(1, nT+1); zeros(1, nT+1)};
+seq{2}(t == 9.5) = 1;
+p_gamma = [1-epsilon epsilon]';
+T = repmat(p_gamma', 2, 1);
+MKF3 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF3');
+
+seq = {zeros(1, nT+1)};
+seq{1}(t == 9.5) = 1;
+p_gamma = [1-epsilon epsilon]';
+T = repmat(p_gamma', 2, 1);
+MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF4');
+
+% Choose observers to test
+observers = {KF2, KF3, SKF, AFMM1, AFMM2, MKF3, MKF4};
+
+% Note: KF1 is too slow to pass static error test here
+
+% Simulate system
+X = zeros(nT+1,n);
+Y = zeros(nT+1,ny);
+xk = zeros(n,1);
+
+for i=1:nT+1
+
+    % Inputs
+    uk = U_sim(i,:)' + Du(i,:)';
+
+    % Compute y(k)
+    yk = C*xk + D*uk;
+
+    % Store results
+    X(i, :) = xk';
+    Y(i, :) = yk';
+    
+    % Compute x(k+1)
+    xk = A*xk + B*uk;
+
+end
+
+% Check simulation output is correct
+[Y2, t, X2] = lsim(Gpss,U_sim + Du,t);
+assert(isequal(X, X2))
+assert(isequal(Y, Y2))
+
+% Choose measurement noise for plant
+sigma_MP = 0;  % Set to zero for testing
+Y_m = Y + sigma_MP'.*randn(size(Y));
+
+
+% Simulate observers
+
+% Set disturbance inputs to zero for observer
+% simulation since they are not measured.
+U_obs = [U zeros(nT+1,1)];
+
+n_obs = numel(observers);
+MSE = containers.Map();
+
+for i = 1:n_obs
+
+    obs = observers{i};
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_obs,Y_m,obs,alpha);
+
+    % Check observer errors are zero prior to
+    % input disturbance
+    assert(all(abs(sim_results.X_est(1:20,:) - X(1:20, :)) < 1e-10, [1 2]))
+    assert(all(abs(sim_results.Y_est(1:20,:) - Y(1:20, :)) < 1e-10))
+
+    % Check observer static errors are small
+    % after input disturbance
+    if all(sigma_MP == 0)
+        assert(abs(sim_results.Y_est(end, :) - Y(end, :)) < 2e-4);
+        assert(abs(sim_results.X_est(end, 2) - du0) < 3e-4);
+    end
+    % TODO: Errors for AFMM1 were not as low as for RODD MKF observers
+    
+    % Compute mean-squared error
+    Y_est = sim_results.Y_est;
+    MSE(obs.label) = mean((Y_est - Y).^2);
+    %fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
+    
+    % Save updated observer
+    observers{i} = obs;
+
+end
+
+MSE_test_values = containers.Map(...
+    {'AFMM1', 'AFMM2', 'KF2', 'KF3', 'SKF', 'MKF3', 'MKF4'}, ...
+    [0.003233 0.002926 0.000934 0.003524 0.000929 0.002709 0.000929]' ...
+);
+
+for label = MSE.keys
+   assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
+end
+
 % % Display results of last simulation
 % 
 % X_est = sim_results.X_est;
