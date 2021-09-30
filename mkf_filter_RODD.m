@@ -12,7 +12,8 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %   A, B, C, D : discrete time system matrices.
 %   Ts : sample period.
 %   u_meas : binary vector indicating measured inputs.
-%   P0 : initial value of covariance matrix.
+%   P0 : Initial value of covariance matrix of the state
+%       estimates.
 %   epsilon : probability of a shock disturbance.
 %   sigma_wp : variances of unmeasured input disturbances.
 %   Q0 : initial process noise covariance matrix (n, n) with 
@@ -37,7 +38,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %
 
     % Number of states
-    n = size(A, 1);
+    n = check_dimensions(A, B, C, D);
     
     % Initial state estimates
     if nargin == 15

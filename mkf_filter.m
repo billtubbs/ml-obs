@@ -8,8 +8,8 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
 %	A, B, C, D : cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : sample period.
-%   P0 : cell array of initial values of covariance matrices
-%       for each filter.
+%   P0 : cell array of initial covariance matrices of the 
+%       state estimates for each filter.
 %   Q : cell array of process noise covariance matrices for
 %       each switching system.
 %   R : cell array of output measurement noise covariance
@@ -25,9 +25,7 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
     nj = numel(A);
 
     % System dimensions
-    n = size(A{1}, 1);
-    nu = size(B{1}, 2);
-    ny = size(C{1}, 1);
+    [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
     if nargin == 11
         x0 = zeros(n,1);
     end
