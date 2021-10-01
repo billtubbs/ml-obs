@@ -1,9 +1,9 @@
-function obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-    label,x0)
-% obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx, ...
-%     Ts,P0,Q,R,label,x0)
+function obs = EKF_filter(n,f,g,u_meas,y_meas,dfdx,dgdx,Ts,P0,Q, ...
+    R,label,x0)
+% obs = EKF_filter(n,f,g,u_meas,y_meas,dfdx,dgdx,Ts,P0,Q,R, ...
+%     label,x0)
 % Creates a struct for simulating a discrete-time
-% extended Kalman filter for online state estimation
+% extended Kalman filter (EKF) for online state estimation
 % of non-linear systems.
 %
 % System representation:
@@ -12,9 +12,9 @@ function obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
 %   y(k) = g(x(k), ...) + v(k)
 %
 % Arguments:
-%	n : Number of model states.
+%   n : Number of model states.
 %   f : State transition function (non-linear).
-%   h : Measurement function.
+%   g : Measurement function.
 %   u_meas : array indicating which inputs are measured.
 %   y_meas : array indicating which outputs are measured.
 %   dfdx : Jacobian of the state transition function.
@@ -34,11 +34,11 @@ function obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     end
     assert(isequal(size(x0), [n 1]))
     obs.f = f;
-    obs.h = h;
-    obs.u_meas = u_meas;
-    obs.y_meas = y_meas;
+    obs.g = g;
+    obs.u_meas = u_meas;  % TODO implement these
+    obs.y_meas = y_meas;  % 
     obs.dfdx = dfdx;
-    obs.dhdx = dhdx;
+    obs.dgdx = dgdx;
     obs.Ts = Ts;
     obs.P0 = P0;
     obs.P = P0;
@@ -49,5 +49,6 @@ function obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     obs.K = nan(n,1);
     obs.static_gain = false;
     obs.xkp1_est = x0;
-    obs.ykp1_est = obs.h(obs.xkp1_est);
+    obs.ykp1_est = obs.g(obs.xkp1_est);
+
 end

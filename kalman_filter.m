@@ -1,7 +1,7 @@
 function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
 % obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
 % Creates a struct for simulating a dynamic Kalman
-% filter (with time-varying gain)
+% filter (with time-varying gain).
 %
 % Arguments:
 %	A, B, C, D : discrete-time system model matrices.
