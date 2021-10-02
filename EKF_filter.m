@@ -11,6 +11,10 @@ function obs = EKF_filter(n,f,g,u_meas,y_meas,dfdx,dgdx,Ts,P0,Q, ...
 % x(k+1) = f(x(k), u(k), ...) + w(k)
 %   y(k) = g(x(k), ...) + v(k)
 %
+% where w(k) and v(k) are process noise and measurement
+% noise, respectively, and are zero-mean, normally-
+% distributed white noises with covariances Q and R.
+%
 % Arguments:
 %   n : Number of model states.
 %   f : State transition function (non-linear).
