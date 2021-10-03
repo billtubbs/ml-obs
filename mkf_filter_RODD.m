@@ -15,7 +15,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %   P0 : Initial value of covariance matrix of the state
 %       estimates.
 %   epsilon : probability of a shock disturbance.
-%   sigma_wp : variances of unmeasured input disturbances.
+%   sigma_wp : standard deviation of shock disturbances.
 %   Q0 : initial process noise covariance matrix (n, n) with 
 %        variances for each state on the diagonal. The  
 %        values Q(i, i) for i representing the unmeasured 
