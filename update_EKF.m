@@ -15,13 +15,14 @@ function obs = update_EKF(obs, yk, varargin)
     % Linearize system at current operating point
     % Calculate Jacobian matrices
     obs.F = obs.dfdx(obs.xkp1_est, varargin{:});
-    obs.G = obs.dgdx(obs.xkp1_est);
+    obs.H = obs.dhdx(obs.xkp1_est, varargin{:});
 
-    [obs.K, obs.P] = ekf_update(obs.P, obs.F, obs.G, obs.Q, obs.R);
+    [obs.K, obs.P] = ekf_update(obs.P, obs.F, obs.H, obs.Q, obs.R);
 
     % Update state and output estimates for next timestep
     obs.xkp1_est = obs.f(obs.xkp1_est, varargin{:}) + ...
         obs.K * (yk - obs.ykp1_est);
-    obs.ykp1_est = obs.g(obs.xkp1_est);
+    % TODO: h(x) probably will need params in some cases
+    obs.ykp1_est = obs.h(obs.xkp1_est, varargin{:});
 
 end

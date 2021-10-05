@@ -1,6 +1,6 @@
 % Test EKF_filter.m and update_EKF.m
 
-clear all
+%% Test with arom3 process model
 
 addpath('~/process-models/arom3/')
 
@@ -22,29 +22,34 @@ sigma_w = [0.0033; 0.0033];
 Q = diag([0.1; 0.1; 0.1; sigma_w]);
 label = 'EKF1';
 x0 = [742; 463; 537; 5; 6];
+y0 = x0([1 3]);
 obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-    label,x0);
+    label,x0,y0);
 
 % Check attributes set
 assert(obs.n == n)
 assert(isequal(obs.f, @arom3_StateFcnRodin))
-assert(isequal(obs.g, @arom3_MeasurementFcnRodin2))
+assert(isequal(obs.h, @arom3_MeasurementFcnRodin2))
 assert(isequal(obs.u_meas, u_meas))
 assert(isequal(obs.y_meas, y_meas))
 assert(isequal(obs.dfdx, @arom3_StateJacobianFcnRodin))
-assert(isequal(obs.dgdx, @arom3_MeasurementJacobianFcnRodin2))
+assert(isequal(obs.dhdx, @arom3_MeasurementJacobianFcnRodin2))
 assert(obs.Ts == Ts)
 assert(isequal(obs.P0, P0))
 assert(isequal(obs.Q, Q))
 assert(isequal(obs.R, R))
 assert(isequal(obs.label, label))
 assert(isequal(obs.xkp1_est, x0))
-assert(isequal(obs.ykp1_est, x0([1 3])))
+assert(isequal(obs.ykp1_est, y0))
 
-% Test instantiation with unspecified initial condition
+% Test instantiation with unspecified initial conditions
+obs_0 = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+    label,x0);
+assert(isequal(obs_0.ykp1_est, zeros(2, 1)))
 obs_0 = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     label);
 assert(isequal(obs_0.xkp1_est, zeros(5, 1)))
+assert(isequal(obs_0.ykp1_est, zeros(2, 1)))
 
 % Test update function
 uk = [];
@@ -55,3 +60,215 @@ obs = update_EKF(obs, yk_m, dt, params);
 %obs.ykp1_est
 
 %TODO: run a simulation test
+
+
+%% Example from homework from GEL-7029 course
+
+clear all
+
+filename = 'hw15_EKF_sim_benchmark.csv';
+results_dir = 'results';
+bench_sim_results = readtable(fullfile(results_dir, filename));
+
+% Simulation parameters
+N = 150;  % no. of simulation points = 15 sec
+Ts = 0.1;  % sampling period
+
+% Pendulum parameters
+params.K = 1.2;
+params.m = 0.3;
+params.L = 0.4;
+params.g = 9.8;
+params.dt = Ts;
+
+% Eqns for augmented model with one integrator
+na = 3;
+f = @pend_StateFcn;
+h = @pend_MeasurementFcn;
+u_meas = true;
+y_meas = true;
+dfdx = @pend_F;
+dhdx = @pend_H;
+P0 = 1*eye(na);  % Kalman - P(0)
+Q = 10*eye(na);  % Kalman - process noise var. 
+R = 1;  % Kalman - meas. noise var.
+
+% Initialize EKF
+x0 = zeros(na,1);
+u0 = 0;
+y0 = h(x0, u0, params);
+obs = EKF_filter(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+    'EKF_pend',x0,y0);
+
+assert(isequal(obs.xkp1_est, x0))
+assert(isequal(obs.ykp1_est, y0))
+
+% Time series
+k = (0:N-1)';
+t = Ts*k;
+
+% Initial system state
+xk = bench_sim_results{1, {'x1_k_1_', 'x2_k_1_'}}';
+
+% matrix to save the data (u and y)
+data = nan(N,14);
+for j = 1:N
+
+    % Pendulum output measurement
+    yk = xk(1);
+
+    % Control input
+    uk = bench_sim_results{j, 'u_k_'}';
+
+    % Disturbance
+    pk = bench_sim_results{j, 'p_k_'}';
+
+    obs = update_EKF(obs, yk, uk, params);
+
+%     % Extended Kalman filter
+%     % Linearize at current operating point by
+%     % re-computing Jacobians F(k) and H(k)
+%     [F, H] = pend_jacob(xef,T,K,m,L,g);
+%     % Compute observer gains and update covariance matrix
+%     [Kf, P] = ekf_update(P,F,H,Q,R);
+% 
+%     % Compute next state estimates
+%     % (uses non-linear model)
+%     xef = [pend_xkp1(u(1),xef(1:2),K,m,L,g,T); xef(3)] + Kf*(y - H*xef);
+
+    xef = obs.xkp1_est;
+    Kf = obs.K;
+    trP = trace(obs.P);
+
+    assert(isequal(round(xef', 4), round(bench_sim_results{j, {'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4)))
+    assert(round(trP, 4) == round(bench_sim_results{j, 'trP_k_'}, 4))
+
+    % Record data
+    data(j,:) = [k(j) t(j) uk pk yk xk' xef' Kf' trP];
+
+    % Get states at next sample time
+    xk = bench_sim_results{j, {'x1_k_1_', 'x2_k_1_'}}';
+
+end
+
+col_names = {'k', 't', 'u(k)', 'p(k)', 'y(k)', 'x1(k)', 'x2(k)', ...
+    'xe1(k)', 'xe2(k)', 'xe3(k)', 'Kf1(k)', 'Kf2(k)', 'Kf3(k)', 'trP'};
+sim_results = array2table(data, 'VariableNames', col_names);
+
+% % Show selected results
+% j = find(t == 4.5);
+% selection = (0:9)' + j;
+% sim_results(selection, :)
+% 
+% % Compare gains with benchmark data
+% [
+%     sim_results(selection, {'t', 'Kf1(k)', 'Kf2(k)', 'Kf3(k)', 'trP'}) ...
+%     bench_sim_results(selection, {'Kf1_k_', 'Kf2_k_', 'Kf3_k_', 'trP_k_'})
+% ]
+% 
+% % Compare estimates with benchmark data
+% [
+%     sim_results(selection, {'t', 'xe1(k)', 'xe2(k)', 'xe3(k)'}) ...
+%     bench_sim_results(selection, {'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'})
+% ]
+
+assert(isequal( ...
+    round(sim_results{:, {'t', 'xe1(k)', 'xe2(k)', 'xe3(k)'}}, 4), ...
+    round(bench_sim_results{:, {'t', 'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4) ...
+))
+
+
+function xkp1 = pend_xkp1(xk,uk,params)
+% xkp1 = pend_xkp1(xk,uk,params)
+% State transition function for the non-linear
+% pendulum system.
+%
+% Arguments:
+% xk : state vector [x1; x2] where
+%    xk(1) : angle
+%    xk(2) : angular velocity.
+% uk : Torque input.
+% params : struct containing the parameter values
+%     listed below.
+%
+% params.K : coefficient of friction
+% params.m : mass
+% params.L : length
+% params.g : gravitational acceleration
+% params.T : sample period
+%
+    K = params.K;
+	m = params.m;
+	L = params.L;
+	g = params.g;
+	dt = params.dt;
+    xkp1 = [dt*xk(2) + xk(1); 
+        -g*dt/L*sin(xk(1)) - K*dt/m*xk(2)+xk(2)] + [0; dt/(m*L^2)]*uk;
+end
+
+function xakp1 = pend_StateFcn(xak,uk,params)
+% xakp1 = pend_StateFcn(xak,uk,params)
+% State transition function for the non-linear pendulum 
+% system augmented with an output disturbance.
+%
+% Arguments:
+% xa : state vector [x1; x2] where
+%     x1 : angle
+%     x2 : angular velocity
+%     xi : integrator state.
+% u : Torque input.
+% params : struct containing the parameter values
+%     listed below.
+%
+% params.K : coefficient of friction
+% params.m : mass
+% params.L : length
+% params.g : gravitational acceleration
+% params.T : sample period
+%
+    xakp1 = [pend_xkp1(xak,uk,params); xak(3)];
+
+end
+
+function y = pend_MeasurementFcn(xak,uk,params)
+% y = pend_MeasurementFcn(xak,uk,params)
+% Measurement equation for the non-linear pendulum 
+% system augmented with an output disturbance.
+%
+% Arguments:
+% xa : state vector [x1; x2] where
+%     x1 : angle
+%     x2 : angular velocity
+%     xi : integrator state.
+% u : torque.
+% params : struct (not used by this function).
+%
+    % For testing ekf_update.m
+    assert(isequal(fieldnames(params), {'K', 'm', 'L', 'g', 'dt'}'))
+    y = xak(1) + xak(3);
+
+end
+
+
+function F = pend_F(xk,uk,params)
+% F = pend_F(xk,uk,params)
+% Jacobian of the state transition function for
+% linearizing the pendulum system.
+    K = params.K;
+	m = params.m;
+	L = params.L;
+	g = params.g;
+	dt = params.dt;
+    F = [                 1        dt   0;
+         -g*dt/L*cos(xk(1))  1-K*dt/m   0;
+                          0         0   1];
+end
+
+function H = pend_H(xk,uk,params)
+% H = pend_H(xk,uk,params)
+% Jacobian of the output measurement function
+% for linearizing the pendulum system.
+    % For testing ekf_update.m
+    assert(isequal(fieldnames(params), {'K', 'm', 'L', 'g', 'dt'}'))
+    H = [1 0 1];
+end
