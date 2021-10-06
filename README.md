@@ -5,14 +5,16 @@ MATLAB scripts for simulating process observers for online state estimation and 
 ## Contents
 
 Observers currently included:
-- [luenberger_filter.m](luenberger_filter.m) - Luenberger observer (with static correction gain)
-- [kalman_filter.m](kalman_filter.m) - Kalman filter [[1]](#1)
-- [kalman_filter_ss.m](kalman_filter_ss.m) - steady-state Kalman filter (with static correction gain)
+- [luenberger_filter.m](luenberger_filter.m) - Luenberger observer (with static correction gain).
+- [kalman_filter.m](kalman_filter.m) - Kalman filter [[1]](#1).
+- [kalman_filter_ss.m](kalman_filter_ss.m) - steady-state Kalman filter (with static correction gain).
+- [EKF_observer.m](EKF_observer.m) - extended Kalman filter for non-linear systems.
 
 Multi-model observers:
-- [mkf_filter.m](mkf_filter.m) - general purpose multi-model Kalman filter observer
-- [mkf_filter_RODD.m](mkf_filter_RODD.m) - multi-model Kalman filter observer for state estimation in the presence of randomly-occurring deterministic disturbances (RODDs) as described in Robertson et al. [[2]](#2)
+- [mkf_filter.m](mkf_filter.m) - general purpose multi-model Kalman filter observer.
+- [mkf_filter_RODD.m](mkf_filter_RODD.m) - multi-model Kalman filter observer for state estimation in the presence of randomly-occurring deterministic disturbances (RODDs) as described in Robertson et al. [[2]](#2).
 - [mkf_filter_AFMM.m](mkf_filter_AFMM.m) - multi-model Kalman filter using the adaptive forgetting through multiple models (AFMM) algorithm for state estimation in the presence of infrequently-occurring deterministic disturbances as described in Eriksson and Isaksson [[3]](#3).
+- [MEKF_observer.m](MEKF_observer.m) - general purpose multi-model extended Kalman filter observer.
 
 ## Installation
 
