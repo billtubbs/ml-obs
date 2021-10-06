@@ -1,6 +1,6 @@
-function obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
+function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
     R,label,x0,y0)
-% obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+% obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
 %     label,x0,y0)
 % Creates a struct for simulating a discrete-time
 % extended Kalman filter (EKF) for online state estimation
@@ -21,8 +21,10 @@ function obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
 %   h : Measurement function.
 %   u_meas : array indicating which inputs are measured.
 %   y_meas : array indicating which outputs are measured.
-%   dfdx : Jacobian of the state transition function.
-%   dhdx : Jacobian of the measurement function.
+%   dfdx : function to generate the Jacobian matrix of 
+%       the state transition function.
+%   dhdx : function to generate the Jacobian matrix of
+%       the measurement function.
 %   Ts : sample period.
 %   P0 : Initial value of covariance matrix of the state
 %       estimates.

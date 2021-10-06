@@ -1,4 +1,4 @@
-% Test EKF_filter.m and update_EKF.m
+% Test EKF_observer.m and update_EKF.m
 
 %% Test with arom3 process model
 
@@ -23,7 +23,7 @@ Q = diag([0.1; 0.1; 0.1; sigma_w]);
 label = 'EKF1';
 x0 = [742; 463; 537; 5; 6];
 y0 = x0([1 3]);
-obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     label,x0,y0);
 
 % Check attributes set
@@ -43,10 +43,10 @@ assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, y0))
 
 % Test instantiation with unspecified initial conditions
-obs_0 = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+obs_0 = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     label,x0);
 assert(isequal(obs_0.ykp1_est, zeros(2, 1)))
-obs_0 = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+obs_0 = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     label);
 assert(isequal(obs_0.xkp1_est, zeros(5, 1)))
 assert(isequal(obs_0.ykp1_est, zeros(2, 1)))
@@ -64,7 +64,7 @@ obs = update_EKF(obs, yk_m, dt, params);
 
 %% Example from homework from GEL-7029 course
 
-clear all
+addpath('~/process-models/pend/')
 
 filename = 'hw15_EKF_sim_benchmark.csv';
 results_dir = 'results';
@@ -97,7 +97,7 @@ R = 1;  % Kalman - meas. noise var.
 x0 = zeros(na,1);
 u0 = 0;
 y0 = h(x0, u0, params);
-obs = EKF_filter(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+obs = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     'EKF_pend',x0,y0);
 
 assert(isequal(obs.xkp1_est, x0))
@@ -115,7 +115,7 @@ data = nan(N,14);
 for j = 1:N
 
     % Pendulum output measurement
-    yk = xk(1);
+    yk = bench_sim_results{j, 'y_k_'}';
 
     % Control input
     uk = bench_sim_results{j, 'u_k_'}';
@@ -140,7 +140,10 @@ for j = 1:N
     Kf = obs.K;
     trP = trace(obs.P);
 
-    assert(isequal(round(xef', 4), round(bench_sim_results{j, {'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4)))
+    assert(isequal( ...
+        round(xef', 4), ...
+        round(bench_sim_results{j, {'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4) ...
+    ))
     assert(round(trP, 4) == round(bench_sim_results{j, 'trP_k_'}, 4))
 
     % Record data
@@ -176,99 +179,3 @@ assert(isequal( ...
     round(sim_results{:, {'t', 'xe1(k)', 'xe2(k)', 'xe3(k)'}}, 4), ...
     round(bench_sim_results{:, {'t', 'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4) ...
 ))
-
-
-function xkp1 = pend_xkp1(xk,uk,params)
-% xkp1 = pend_xkp1(xk,uk,params)
-% State transition function for the non-linear
-% pendulum system.
-%
-% Arguments:
-% xk : state vector [x1; x2] where
-%    xk(1) : angle
-%    xk(2) : angular velocity.
-% uk : Torque input.
-% params : struct containing the parameter values
-%     listed below.
-%
-% params.K : coefficient of friction
-% params.m : mass
-% params.L : length
-% params.g : gravitational acceleration
-% params.T : sample period
-%
-    K = params.K;
-	m = params.m;
-	L = params.L;
-	g = params.g;
-	dt = params.dt;
-    xkp1 = [dt*xk(2) + xk(1); 
-        -g*dt/L*sin(xk(1)) - K*dt/m*xk(2)+xk(2)] + [0; dt/(m*L^2)]*uk;
-end
-
-function xakp1 = pend_StateFcn(xak,uk,params)
-% xakp1 = pend_StateFcn(xak,uk,params)
-% State transition function for the non-linear pendulum 
-% system augmented with an output disturbance.
-%
-% Arguments:
-% xa : state vector [x1; x2] where
-%     x1 : angle
-%     x2 : angular velocity
-%     xi : integrator state.
-% u : Torque input.
-% params : struct containing the parameter values
-%     listed below.
-%
-% params.K : coefficient of friction
-% params.m : mass
-% params.L : length
-% params.g : gravitational acceleration
-% params.T : sample period
-%
-    xakp1 = [pend_xkp1(xak,uk,params); xak(3)];
-
-end
-
-function y = pend_MeasurementFcn(xak,uk,params)
-% y = pend_MeasurementFcn(xak,uk,params)
-% Measurement equation for the non-linear pendulum 
-% system augmented with an output disturbance.
-%
-% Arguments:
-% xa : state vector [x1; x2] where
-%     x1 : angle
-%     x2 : angular velocity
-%     xi : integrator state.
-% u : torque.
-% params : struct (not used by this function).
-%
-    % For testing ekf_update.m
-    assert(isequal(fieldnames(params), {'K', 'm', 'L', 'g', 'dt'}'))
-    y = xak(1) + xak(3);
-
-end
-
-
-function F = pend_F(xk,uk,params)
-% F = pend_F(xk,uk,params)
-% Jacobian of the state transition function for
-% linearizing the pendulum system.
-    K = params.K;
-	m = params.m;
-	L = params.L;
-	g = params.g;
-	dt = params.dt;
-    F = [                 1        dt   0;
-         -g*dt/L*cos(xk(1))  1-K*dt/m   0;
-                          0         0   1];
-end
-
-function H = pend_H(xk,uk,params)
-% H = pend_H(xk,uk,params)
-% Jacobian of the output measurement function
-% for linearizing the pendulum system.
-    % For testing ekf_update.m
-    assert(isequal(fieldnames(params), {'K', 'm', 'L', 'g', 'dt'}'))
-    H = [1 0 1];
-end

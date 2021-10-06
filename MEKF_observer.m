@@ -1,12 +1,28 @@
-function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
-% obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
+function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+    P0,Q,R,seq,T,label,x0,y0)
+% obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+%     P0,Q,R,seq,T,label,x0,y0)
 %
-% Creates a struct for simulating a multi-model Kalman filter
-% for state estimation of a Markov jump linear system.
+% Creates a struct for simulating a multi-model extended 
+% Kalman filter for state estimation of a non-linear 
+% Markov jump system.
 %
 % Arguments:
-%	A, B, C, D : cell arrays containing discrete-time system
-%       matrices for each switching system modelled.
+%   n : Number of model states.
+%   f, h : cell arrays containing state transition functions 
+%       and easurement functions for each switching system
+%       modelled.
+%   params : cell array of structs containing parameters to
+%       to be passed to state transition function amd
+%       measurement function for each switching system.
+%   u_meas : array indicating which inputs are measured.
+%   y_meas : array indicating which outputs are measured.
+%   dfdx : cell array containing functions to generate the
+%       Jacobian matrix of the state transition function for
+%       each switching system.
+%   dhdx : cell array containing functions to generate the
+%       Jacobian matrix of the measurement function for each
+%       switching system.
 %   Ts : sample period.
 %   P0 : cell array of initial covariance matrices of the 
 %       state estimates for each filter.
@@ -22,17 +38,26 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
 %
 
     % Number of switching systems
-    nj = numel(A);
+    nj = numel(f);
 
-    % System dimensions
-    [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
-    if nargin == 11
-        x0 = zeros(n,1);
+    obs.n = n;
+    if nargin == 15
+        % Default initial state estimate
+        x0 = zeros(n, 1);
     end
-    obs.A = A;
-    obs.B = B;
-    obs.C = C;
-    obs.D = D;
+    ny = size(y_meas,1);
+    if nargin < 17
+        % Default initial state estimate
+        y0 = zeros(ny, 1);
+    end
+
+    obs.f = f;
+    obs.h = h;
+    obs.params = params;
+    obs.u_meas = u_meas;  % TODO implement these
+    obs.y_meas = y_meas;  % 
+    obs.dfdx = dfdx;
+    obs.dhdx = dhdx;
     obs.Ts = Ts;
     obs.Q = Q;
     obs.R = R;
@@ -46,19 +71,12 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
     % Initialize covariance matrix of estimation errors
     obs.P = P0;
 
-    % Check system matrix dimensions. All systems must
-    % have same input/output dimensions and number of
-    % states.
+    % Check matrix dimensions.
     for j = 1:nj
-        assert(size(A{j}, 2) == n)
-        assert(isequal(size(Q{j}), size(A{j})))
-        assert(isequal(size(R{j}), [ny ny]))
-        assert(size(B{j}, 2) == nu)
-        assert(size(C{j}, 1) == ny)
         assert(isequal(size(R{j}), [ny ny]))
         assert(isequal(size(Q{j}), [n n]))
     end
-
+    
     % Number of filters required
     n_filt = size(seq, 1);
 
@@ -88,18 +106,17 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
     for i = 1:n_filt
         label_i = sprintf('%s%02d',label,i);
         % Initialize each filter with system #1
-        obs.filters{i} = kalman_filter(A{1},B{1},C{1},D{1},Ts,P0{i}, ...
-            Q{1},R{1},label_i,x0);
+        obs.filters{i} = EKF_observer(n,f{1},h{1},u_meas,y_meas, ...
+            dfdx{1},dhdx{1},Ts,P0{i},Q{1},R{1},label_i,x0,y0);
     end
 
     % Initialize estimates
     obs.xkp1_est = x0;
-    obs.ykp1_est = obs.C{1} * obs.xkp1_est;
+    obs.ykp1_est = y0;
 
     % Save useful variables in struct
     obs.nj = nj;
-    obs.n = n;
-    obs.nu = nu;
+    obs.nu = size(u_meas,1);
     obs.ny = ny;
     obs.n_filt = n_filt;
     obs.nf = nf;
