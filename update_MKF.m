@@ -43,7 +43,9 @@ function obs = update_MKF(obs, uk, yk, show_plots)
         yk_cov = C*P*C' + obs.filters{f}.R;
 
         % Make sure covariance matrix is symmetric
-        yk_cov = triu(yk_cov.',1) + tril(yk_cov);
+        if ~isscalar(yk_cov)
+            yk_cov = triu(yk_cov.',1) + tril(yk_cov);
+        end
 
         % Save for debugging purposes
         obs.filters{f}.yk_cov = yk_cov;

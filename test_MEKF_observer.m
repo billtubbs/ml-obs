@@ -8,7 +8,7 @@ seed = 1;
 rng(seed)
 
 % Sample period
-Ts = 0.5;
+Ts = 0.1;
 
 % Input disturbance variance
 sigma_w = 0.01;
@@ -134,10 +134,9 @@ t = Ts*k;
 
 % Initial system state
 xk = zeros(2, 1);
-
-fprintf("%4s  %4s  %9s  %9s  %9s  %9s  %9s  %9s  %9s\n", ...
-    'k', 't', 'u(k)', 'x1(k)', 'x2(k)', 'yk', ...
-    'xe1(k)', 'xe2(k)', 'xe3(k)');
+col_names = {'k', 't', 'u(k)', 'p(k)', 'yk', 'x1(k)', 'x2(k)', ...
+    'xe1(k)', 'xe2(k)', 'xe3(k)'};
+%fprintf("%4s  %4s  %9s  %9s  %9s  %9s  %9s  %9s  %9s  %9s\n", col_names{:});
 
 % matrix to save the data (u and y)
 data = nan(N,10);
@@ -151,6 +150,11 @@ for j = 1:N
 
     % Disturbance
     pk = bench_sim_results{j, 'p_k_'}';
+
+%     % debugging
+%     if k(j) == 5
+%         disp('stop')
+%     end
 
     obs = update_MEKF(obs, yk, uk);
 
@@ -176,8 +180,8 @@ for j = 1:N
 %     assert(round(trP, 4) == round(bench_sim_results{j, 'trP_k_'}, 4))
 
     % Display results
-    fprintf("%4d  %4.1f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f\n", ...
-        k(j), t(j), uk, xk', yk, xef');
+    %fprintf("%4d  %4.1f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f\n", ...
+    %    k(j), t(j), uk, pk, yk, xk', xef');
 
     % Record data
     data(j,:) = [k(j) t(j) uk pk yk xk' xef'];
@@ -187,8 +191,6 @@ for j = 1:N
 
 end
 
-col_names = {'k', 't', 'u(k)', 'p(k)', 'y(k)', 'x1(k)', 'x2(k)', ...
-    'xe1(k)', 'xe2(k)', 'xe3(k)', 'Kf1(k)', 'Kf2(k)', 'Kf3(k)', 'trP'};
 sim_results = array2table(data, 'VariableNames', col_names);
 
 % % Show selected results

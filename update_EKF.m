@@ -22,7 +22,6 @@ function obs = update_EKF(obs, yk, varargin)
     % Update state and output estimates for next timestep
     obs.xkp1_est = obs.f(obs.xkp1_est, varargin{:}) + ...
         obs.K * (yk - obs.ykp1_est);
-    % TODO: h(x) probably will need params in some cases
     obs.ykp1_est = obs.h(obs.xkp1_est, varargin{:});
 
 end

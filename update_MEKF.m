@@ -51,7 +51,9 @@ function obs = update_MEKF(obs, yk, uk)
         yk_cov = H*P*H' + obs.filters{f}.R;
 
         % Make sure covariance matrix is symmetric
-        yk_cov = triu(yk_cov.',1) + tril(yk_cov);
+        if ~isscalar(yk_cov)
+            yk_cov = triu(yk_cov.',1) + tril(yk_cov);
+        end
 
         % Save for debugging purposes
         obs.filters{f}.yk_cov = yk_cov;

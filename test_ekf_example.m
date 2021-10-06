@@ -1,4 +1,4 @@
-% Test EKF_filter using MATLAB extended Kalman filter examples
+% Test EKF_observer using MATLAB extended Kalman filter examples
 
 clear all
 
@@ -30,7 +30,7 @@ y_meas = true;
 dfdx = @vdpStateJacobianFcn;
 dhdx = @vdpMeasurementJacobianFcn;
 n = 2; %TODO can get n from P0
-obs = EKF_filter(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     label,x0);
 
 % Check identicial initial parameters
