@@ -38,6 +38,14 @@ function T = get_obs_params(obs)
             params.sigma_wp = obs.sigma_wp;
             T = objects2tablerow(containers.Map({obs.label}, {params}));
 
+        case {'EKF', 'EKF1', 'EKF2', 'EKF3'}  % Extended Kalman filters
+
+            % Params to return
+            params.P0 = obs.P0;
+            params.Q = obs.Q;
+            params.R = obs.R;
+            T = objects2tablerow(containers.Map({obs.label}, {params}));
+
         case {'MKF', 'MKF1', 'MKF2', 'MKF1m', 'MKF2m'}  % RODD MKF observer
 
             % Params to return

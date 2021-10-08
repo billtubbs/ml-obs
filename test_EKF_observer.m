@@ -55,7 +55,7 @@ assert(isequal(obs_0.ykp1_est, zeros(2, 1)))
 uk = [];
 yk_m = x0([1 3]);
 dt = 1;
-obs = update_EKF(obs, yk_m, dt, params);
+obs = update_EKF(obs, yk_m, uk, dt, params);
 %obs.xkp1_est
 %obs.ykp1_est
 
@@ -64,6 +64,7 @@ obs = update_EKF(obs, yk_m, dt, params);
 
 %% Example from homework from GEL-7029 course
 
+clear all
 addpath('~/process-models/pend/')
 
 filename = 'hw15_EKF_sim_benchmark.csv';

@@ -4,7 +4,7 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
 % observer (steady-state).
 %
 % Arguments:
-%	A, B, C, D : discrete-time system model matrices.
+%   A, B, C, D : discrete-time system model matrices.
 %   Ts : sample period.
 %   poles : Desired closed-loop poles of filter dynamics.
 %   label : string name.

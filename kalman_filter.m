@@ -4,7 +4,7 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
 % filter (with time-varying gain).
 %
 % Arguments:
-%	A, B, C, D : discrete-time system model matrices.
+%   A, B, C, D : discrete-time system model matrices.
 %   Ts : sample period.
 %   P0 : Initial value of covariance matrix of the state
 %       estimates.

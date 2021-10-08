@@ -4,7 +4,7 @@ function obs = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0)
 % Kalman filter (i.e. with static gain).
 %
 % Arguments:
-%	A, B, C, D : discrete-time system model matrices.
+%   A, B, C, D : discrete-time system model matrices.
 %   Ts : sample period.
 %   Q : Process noise covariance matrix.
 %   R : Output measurement noise covariance matrix.
