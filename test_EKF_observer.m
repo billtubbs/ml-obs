@@ -1,4 +1,12 @@
 % Test EKF_observer.m and update_EKF.m
+%
+% To run this test use the following command:
+%
+% >> runtests test_EKF_observer
+%
+
+clear all
+
 
 %% Test with arom3 process model
 
@@ -64,12 +72,12 @@ obs = update_EKF(obs, yk_m, uk, dt, params);
 
 %% Example from homework from GEL-7029 course
 
-clear all
 addpath('~/process-models/pend/')
 
-filename = 'hw15_EKF_sim_benchmark.csv';
+filename = 'pend_sim_benchmark.csv';
 results_dir = 'results';
-bench_sim_results = readtable(fullfile(results_dir, filename));
+bench_sim_results = readtable(fullfile(results_dir, filename), ...
+    'PreserveVariableNames',true);
 
 % Simulation parameters
 N = 150;  % no. of simulation points = 15 sec
@@ -109,20 +117,20 @@ k = (0:N-1)';
 t = Ts*k;
 
 % Initial system state
-xk = bench_sim_results{1, {'x1_k_1_', 'x2_k_1_'}}';
+xk = bench_sim_results{1, {'x1(k+1)', 'x2(k+1)'}}';
 
 % matrix to save the data (u and y)
 data = nan(N,14);
 for j = 1:N
 
     % Pendulum output measurement
-    yk = bench_sim_results{j, 'y_k_'}';
+    yk = bench_sim_results{j, 'y(k)'}';
 
     % Control input
-    uk = bench_sim_results{j, 'u_k_'}';
+    uk = bench_sim_results{j, 'u(k)'}';
 
-    % Disturbance
-    pk = bench_sim_results{j, 'p_k_'}';
+    % Unmeasured input disturbance
+    pk = bench_sim_results{j, 'p(k)'}';
 
     obs = update_EKF(obs, yk, uk, params);
 
@@ -143,15 +151,15 @@ for j = 1:N
 
     assert(isequal( ...
         round(xef', 4), ...
-        round(bench_sim_results{j, {'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4) ...
+        round(bench_sim_results{j, {'xef1(k+1)', 'xef2(k+1)', 'xef3(k+1)'}}, 4) ...
     ))
-    assert(round(trP, 4) == round(bench_sim_results{j, 'trP_k_'}, 4))
+    assert(round(trP, 4) == round(bench_sim_results{j, 'trP(k)'}, 4))
 
     % Record data
     data(j,:) = [k(j) t(j) uk pk yk xk' xef' Kf' trP];
 
     % Get states at next sample time
-    xk = bench_sim_results{j, {'x1_k_1_', 'x2_k_1_'}}';
+    xk = bench_sim_results{j, {'x1(k+1)', 'x2(k+1)'}}';
 
 end
 
@@ -178,5 +186,5 @@ sim_results = array2table(data, 'VariableNames', col_names);
 
 assert(isequal( ...
     round(sim_results{:, {'t', 'xe1(k)', 'xe2(k)', 'xe3(k)'}}, 4), ...
-    round(bench_sim_results{:, {'t', 'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4) ...
+    round(bench_sim_results{:, {'t', 'xef1(k+1)', 'xef2(k+1)', 'xef3(k+1)'}}, 4) ...
 ))

@@ -1,6 +1,9 @@
 % Test functions MEKF_observer.m and update_MEKF.m
-
-clear all
+%
+% To run this test use the following command:
+%
+% >> runtests MEKF_observer
+%
 
 addpath('~/process-models/pend/')
 
@@ -120,9 +123,10 @@ assert(MEKF.ykp1_est == 0)
 % Run simulation
 obs = MEKF;
 
-filename = 'hw15_EKF_sim_benchmark.csv';
+filename = 'pend_sim_benchmark.csv';
 results_dir = 'results';
-bench_sim_results = readtable(fullfile(results_dir, filename));
+bench_sim_results = readtable(fullfile(results_dir, filename), ...
+    'PreserveVariableNames',true);
 
 % Simulation parameters
 N = 150;  % no. of simulation points = 15 sec
@@ -143,13 +147,13 @@ data = nan(N,10);
 for j = 1:N
 
     % Control input
-    uk = bench_sim_results{j, 'u_k_'}';
+    uk = bench_sim_results{j, 'u(k)'}';
 
     % Pendulum output measurement
     yk = pend_yk(xk, uk, params{1});
 
     % Disturbance
-    pk = bench_sim_results{j, 'p_k_'}';
+    pk = bench_sim_results{j, 'p(k)'}';
 
 %     % debugging
 %     if k(j) == 5
@@ -175,9 +179,9 @@ for j = 1:N
 % 
 %     assert(isequal( ...
 %         round(xef', 4), ...
-%         round(bench_sim_results{j, {'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'}}, 4) ...
+%         round(bench_sim_results{j, {'xef1(k+1)', 'xef2(k+1)', 'xef3(k+1)'}}, 4) ...
 %     ))
-%     assert(round(trP, 4) == round(bench_sim_results{j, 'trP_k_'}, 4))
+%     assert(round(trP, 4) == round(bench_sim_results{j, 'trP(k)'}, 4))
 
     % Display results
     %fprintf("%4d  %4.1f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f\n", ...
@@ -187,7 +191,7 @@ for j = 1:N
     data(j,:) = [k(j) t(j) uk pk yk xk' xef'];
 
     % Get states at next sample time
-    xk = bench_sim_results{j, {'x1_k_1_', 'x2_k_1_'}}';
+    xk = bench_sim_results{j, {'x1(k+1)', 'x2(k+1)'}}';
 
 end
 
@@ -201,11 +205,11 @@ sim_results = array2table(data, 'VariableNames', col_names);
 % % Compare gains with benchmark data
 % [
 %     sim_results(selection, {'t', 'Kf1(k)', 'Kf2(k)', 'Kf3(k)', 'trP'}) ...
-%     bench_sim_results(selection, {'Kf1_k_', 'Kf2_k_', 'Kf3_k_', 'trP_k_'})
+%     bench_sim_results(selection, {'Kf1(k)', 'Kf2(k)', 'Kf3(k)', 'trP(k)'})
 % ]
 % 
 % % Compare estimates with benchmark data
 % [
 %     sim_results(selection, {'t', 'xe1(k)', 'xe2(k)', 'xe3(k)'}) ...
-%     bench_sim_results(selection, {'xef1_k_1_', 'xef2_k_1_', 'xef3_k_1_'})
+%     bench_sim_results(selection, {'xef1(k+1)', 'xef2(k+1)', 'xef3(k+1)'})
 % ]
