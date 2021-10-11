@@ -198,10 +198,12 @@ end
 sim_results = array2table(data, 'VariableNames', col_names);
 
 % % Show selected results
-% j = find(t == 4.5);
-% selection = (0:9)' + j;
-% sim_results(selection, :)
-% 
+j = find(t == 4.5);
+selection = (0:9)' + j;
+sim_results(selection, :)
+
+%TODO: Need to test the results somehow...
+
 % % Compare gains with benchmark data
 % [
 %     sim_results(selection, {'t', 'Kf1(k)', 'Kf2(k)', 'Kf3(k)', 'trP'}) ...
