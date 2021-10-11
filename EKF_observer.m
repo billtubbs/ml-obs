@@ -46,10 +46,14 @@ function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
     assert(isequal(size(x0), [n 1]))
     obs.f = f;
     obs.h = h;
+    assert(isa(obs.f, 'function_handle'))
+    assert(isa(obs.h, 'function_handle'))
     obs.u_meas = u_meas;  % TODO implement these
     obs.y_meas = y_meas;  % 
     obs.dfdx = dfdx;
     obs.dhdx = dhdx;
+    assert(isa(obs.dfdx, 'function_handle'))
+    assert(isa(obs.dhdx, 'function_handle'))
     obs.Ts = Ts;
     obs.P0 = P0;
     obs.P = P0;

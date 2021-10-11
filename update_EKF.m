@@ -17,6 +17,7 @@ function obs = update_EKF(obs, yk, varargin)
     obs.F = obs.dfdx(obs.xkp1_est, varargin{:});
     obs.H = obs.dhdx(obs.xkp1_est, varargin{:});
 
+    % Previous method according to GEL-7029 prediction form
     [obs.K, obs.P] = ekf_update(obs.P, obs.F, obs.H, obs.Q, obs.R);
 
     % Update state and output estimates for next timestep
