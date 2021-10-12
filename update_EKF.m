@@ -14,15 +14,26 @@ function obs = update_EKF(obs, yk, varargin)
 %
     % Linearize system at current operating point
     % Calculate Jacobian matrices
-    obs.F = obs.dfdx(obs.xkp1_est, varargin{:});
-    obs.H = obs.dhdx(obs.xkp1_est, varargin{:});
 
     % Previous method according to GEL-7029 prediction form
-    [obs.K, obs.P] = ekf_update(obs.P, obs.F, obs.H, obs.Q, obs.R);
+    % which makes both steps
+    %[obs.K, obs.P] = ekf_update(obs.P, obs.F, obs.H, obs.Q, obs.R);
 
-    % Update state and output estimates for next timestep
-    obs.xkp1_est = obs.f(obs.xkp1_est, varargin{:}) + ...
-        obs.K * (yk - obs.ykp1_est);
+    % Copy estimates calculated in previous timestep
+    obs.xk_est = obs.xkp1_est;
+    obs.yk_est = obs.ykp1_est;
+    obs.P = obs.Pkp1;
+
+    % Correction step - update current estimates based on the new
+    % measurement, y(k)
+    obs.H = obs.dhdx(obs.xk_est, varargin{:});
+    [obs.xk_est, obs.K, obs.P] = ekf_correct(obs.xk_est, obs.yk_est, yk, obs.P, obs.H, obs.R);
+    obs.yk_est = obs.h(obs.xk_est, varargin{:});
+
+    % Prediction step - estimate states and covariance matrix in
+    % next time step
+    obs.F = obs.dfdx(obs.xk_est, varargin{:});
+    [obs.xkp1_est, obs.Pkp1] = ekf_predict(obs.xk_est, obs.P, obs.f, obs.F, obs.Q, varargin{:});
     obs.ykp1_est = obs.h(obs.xkp1_est, varargin{:});
 
 end

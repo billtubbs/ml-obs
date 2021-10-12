@@ -56,14 +56,17 @@ function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
     assert(isa(obs.dhdx, 'function_handle'))
     obs.Ts = Ts;
     obs.P0 = P0;
-    obs.P = P0;
     obs.Q = Q;
     obs.R = R;
     obs.label = label;
     obs.status = 1;
     obs.K = nan(n,1);
-    obs.static_gain = false;
     obs.xkp1_est = x0;
     obs.ykp1_est = y0;
+    obs.Pkp1 = P0;
+    obs.static_gain = false;
+    obs.xk_est = nan(size(x0));
+    obs.yk_est = nan(size(y0));
+    obs.P = nan(size(P0));
 
 end
