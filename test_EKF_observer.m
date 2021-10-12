@@ -16,6 +16,8 @@ filename = 'pend_sim_benchmark.csv';
 results_dir = 'results';
 bench_sim_results = readtable(fullfile(results_dir, filename), ...
     'PreserveVariableNames',true);
+% In MATLAB 2020b 'PreserveVariableNames' is deprecated.  Use
+% readtable(filename,'PreserveVariableNames',true)
 
 % Simulation parameters
 N = 150;  % no. of simulation points = 15 sec

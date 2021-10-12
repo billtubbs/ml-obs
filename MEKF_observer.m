@@ -35,6 +35,7 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
 %       process.
 %   label : string name.
 %   x0 : intial state estimates (optional).
+%   y0 : intial output estimates (optional).
 %
 
     % Number of switching systems
@@ -59,6 +60,7 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     obs.dfdx = dfdx;
     obs.dhdx = dhdx;
     obs.Ts = Ts;
+    obs.P0 = P0;
     obs.Q = Q;
     obs.R = R;
     obs.seq = seq;
@@ -68,15 +70,12 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     % Check transition probability matrix
     assert(all(sum(T, 2) == 1))
 
-    % Initialize covariance matrix of estimation errors
-    obs.P = P0;
-
-    % Check matrix dimensions.
+    % Check matrices dimensions.
     for j = 1:nj
         assert(isequal(size(R{j}), [ny ny]))
         assert(isequal(size(Q{j}), [n n]))
     end
-    
+
     % Number of filters required
     n_filt = size(seq, 1);
 
@@ -113,6 +112,7 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     % Initialize estimates
     obs.xkp1_est = x0;
     obs.ykp1_est = y0;
+    obs.Pkp1 = P0{1};  % TODO: is this correct?
 
     % Save useful variables in struct
     obs.nj = nj;

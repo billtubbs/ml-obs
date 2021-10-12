@@ -43,7 +43,7 @@ function obs = update_MEKF(obs, yk, uk)
         ind = gamma_k(f) + 1;
 
         % Calculate covariance of the output estimation errors
-        P = obs.filters{f}.P;
+        P = obs.filters{f}.Pkp1;
         % Calculate Jacobian of measurement function linearized at
         % current state estimates.
         params = obs.params{ind};  % current model parameters
@@ -106,5 +106,6 @@ function obs = update_MEKF(obs, yk, uk)
     obs.ykp1_est = sum(Ykf_est .* obs.p_seq_g_Yk, 1)';
     assert(~any(isnan(obs.xkp1_est)))
     assert(~any(isnan(obs.ykp1_est)))
+    % TODO: Calculate multi-model state covariance matrix estimate
 
 end

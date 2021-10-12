@@ -15,13 +15,16 @@ function obs = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0)
     if nargin == 8
         x0 = zeros(n, 1);
     end
+    assert(isequal(size(x0), [n 1]))
     obs.A = A;
     obs.B = B;
     obs.C = C;
     obs.D = D;
     obs.Ts = Ts;
     obs.Q = Q;
+    assert(isequal(size(Q), [n n]))
     obs.R = R;
+    assert(isequal(size(R), [ny ny]))
     obs.label = label;
     obs.status = 1;
     % Model

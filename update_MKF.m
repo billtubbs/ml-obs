@@ -143,5 +143,6 @@ function obs = update_MKF(obs, uk, yk, show_plots)
     obs.ykp1_est = sum(Ykf_est .* obs.p_seq_g_Yk, 1)';
     assert(~any(isnan(obs.xkp1_est)))
     assert(~any(isnan(obs.ykp1_est)))
+    % TODO: Calculate multi-model state covariance matrix estimate
 
 end

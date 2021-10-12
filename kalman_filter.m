@@ -13,11 +13,12 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %
-    n = check_dimensions(A, B, C, D);
+    [n, ~, ny] = check_dimensions(A, B, C, D);
     if nargin == 9
         % Default initial state estimate
         x0 = zeros(n, 1);
     end
+    assert(isequal(size(x0), [n 1]))
     obs.A = A;
     obs.B = B;
     obs.C = C;
@@ -25,8 +26,11 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
     obs.Ts = Ts;
     obs.P0 = P0;
     obs.P = P0;
+    assert(isequal(size(P0), [n n]))
     obs.Q = Q;
+    assert(isequal(size(Q), [n n]))
     obs.R = R;
+    assert(isequal(size(R), [ny ny]))
     obs.label = label;
     obs.status = 1;
     obs.K = nan(n, 1);
