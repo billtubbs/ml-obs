@@ -44,6 +44,7 @@ function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
         y0 = zeros(size(R, 1), 1);
     end
     assert(isequal(size(x0), [n 1]))
+    ny = size(y0, 1);
     obs.f = f;
     obs.h = h;
     assert(isa(obs.f, 'function_handle'))
@@ -56,8 +57,11 @@ function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
     assert(isa(obs.dhdx, 'function_handle'))
     obs.Ts = Ts;
     obs.P0 = P0;
+    assert(isequal(size(P0), [n n]))
     obs.Q = Q;
+    assert(isequal(size(Q), [n n]))
     obs.R = R;
+    assert(isequal(size(R), [ny ny]))
     obs.label = label;
     obs.status = 1;
     obs.K = nan(n,1);
