@@ -60,10 +60,10 @@ nu = 1;
 ny = 1;
 
 
-%% Define observers
+% Define observers
 
 % Define extended Kalman filter 1
-x0 = [0.1; -0.5; 2];
+x0 = [0.1; -0.5; 0];
 u0 = 0;
 y0 = h(x0,u0,params1);
 EKF1 = EKF_observer(na,f,h,{params1},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
@@ -72,7 +72,7 @@ assert(isequal(EKF1.xkp1_est, x0))
 assert(isequal(EKF1.ykp1_est, y0))
 
 % Define extended Kalman filter 2
-x0 = [0.1; -0.5; 2];
+x0 = [0.1; -0.5; 0];
 u0 = 0;
 y0 = h(x0,u0,params1);
 EKF2 = EKF_observer(na,f,h,{params2},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
@@ -81,15 +81,21 @@ assert(isequal(EKF2.xkp1_est, x0))
 assert(isequal(EKF2.ykp1_est, y0))
 
 % Transition probabilities
-T = [0.9 0.1; 0.9 0.1];
+T = [0.9 0.1; 0.1 0.9];
 assert(all(sum(T, 2) == 1))
 
 % System indicator sequences
 seq = {
-    [0 0 0 0 0 0]; ...
-    [0 0 0 0 0 1]; ...
-    [0 0 0 1 0 0]; ...
-    [0 1 0 0 0 0] ...
+    [0 0 0 0 0]; ...
+    [0 0 0 0 1]; ...
+    [0 0 0 1 1]; ...
+    [0 0 1 1 1]; ...
+    [0 1 1 1 1]; ...
+    [1 1 1 1 1]; ...
+    [1 1 1 1 0]; ...
+    [1 1 1 0 0]; ...
+    [1 1 0 0 0]; ...
+    [1 0 0 0 0] ...
     };
 n_filt = numel(seq);
 
@@ -102,7 +108,7 @@ dhdx = {dhdx, dhdx};
 Q = {Q1, Q2};
 R = {R1, R2};
 P0 = repmat({P0}, n_filt, 1);
-x0 = [0.1; -0.5; 2];
+x0 = [0.1; -0.5; 0];  % TODO: Check x0 is working
 u0 = 0;
 y0 = h{1}(x0,u0,params1);
 MEKF = MEKF_observer(na,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
@@ -157,31 +163,39 @@ Ts = 0.1;  % sampling period
 k = (0:N-1)';
 t = Ts*k;
 
+% Input signal - base initially on benchmark simulation
+U = bench_sim_results{:, 'u(k)'};
+U(t>=8) = idinput(sum(t >= 8));
+
 % Measurement noise
 V = sigma_M*randn(N, ny);
 
+% System model selection indicator
+M = ones(N, 1);
+M(t>=10) = 2;
+
 % Initial system state
 xk = zeros(2, 1);
-col_names = {'k', 't', 'u(k)', 'p(k)', 'y(k)', 'x1(k)', 'x2(k)', ...
+col_names = {'k', 't', 'u(k)', 'p(k)', 'm(k)', 'y(k)', ...
+    'x1(k)', 'x2(k)', ...
     'xe1(k) EKF1', 'xe2(k) EKF1', 'xe3(k) EKF1', ...
     'xe1(k) EKF2', 'xe2(k) EKF2', 'xe3(k) EKF2', ...
     'xe1(k) MKF', 'xe2(k) MKF', 'xe3(k) MKF'};
 %fprintf("%4s  %4s  %9s  %9s  %9s  %9s  %9s  %9s  %9s  %9s\n", col_names{:});
 
 % matrix to save the data (u and y)
-data = nan(N,16);
+data = nan(N,17);
 for j = 1:N
 
     % Control input
-    uk = bench_sim_results{j, 'u(k)'}';
+    uk = U(j, :)';
 
     % Disturbance
     pk = bench_sim_results{j, 'p(k)'}';
 
     % Pendulum output measurement
-    yk = pend_yk(xk, uk, params{1}{1});
-
-    assert(abs(bench_sim_results{j, 'y(k)'} - yk) < 0.0001)
+    mk = M(j, 1);
+    yk = pend_yk(xk, uk+pk, params{mk}{:});
 
     yk_m = yk + V(j);
 
@@ -194,19 +208,15 @@ for j = 1:N
     xef2 = EKF2.xkp1_est;
     %trP = trace(obs.P);  % TODO: Calculate this for MKF observers
 
-    xef_test = bench_sim_results{j, {'xef1(k+1)', 'xef2(k+1)', 'xef3(k+1)'}}';
-    assert(all(abs(xef - xef_test) < 1, [1 2]))
-    %assert(round(trP, 3) == round(bench_sim_results{j, 'trP(k)'}, 3))
-
     % Display results
     %fprintf("%4d  %4.1f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f  %9.4f\n", ...
     %    k(j), t(j), uk, pk, yk, xk', xef');
 
     % Record data
-    data(j,:) = [k(j) t(j) uk pk yk xk' xef1' xef2' xef'];
+    data(j,:) = [k(j) t(j) uk pk mk yk xk' xef1' xef2' xef'];
 
-    % Get states at next sample time
-    xk = bench_sim_results{j, {'x1(k+1)', 'x2(k+1)'}}';
+    % Update system model states
+    xk = pend_xkp1(xk, uk+pk, params{mk}{:});
 
 end
 
@@ -228,22 +238,18 @@ sim_results(selection, :)
 % Plot state estimates
 figure(1); clf
 x_labels = {'angle', 'angular velocity', 'input disturbance model state'};
-if N < 100
-    linestyle = 'o-';
-else
-    linestyle = '-';
-end
-x_labels = {'x1(k+1)', 'x2(k+1)', 'p(k)'};
+x_labels = {'x1(k)', 'x2(k)', 'p(k)'};
+axes = nan(1, na);
 for i = 1:na
-    subplot(na,1,i)
+    axes(i) = subplot(na, 1, i);
     label1 = sprintf('xe%d(k) EKF1', i);
-    plot(t, sim_results{:, {label1}}, linestyle); hold on
+    plot(t, sim_results{:, {label1}}, 'Linewidth', 2); hold on
     label2 = sprintf('xe%d(k) EKF2', i);
-    plot(t, sim_results{:, {label2}}, linestyle);
+    plot(t, sim_results{:, {label2}}, 'Linewidth', 2);
     label3 = sprintf('xe%d(k) MKF', i);
-    plot(t, sim_results{:, {label3}}, linestyle);
+    plot(t, sim_results{:, {label3}}, '--', 'Linewidth', 2);
     label4 = x_labels{i};
-    plot(t, bench_sim_results{:, {label4}}, linestyle);
+    plot(t, sim_results{:, {label4}}, 'k--');
     ylabel(x_labels{i}, 'Interpreter','Latex');
     grid on
     title(sprintf('State $x_%d$', i), 'Interpreter','Latex')
@@ -252,6 +258,8 @@ for i = 1:na
     end
     legend({'EKF1', 'EKF2', 'MEKF', 'true'})
 end
+
+linkaxes(axes, 'x')
 
 % % Plot trace of covariance matrices
 % figure(2); clf
