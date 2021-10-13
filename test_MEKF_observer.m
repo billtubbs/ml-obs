@@ -66,8 +66,8 @@ ny = 1;
 x0 = [0.1; -0.5; 2];
 u0 = 0;
 y0 = h(x0,u0,params1);
-EKF1 = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q1,R1, ...
-    'EKF1',x0,y0);
+EKF1 = EKF_observer(na,f,h,{params1},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+    Q1,R1,'EKF1',x0,y0);
 assert(isequal(EKF1.xkp1_est, x0))
 assert(isequal(EKF1.ykp1_est, y0))
 
@@ -75,8 +75,8 @@ assert(isequal(EKF1.ykp1_est, y0))
 x0 = [0.1; -0.5; 2];
 u0 = 0;
 y0 = h(x0,u0,params1);
-EKF2 = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q2,R2, ...
-    'EKF1',x0,y0);
+EKF2 = EKF_observer(na,f,h,{params2},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+    Q2,R2,'EKF1',x0,y0);
 assert(isequal(EKF2.xkp1_est, x0))
 assert(isequal(EKF2.ykp1_est, y0))
 
@@ -96,7 +96,7 @@ n_filt = numel(seq);
 % Define multi-model Kalman filter
 f = {f, f};
 h = {h, h};
-params = {params1, params2};
+params = {{params1}, {params2}};
 dfdx = {dfdx, dfdx};
 dhdx = {dhdx, dhdx};
 Q = {Q1, Q2};
@@ -179,15 +179,15 @@ for j = 1:N
     pk = bench_sim_results{j, 'p(k)'}';
 
     % Pendulum output measurement
-    yk = pend_yk(xk, uk, params{1});
+    yk = pend_yk(xk, uk, params{1}{1});
 
     assert(abs(bench_sim_results{j, 'y(k)'} - yk) < 0.0001)
 
     yk_m = yk + V(j);
 
     % Update observers
-    EKF1 = update_EKF(EKF1, yk_m, uk, params1);
-    EKF2 = update_EKF(EKF2, yk_m, uk, params2);
+    EKF1 = update_EKF(EKF1, yk_m, uk);
+    EKF2 = update_EKF(EKF2, yk_m, uk);
     MEKF = update_MEKF(MEKF, yk_m, uk);
     xef = MEKF.xkp1_est;
     xef1 = EKF1.xkp1_est;

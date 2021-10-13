@@ -1,7 +1,7 @@
 function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     P0,Q,R,seq,T,label,x0,y0)
 % obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
-%     P0,Q,R,seq,T,label,x0,y0)
+%     params,P0,Q,R,seq,T,label,x0,y0)
 %
 % Creates a struct for simulating a multi-model extended 
 % Kalman filter for state estimation of a non-linear 
@@ -12,9 +12,9 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
 %   f, h : cell arrays containing state transition functions 
 %       and easurement functions for each switching system
 %       modelled.
-%   params : cell array of structs containing parameters to
-%       to be passed to state transition function amd
-%       measurement function for each switching system.
+%   params : cell array of cell arrays containing any 
+%       additional parameters for each switching system that
+%       should be passed to functions f, h, dfdx, and dhdx.
 %   u_meas : array indicating which inputs are measured.
 %   y_meas : array indicating which outputs are measured.
 %   dfdx : cell array containing functions to generate the
@@ -105,8 +105,8 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     for i = 1:n_filt
         label_i = sprintf('%s%02d',label,i);
         % Initialize each filter with system #1
-        obs.filters{i} = EKF_observer(n,f{1},h{1},u_meas,y_meas, ...
-            dfdx{1},dhdx{1},Ts,P0{i},Q{1},R{1},label_i,x0,y0);
+        obs.filters{i} = EKF_observer(n,f{1},h{1},params,u_meas, ...
+            y_meas,dfdx{1},dhdx{1},Ts,P0{i},Q{1},R{1},label_i,x0,y0);
     end
 
     % Initialize estimates

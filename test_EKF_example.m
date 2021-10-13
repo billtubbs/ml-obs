@@ -18,19 +18,20 @@ assert(isequal(obj.StateCovariance, eye(2)))
 
 % Initialize ekf_filter struct
 Ts = 1;
-P0 = eye(2);
+n = 2;
+P0 = eye(n);
 Q = diag([0.01 0.01]);
 R = 0.2;
 label = 'EKF_vdp';
 x0 = [1; 0];
 f = @vdpStateFcn;
 h = @vdpMeasurementFcn;
+params = {};  % these functions do not take additional parameters
 u_meas = [];
 y_meas = true;
 dfdx = @vdpStateJacobianFcn;
 dhdx = @vdpMeasurementJacobianFcn;
-n = 2; %TODO can get n from P0
-obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
+obs = EKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     label,x0);
 
 % Check identicial initial parameters

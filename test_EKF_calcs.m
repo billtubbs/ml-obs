@@ -52,8 +52,8 @@ dhdx = @arom3_MeasurementJacobianFcnRodin2;
 xa0 = [x0; p0];
 uk0 = [];
 y0 = arom3_MeasurementFcnRodin2(xa0,uk0,Ts,params);
-EKF2 = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-    'EKF2',xa0,y0);
+EKF2 = EKF_observer(na,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+    Q,R,'EKF2',xa0,y0);
   
 % Initialize variables for simulating GEL-7029 EKF
 EKF3.Q = Q;
@@ -134,7 +134,7 @@ for i = 1:numel(k_ind)
     Pk = Pkp1;
 
     % Update my observer
-    EKF2 = update_EKF(EKF2, yk_m, uk, Ts, params);
+    EKF2 = update_EKF(EKF2, yk_m, uk, Ts);
     assert(all(abs(xkp1_est' - EKF2.xkp1_est') < 1e-12, [1 2]))
 
     % Update GEL-7029 observer

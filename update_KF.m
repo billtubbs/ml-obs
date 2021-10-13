@@ -12,6 +12,8 @@ function obs = update_KF(obs, uk, yk)
 %       sample time k.
 %
 
+% TODO: Switch argument order to(obs, yk, uk) for consistency with EKF
+
     if ~obs.static_gain
         % Update observer gain and covariance matrix
         [obs.K, obs.P] = kalman_update(obs.P, obs.A, obs.C, obs.Q, obs.R);

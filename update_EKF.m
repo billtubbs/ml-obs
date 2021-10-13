@@ -19,6 +19,9 @@ function obs = update_EKF(obs, yk, varargin)
     % which makes both steps
     %[obs.K, obs.P] = ekf_update(obs.P, obs.F, obs.H, obs.Q, obs.R);
 
+    % Add model parameters to arguments cell array
+    varargin = [varargin obs.params];
+
     % Copy estimates calculated in previous timestep
     obs.xk_est = obs.xkp1_est;
     obs.yk_est = obs.ykp1_est;

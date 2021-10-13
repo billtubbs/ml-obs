@@ -43,12 +43,27 @@ Q = 10*eye(na);  % Kalman - process noise var.
 R = 1;  % Kalman - meas. noise var.
 
 % Initialize EKF
+label = 'EKF_pend';
 x0 = zeros(na,1);
 u0 = 0;
 y0 = h(x0, u0, params);
-obs = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-    'EKF_pend',x0,y0);
+obs = EKF_observer(na,f,h,{params},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+    Q,R,label,x0,y0);
 
+% Check attributes
+assert(obs.n == na)
+assert(isequal(obs.f, @pend_StateFcn))
+assert(isequal(obs.h, @pend_MeasurementFcn))
+assert(isequal(obs.u_meas, u_meas))
+assert(isequal(obs.y_meas, y_meas))
+assert(isequal(obs.dfdx, @pend_F))
+assert(isequal(obs.dhdx, @pend_H))
+assert(obs.Ts == Ts)
+assert(isequal(obs.params, {params}))
+assert(isequal(obs.P0, P0))
+assert(isequal(obs.Q, Q))
+assert(isequal(obs.R, R))
+assert(isequal(obs.label, label))
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, y0))
 
@@ -72,7 +87,7 @@ for j = 1:N
     % Unmeasured input disturbance
     pk = bench_sim_results{j, 'p(k)'}';
 
-    obs = update_EKF(obs, yk, uk, params);
+    obs = update_EKF(obs, yk, uk);
 
 %     % Extended Kalman filter
 %     % Linearize at current operating point by
@@ -164,10 +179,10 @@ Q = diag([0.25; 1; 1; 0.0033; 0.0033]);
 label = 'EKF1';
 x0 = [742; 463; 537; 5; 6];
 y0 = x0([1 3]);
-obs = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-    label,x0,y0);
+obs = EKF_observer(na,f,h,{params},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+    Q,R,label,x0,y0);
 
-% Check attributes set
+% Check attributes
 assert(obs.n == na)
 assert(isequal(obs.f, @arom3_StateFcnRodin))
 assert(isequal(obs.h, @arom3_MeasurementFcnRodin2))
@@ -176,6 +191,7 @@ assert(isequal(obs.y_meas, y_meas))
 assert(isequal(obs.dfdx, @arom3_StateJacobianFcnRodin))
 assert(isequal(obs.dhdx, @arom3_MeasurementJacobianFcnRodin2))
 assert(obs.Ts == Ts)
+assert(isequal(obs.params, {params}))
 assert(isequal(obs.P0, P0))
 assert(isequal(obs.Q, Q))
 assert(isequal(obs.R, R))
@@ -184,11 +200,11 @@ assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, y0))
 
 % Test instantiation with unspecified initial conditions
-obs_0 = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-    label,x0);
+obs_0 = EKF_observer(na,f,h,{params},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+    Q,R,label,x0);
 assert(isequal(obs_0.ykp1_est, zeros(2, 1)))
-obs_0 = EKF_observer(na,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-    label);
+obs_0 = EKF_observer(na,f,h,{params},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+    Q,R,label);
 assert(isequal(obs_0.xkp1_est, zeros(5, 1)))
 assert(isequal(obs_0.ykp1_est, zeros(2, 1)))
 
@@ -215,7 +231,7 @@ for i = 1:numel(k_ind)
     uk = [];
 
     % Update observer
-    obs = update_EKF(obs, yk_m, uk, Ts, params);
+    obs = update_EKF(obs, yk_m, uk, Ts);
 
     % Save results
     sim_data(i,:) = [k t(i) obs.xkp1_est'];

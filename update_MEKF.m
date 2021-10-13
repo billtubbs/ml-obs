@@ -47,7 +47,7 @@ function obs = update_MEKF(obs, yk, uk)
         % Calculate Jacobian of measurement function linearized at
         % current state estimates.
         params = obs.params{ind};  % current model parameters
-        H = obs.filters{f}.dhdx(obs.filters{f}.xkp1_est, uk, params);
+        H = obs.filters{f}.dhdx(obs.filters{f}.xkp1_est, uk, params{:});
         yk_cov = H*P*H' + obs.filters{f}.R;
 
         % Make sure covariance matrix is symmetric
@@ -70,11 +70,12 @@ function obs = update_MEKF(obs, yk, uk)
         obs.filters{f}.h = obs.h{ind};
         obs.filters{f}.dfdx = obs.dfdx{ind};
         obs.filters{f}.dhdx = obs.dhdx{ind};
+        obs.filters{f}.params = obs.params{ind};
         obs.filters{f}.Q = obs.Q{ind};
         obs.filters{f}.R = obs.R{ind};
 
         % Update observer estimates, gain and covariance matrix
-        obs.filters{f} = update_EKF(obs.filters{f}, yk, uk, params);
+        obs.filters{f} = update_EKF(obs.filters{f}, yk, uk);
         assert(~any(isnan(obs.filters{f}.xkp1_est)))
 
         % Save state and output estimates for next timestep

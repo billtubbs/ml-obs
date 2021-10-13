@@ -1,7 +1,7 @@
-function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
-    R,label,x0,y0)
-% obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
-%     label,x0,y0)
+function obs = EKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+    P0,Q,R,label,x0,y0)
+% obs = EKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+%     P0,Q,R,label,x0,y0)
 % Creates a struct for simulating a discrete-time
 % extended Kalman filter (EKF) for online state estimation
 % of non-linear systems.
@@ -19,6 +19,9 @@ function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
 %   n : Number of model states.
 %   f : State transition function (non-linear).
 %   h : Measurement function.
+%   params : cell array containing any additional 
+%       parameters that should be passed to functions f, 
+%       h, dfdx, and dhdx as the final arguments.
 %   u_meas : array indicating which inputs are measured.
 %   y_meas : array indicating which outputs are measured.
 %   dfdx : function to generate the Jacobian matrix of 
@@ -35,11 +38,11 @@ function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
 %   y0 : intial output estimates (optional).
 %
     obs.n = n;
-    if nargin == 12
+    if nargin == 13
         % Default initial state estimate
         x0 = zeros(n, 1);
     end
-    if nargin < 14
+    if nargin < 15
         % Default initial state estimate
         y0 = zeros(size(R, 1), 1);
     end
@@ -47,6 +50,7 @@ function obs = EKF_observer(n,f,h,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q, ...
     ny = size(y0, 1);
     obs.f = f;
     obs.h = h;
+    obs.params = params;
     assert(isa(obs.f, 'function_handle'))
     assert(isa(obs.h, 'function_handle'))
     obs.u_meas = u_meas;  % TODO implement these
