@@ -213,6 +213,7 @@ for label = MSE.keys
    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
 end
 
+return
 
 % % Display results of last simulation
 

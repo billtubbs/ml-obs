@@ -87,18 +87,8 @@ for j = 1:N
     % Unmeasured input disturbance
     pk = bench_sim_results{j, 'p(k)'}';
 
+    % Observer calculations
     obs = update_EKF(obs, yk, uk);
-
-%     % Extended Kalman filter
-%     % Linearize at current operating point by
-%     % re-computing Jacobians F(k) and H(k)
-%     [F, H] = pend_jacob(xef,T,K,m,L,g);
-%     % Compute observer gains and update covariance matrix
-%     [Kf, P] = ekf_update(P,F,H,Q,R);
-% 
-%     % Compute next state estimates
-%     % (uses non-linear model)
-%     xef = [pend_xkp1(u(1),xef(1:2),K,m,L,g,T); xef(3)] + Kf*(y - H*xef);
 
     xef = obs.xkp1_est;
     Kf = obs.K;

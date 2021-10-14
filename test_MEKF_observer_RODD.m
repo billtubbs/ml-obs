@@ -41,7 +41,7 @@ cov_w = [0.0033; 0.0033];
 % TODO: Doesn't say what process noise on x(1) to x(3) is
 Q = diag([0.25; 1; 1; cov_w]);
 
-% Multi-model RODD observer
+% Define multi-model RODD observer
 label = 'MEKF';
 state_fcn = @arom3_StateFcnRodin;
 meas_fcn = @arom3_MeasurementFcnRodin2;
@@ -91,12 +91,15 @@ assert(isequal(MEKF1.ykp1_est, y0))
 %TODO: Are these values are correct?
 assert(isequal(round(MEKF1.p_gamma, 4), [0.9978; 0.0011; 0.0011; 0.0000]))
 
-% % Check optional definition with an initial state estimate works
-% x0 = [0.1; 0.5];
-% MKF_testx0 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,f,m,d,label,x0);
-% assert(isequal(MKF_testx0.xkp1_est, x0))
-% assert(isequal(MKF_testx0.ykp1_est, C * x0))
+% Check optional definition without an initial state estimate
+MEKF1_testx0 = MEKF_observer_RODD(na,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx, ...
+    dhdx,dt,P0,epsilon,sigma_wp,Q0,R,f,m,d,label);
+assert(isequal(MEKF1_testx0.xkp1_est, zeros(na, 1)))
+assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
+
+
+% TODO: Finish tests and simulation test.
+
 % 
 % % Simulation settings
 % nT = 100;

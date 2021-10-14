@@ -172,5 +172,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     obs.p_gamma = p_gamma;
     obs.p_seq = p_seq;
     obs.nj = nj;
+    obs.p_gamma_k = nan(n_filt, 1);
+    obs.p_seq_g_Ykm1 = nan(n_filt, 1);
 
 end
