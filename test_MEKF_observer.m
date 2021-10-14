@@ -223,43 +223,43 @@ end
 sim_results = array2table(data, 'VariableNames', col_names);
 
 % % Show selected results
-j = find(t == 4.5);
-selection = (0:9)' + j;
-sim_results(selection, :)
+% j = find(t == 4.5);
+% selection = (0:9)' + j;
+% sim_results(selection, :)
 
 %TODO: Need to test the results somehow...
 
-% Compare estimates with benchmark data
-[
-    sim_results(selection, {'t', 'xe1(k) MKF', 'xe2(k) MKF', 'xe3(k) MKF'}) ...
-    bench_sim_results(selection, {'xef1(k+1)', 'xef2(k+1)', 'xef3(k+1)'})
-]
-
-% Plot state estimates
-figure(1); clf
-x_labels = {'angle', 'angular velocity', 'input disturbance model state'};
-x_labels = {'x1(k)', 'x2(k)', 'p(k)'};
-axes = nan(1, na);
-for i = 1:na
-    axes(i) = subplot(na, 1, i);
-    label1 = sprintf('xe%d(k) EKF1', i);
-    plot(t, sim_results{:, {label1}}, 'Linewidth', 2); hold on
-    label2 = sprintf('xe%d(k) EKF2', i);
-    plot(t, sim_results{:, {label2}}, 'Linewidth', 2);
-    label3 = sprintf('xe%d(k) MKF', i);
-    plot(t, sim_results{:, {label3}}, '--', 'Linewidth', 2);
-    label4 = x_labels{i};
-    plot(t, sim_results{:, {label4}}, 'k--');
-    ylabel(x_labels{i}, 'Interpreter','Latex');
-    grid on
-    title(sprintf('State $x_%d$', i), 'Interpreter','Latex')
-    if i == na
-        xlabel('t (hours)', 'Interpreter','Latex');
-    end
-    legend({'EKF1', 'EKF2', 'MEKF', 'true'})
-end
-
-linkaxes(axes, 'x')
+% % Compare estimates with benchmark data
+% [
+%     sim_results(selection, {'t', 'xe1(k) MKF', 'xe2(k) MKF', 'xe3(k) MKF'}) ...
+%     bench_sim_results(selection, {'xef1(k+1)', 'xef2(k+1)', 'xef3(k+1)'})
+% ]
+% 
+% % Plot state estimates
+% figure(1); clf
+% x_labels = {'angle', 'angular velocity', 'input disturbance model state'};
+% x_labels = {'x1(k)', 'x2(k)', 'p(k)'};
+% axes = nan(1, na);
+% for i = 1:na
+%     axes(i) = subplot(na, 1, i);
+%     label1 = sprintf('xe%d(k) EKF1', i);
+%     plot(t, sim_results{:, {label1}}, 'Linewidth', 2); hold on
+%     label2 = sprintf('xe%d(k) EKF2', i);
+%     plot(t, sim_results{:, {label2}}, 'Linewidth', 2);
+%     label3 = sprintf('xe%d(k) MKF', i);
+%     plot(t, sim_results{:, {label3}}, '--', 'Linewidth', 2);
+%     label4 = x_labels{i};
+%     plot(t, sim_results{:, {label4}}, 'k--');
+%     ylabel(x_labels{i}, 'Interpreter','Latex');
+%     grid on
+%     title(sprintf('State $x_%d$', i), 'Interpreter','Latex')
+%     if i == na
+%         xlabel('t (hours)', 'Interpreter','Latex');
+%     end
+%     legend({'EKF1', 'EKF2', 'MEKF', 'true'})
+% end
+% 
+% linkaxes(axes, 'x')
 
 % % Plot trace of covariance matrices
 % figure(2); clf

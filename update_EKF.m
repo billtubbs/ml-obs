@@ -12,12 +12,6 @@ function obs = update_EKF(obs, yk, varargin)
 %   varargin : provide any additional arguments required
 %       by your state transtion function (obs.f).
 %
-    % Linearize system at current operating point
-    % Calculate Jacobian matrices
-
-    % Previous method according to GEL-7029 prediction form
-    % which makes both steps
-    %[obs.K, obs.P] = ekf_update(obs.P, obs.F, obs.H, obs.Q, obs.R);
 
     % Add model parameters to arguments cell array
     varargin = [varargin obs.params];

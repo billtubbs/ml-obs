@@ -95,7 +95,7 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     f_hold = 1:n_dist*n_min;
     f_main = f_hold(end)+1:n_filt;
 
-    % System model does not change
+    % System model doesn't change
     A = repmat({A}, 1, nj);
     B = repmat({B}, 1, nj);
     C = repmat({C}, 1, nj);

@@ -1,7 +1,7 @@
 function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     P0,Q,R,seq,T,label,x0,y0)
 % obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
-%     params,P0,Q,R,seq,T,label,x0,y0)
+%     P0,Q,R,seq,T,label,x0,y0)
 %
 % Creates a struct for simulating a multi-model extended 
 % Kalman filter for state estimation of a non-linear 
@@ -10,7 +10,7 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
 % Arguments:
 %   n : Number of model states.
 %   f, h : cell arrays containing state transition functions 
-%       and easurement functions for each switching system
+%       and measurement functions for each switching system
 %       modelled.
 %   params : cell array of cell arrays containing any 
 %       additional parameters for each switching system that
@@ -68,7 +68,7 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     obs.label = label;
 
     % Check transition probability matrix
-    assert(all(sum(T, 2) == 1))
+    assert(all(abs(sum(T, 2) - 1) < 1e-15))
 
     % Check matrices dimensions.
     for j = 1:nj

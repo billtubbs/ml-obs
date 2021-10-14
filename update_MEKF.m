@@ -1,7 +1,8 @@
-function obs = update_MEKF(obs, yk, uk)
-% obs = update_MEKF(obs) updates the multi-model extended 
-% Kalman filter and calculates the estimates of the states
-% and output at the next sample time.
+function obs = update_MEKF(obs, yk, varargin)
+% obs = update_MEKF(obs, yk, varargin)
+% updates the multi-model extended Kalman filter and 
+% calculates the estimates of the states and output at
+% the next sample time.
 %
 % Arguments:
 %   obs : struct containing the multi-model Kalman filter
@@ -12,8 +13,9 @@ function obs = update_MEKF(obs, yk, uk)
 %       at the current sample time.
 %
 
-    % increment sequence index (i should be initialized at 0
-    % and 1 <= obs.i <= obs.nf thereafter)
+
+    % Increment sequence index (i should be initialized at
+    % 0 and 1 <= obs.i <= obs.nf thereafter)
     obs.i = mod(obs.i, obs.nf) + 1;
 
     % Arrays to collect estimates from each filter
@@ -47,7 +49,8 @@ function obs = update_MEKF(obs, yk, uk)
         % Calculate Jacobian of measurement function linearized at
         % current state estimates.
         params = obs.params{ind};  % current model parameters
-        H = obs.filters{f}.dhdx(obs.filters{f}.xkp1_est, uk, params{:});
+        varargin2 = [varargin obs.params{ind}{:}];
+        H = obs.filters{f}.dhdx(obs.filters{f}.xkp1_est, varargin2{:});
         yk_cov = H*P*H' + obs.filters{f}.R;
 
         % Make sure covariance matrix is symmetric
@@ -75,7 +78,7 @@ function obs = update_MEKF(obs, yk, uk)
         obs.filters{f}.R = obs.R{ind};
 
         % Update observer estimates, gain and covariance matrix
-        obs.filters{f} = update_EKF(obs.filters{f}, yk, uk);
+        obs.filters{f} = update_EKF(obs.filters{f}, yk, varargin{:});
         assert(~any(isnan(obs.filters{f}.xkp1_est)))
 
         % Save state and output estimates for next timestep
