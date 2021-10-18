@@ -46,26 +46,26 @@ function obs = EKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
         % Default initial state estimate
         y0 = zeros(size(R, 1), 1);
     end
-    assert(isequal(size(x0), [n 1]))
+    assert(isequal(size(x0), [n 1]), "ValueError: size(x0)")
     ny = size(y0, 1);
     obs.f = f;
     obs.h = h;
     obs.params = params;
-    assert(isa(obs.f, 'function_handle'))
-    assert(isa(obs.h, 'function_handle'))
+    assert(isa(obs.f, 'function_handle'), "ValueError: f")
+    assert(isa(obs.h, 'function_handle'), "ValueError: h")
     obs.u_meas = u_meas;  % TODO implement these
     obs.y_meas = y_meas;  % 
     obs.dfdx = dfdx;
     obs.dhdx = dhdx;
-    assert(isa(obs.dfdx, 'function_handle'))
-    assert(isa(obs.dhdx, 'function_handle'))
+    assert(isa(obs.dfdx, 'function_handle'), "ValueError: dfdx")
+    assert(isa(obs.dhdx, 'function_handle'), "ValueError: dhdx")
     obs.Ts = Ts;
     obs.P0 = P0;
-    assert(isequal(size(P0), [n n]))
+    assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
     obs.Q = Q;
-    assert(isequal(size(Q), [n n]))
+    assert(isequal(size(Q), [n n]), "ValueError: size(Q)")
     obs.R = R;
-    assert(isequal(size(R), [ny ny]))
+    assert(isequal(size(R), [ny ny]), "ValueError: size(R)")
     obs.label = label;
     obs.status = 1;
     obs.K = nan(n,1);

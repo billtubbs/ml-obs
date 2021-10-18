@@ -18,7 +18,7 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
         % Default initial state estimate
         x0 = zeros(n, 1);
     end
-    assert(isequal(size(x0), [n 1]))
+    assert(isequal(size(x0), [n 1]), "ValueError: size(x0)")
     obs.A = A;
     obs.B = B;
     obs.C = C;
@@ -26,11 +26,11 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
     obs.Ts = Ts;
     obs.P0 = P0;
     obs.P = P0;
-    assert(isequal(size(P0), [n n]))
+    assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
     obs.Q = Q;
-    assert(isequal(size(Q), [n n]))
+    assert(isequal(size(Q), [n n]), "ValueError: size(Q)")
     obs.R = R;
-    assert(isequal(size(R), [ny ny]))
+    assert(isequal(size(R), [ny ny]), "ValueError: size(R)")
     obs.label = label;
     obs.status = 1;
     obs.K = nan(n, 1);
