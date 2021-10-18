@@ -1,5 +1,5 @@
-function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
-% obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
+function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
+% obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
 %
 % Creates a struct for simulating a multi-model Kalman filter
 % for state estimation of a Markov jump linear system.
@@ -17,6 +17,7 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
 %   seq : model indicator sequences for each filter (in rows).
 %   T : transition probabity matrix of the Markov switching
 %       process.
+%   d : spacing parameter in number of sample periods.
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %
@@ -26,7 +27,7 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
 
     % System dimensions
     [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
-    if nargin == 11
+    if nargin < 13
         x0 = zeros(n,1);
     end
     obs.A = A;
@@ -38,10 +39,11 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
     obs.R = R;
     obs.seq = seq;
     obs.T = T;
+    obs.d = d;
     obs.label = label;
 
     % Check transition probability matrix
-    assert(all(sum(T, 2) == 1))
+    assert(all(sum(T, 2) == 1), "ValueError: T")
 
     % Initialize covariance matrix of estimation errors
     obs.P = P0;
@@ -63,12 +65,13 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
     n_filt = size(seq, 1);
 
     % Fusion horizon length
-    nf = size(cell2mat(seq), 2);
+    f = size(cell2mat(seq), 2);
 
-    % Initialize sequence index for online operation
-    % Start at 0 because update_MKF increments it before
-    % starting the update
-    obs.i = 0;
+    % Sequence index and counter for prob. updates
+    % obs.i(1) is the sequence index (1 <= i(1) <= obs.f)
+    % obs.i(2) is the counter for prob. updates (1 <= i(2) <= obs.d)
+    obs.i = nan(1, 2);
+    obs.i_next = int16([1 1]);
 
     % Initialize conditional probabilities: all equally likely
     obs.p_seq_g_Yk = ones(n_filt, 1) ./ n_filt;
@@ -102,6 +105,6 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0)
     obs.nu = nu;
     obs.ny = ny;
     obs.n_filt = n_filt;
-    obs.nf = nf;
+    obs.f = f;
 
 end

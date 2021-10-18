@@ -19,18 +19,19 @@ function obs = update_MKF2(obs, uk, yk, show_plots)
         show_plots = false;
     end
 
-    % Increment update timer count
-    obs.c = obs.c + 1;
+    % Increment sequence index and update counter
+    % obs.i(1) is the sequence index (1 <= i(1) <= obs.f)
+    % obs.i(2) is the counter for prob. updates (1 <= i(2) <= obs.d)
+    % Whenever obs.i(2) exceeds obs.d (the spacing parameter), it is
+    % reset to 1, and the sequence index obs.i(1) is incremented.
+    obs.i = obs.i_next;
+    obs.i_next = [mod(obs.i(1) - 1 + ...
+                  idivide(obs.i(2), obs.d), obs.f) + 1, ...
+                  mod(obs.i(2), obs.d) + 1];
 
-    % Do Bayesian update if counter has reached update period
-    if obs.c == obs.d
-
-        % Reset counter
-        obs.c = 0;
-
-        % Increment sequence index (i should be initialized at 0
-        % and 1 <= obs.i <= obs.nf thereafter)
-        obs.i = mod(obs.i, obs.nf) + 1;
+    % Do Bayesian update if counter will reset to 1 at next
+    % sample time.
+    if obs.i_next(2) == 1
 
         % Arrays to store model indicator sequence values
         gamma_k = zeros(obs.n_filt, 1);
@@ -87,10 +88,10 @@ function obs = update_MKF2(obs, uk, yk, show_plots)
 
             % Update model indicator value gamma(k) with the
             % current value from the filter's sequence
-            gamma_k(f) = obs.seq{f}(:, obs.i);
+            gamma_k(f) = obs.seq{f}(:, obs.i(1));
 
             % Compute Pr(gamma(k)) based on Markov transition
-            % probabilities
+            % probability matrix
             p_gamma_k(f) = prob_gamma(gamma_k(f), obs.T(gamma_km1+1, :)');
 
             % Select filter system model based on current
@@ -164,5 +165,10 @@ function obs = update_MKF2(obs, uk, yk, show_plots)
     assert(~any(isnan(obs.xkp1_est)))
     assert(~any(isnan(obs.ykp1_est)))
     % TODO: Calculate multi-model state covariance estimate
+
+    if show_plots 
+        %disp(obs.label);
+        %disp('stop')
+    end
 
 end

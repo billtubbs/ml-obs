@@ -156,7 +156,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     P0_init = repmat({P0}, 1, n_filt);
 
     % Create MKF observer struct
-    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,label,x0);
+    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by RODD observer
     obs.S = S;
@@ -166,7 +166,6 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     obs.sigma_wp = sigma_wp;
     obs.f = f;
     obs.m = m;
-    obs.d = d;
     obs.p = p;
     obs.beta = beta;
     obs.p_gamma = p_gamma;
