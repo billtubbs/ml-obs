@@ -25,7 +25,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %   R : output measurement noise covariance matrix (ny, ny).
 %   f : fusion horizon (length of disturbance sequences).
 %   m : maximum number of disturbances over fusion horizon.
-%   d : spacing parameter in number of sample periods.
+%   d : detection interval length in number of sample periods.
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %
@@ -39,11 +39,14 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 
     % Number of states
     n = check_dimensions(A, B, C, D);
-    
+
     % Initial state estimates
     if nargin == 15
         x0 = zeros(n,1);
     end
+
+    % Check size of process covariance default matrix
+    assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
     % Number of input disturbances
     n_dist = sum(~u_meas);
@@ -52,18 +55,14 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     n_filt = n_filters(m, f, n_dist);
 
     % Generate indicator sequences
-    S = combinations_lte(f*n_dist, m);
+    seq = combinations_lte(f*n_dist, m);
 
-    % Probability of no-shock / shock each period
-    % TODO: Is this actually used?
+    % Probability of shock over a detection interval
+    % (Detection interval is d sample periods).
     p = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d)';
-    p = [ones(size(p))-p; p];
 
-    % Probabilities of no-shock, shock
-    p_gamma = [1-epsilon epsilon]';
-
-    % Check size of process covariance default matrix
-    assert(isequal(size(Q0), [n n]))
+    % Probabilities of no-shock / shock over detection interval
+    p_gamma = [ones(size(p))-p; p];
 
     if n_dist == 1
 
@@ -79,27 +78,27 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
         end
 
     elseif n_dist > 1
-        
-        % Note: In the case of more than one input disturbance,
+
+        % Note: In the case of more than one input disturbance
         % there may be multiple combinations of disturbances
         % occuring simultaneously. To simulate these, construct
         % a different Q matrix for each possible combination.
-        
-        % Reshape sequence data so that each row represents a
-        % an input disturbance sequence
-        S = cellfun(@(x) reshape(x, n_dist, []), S, ...
+
+        % Reshape sequences into matrices with a row for each
+        % input disturbance sequence
+        seq = cellfun(@(x) reshape(x, n_dist, []), seq, ...
             'UniformOutput', false);
 
-        % Find unique combinations of simultaneous shocks
-        [Z,~,ic] = unique(cell2mat(S')', 'sorted', 'rows');
+        % Find all unique combinations of simultaneous shocks
+        [Z,~,ic] = unique(cell2mat(seq')', 'sorted', 'rows');
 
         % Number of Q matrices needed
         nj = size(Z, 1);
 
         % Rearrange as one sequence for each filter and convert
         % back to cell array
-        S = reshape((ic - 1)', [], n_filt)'; 
-        S = mat2cell(S, ones(n_filt, 1), f);
+        seq = reshape((ic - 1)', [], n_filt)'; 
+        seq = mat2cell(seq, ones(n_filt, 1), f);
 
         % Generate required Q matrices
         Q = cell(1, nj);
@@ -111,7 +110,8 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
             Q{i} = diag(var_x);
         end
 
-        % Modified indicator value probabilities
+        % Modify indicator value probabilities for
+        % combinations of shocks
         p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 
         % Normalize so that sum(Pr(gamma(k))) = 1
@@ -128,16 +128,6 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     % Note that for RODD disturbances Pr(gamma(k)) is
     % assumed to be an independent random variable.
     T = repmat(p_gamma', nj, 1);
-
-    % Create lengthened indicator sequences by inserting
-    % zeros between periods when shocks occur.
-    seq = cell(n_filt, 1);
-    for i = 1:n_filt
-        % Fusion horizon
-        f = size(S{i}, 2);
-        seq{i} = zeros(size(S{i}, 1), f*d);
-        seq{i}(:, (1:f) * d) = S{i};
-    end
 
     % Sequence probabilities Pr(Gamma(k))
     p_seq = prob_Gammas(seq, p_gamma);
@@ -159,7 +149,6 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by RODD observer
-    obs.S = S;
     obs.P0 = P0;
     obs.Q0 = Q0;
     obs.epsilon = epsilon;

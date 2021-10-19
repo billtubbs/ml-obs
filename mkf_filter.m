@@ -17,7 +17,7 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
 %   seq : model indicator sequences for each filter (in rows).
 %   T : transition probabity matrix of the Markov switching
 %       process.
-%   d : spacing parameter in number of sample periods.
+%   d : detection interval length in number of sample periods.
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %

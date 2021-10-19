@@ -25,7 +25,7 @@ assert(AFMM1.n_filt == 5)
 assert(AFMM1.n_min == 2)
 assert(isequal(AFMM1.f_hold, 1:2))
 assert(isequal(AFMM1.f_main, 3:5))
-assert(AFMM1.i == 0)
+assert(isequaln(AFMM1.i, nan(1, 2)))
 assert(AFMM1.n == n)
 assert(AFMM1.nu == nu)
 assert(AFMM1.ny == ny)
@@ -41,7 +41,7 @@ assert(isequal(AFMM1.R{1}, R) && isequal(AFMM1.R{2}, R))
 assert(numel(AFMM1.filters) == AFMM1.n_filt)
 assert(isequal(size(AFMM1.seq), [AFMM1.n_filt 1]))
 assert(isequal(size(cell2mat(AFMM1.seq)), [AFMM1.n_filt AFMM1.f]))
-assert(AFMM1.nf == size(AFMM1.seq{1}, 2))
+assert(AFMM1.f == size(AFMM1.seq{1}, 2))
 assert(isequal(size(AFMM1.xkp1_est), [n 1]))
 assert(isequal(size(AFMM1.ykp1_est), [ny 1]))
 assert(isequal(AFMM1.p_gamma, [1-AFMM1.epsilon; AFMM1.epsilon]))
@@ -52,7 +52,7 @@ assert(AFMM2.n_filt == 10)
 assert(AFMM2.n_min == 3)
 assert(isequal(AFMM2.f_hold, 1:3))
 assert(isequal(AFMM2.f_main, 4:10))
-assert(AFMM2.i == 0)
+assert(isequaln(AFMM2.i, nan(1, 2)))
 assert(AFMM2.n == n)
 assert(AFMM2.nu == nu)
 assert(AFMM2.ny == ny)
@@ -68,7 +68,7 @@ assert(isequal(AFMM2.R{1}, R) && isequal(AFMM2.R{2}, R))
 assert(numel(AFMM2.filters) == AFMM2.n_filt)
 assert(isequal(size(AFMM2.seq), [AFMM2.n_filt 1]))
 assert(isequal(size(cell2mat(AFMM2.seq)), [AFMM2.n_filt AFMM2.f]))
-assert(AFMM2.nf == size(AFMM2.seq{1}, 2))
+assert(AFMM2.f == size(AFMM2.seq{1}, 2))
 assert(isequal(size(AFMM2.xkp1_est), [n 1]))
 assert(isequal(size(AFMM2.ykp1_est), [ny 1]))
 assert(isequal(AFMM2.p_gamma, [1-AFMM2.epsilon; AFMM2.epsilon]))
@@ -122,13 +122,15 @@ seq = {zeros(1, nT+1); zeros(1, nT+1)};
 seq{2}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-MKF3 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF3');
+d = 1;
+MKF3 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF4');
+d = 1;
+MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
 
 % Choose observers to test
 observers = {KF2, KF3, SKF, AFMM1, AFMM2, MKF3, MKF4};
@@ -520,7 +522,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
 
                 % Record filter conditional probabilities
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-            
+
             case {'AFMM1', 'AFMM2'}
                 obs = update_AFMM(obs, uk, yk);
 

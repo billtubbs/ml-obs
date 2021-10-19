@@ -55,7 +55,8 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     % those in the holding group + at least one in main group
     assert(n_min > 0)
     assert(n_filt > 0)
-    assert((n_filt - n_dist*n_min) >= n_min)
+    assert((n_filt - n_dist*n_min) >= n_min, ...
+        "ValueError: n_filt is too low.")
 
     % Process noise covariance matrices for each
     % possible input disturbance
@@ -75,11 +76,11 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
  
         % Modified indicator value probabilities
         p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-        
+
         % Normalize so that sum(Pr(gamma(k))) = 1
         % TODO: Is this the right thing to do for sub-optimal approach?
         p_gamma = p_gamma ./ sum(p_gamma);
-        
+
     end
 
     % Transition probability matrix
@@ -106,7 +107,8 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     P0_init = repmat({P0}, 1, n_filt);
 
     % Create MKF observer struct
-    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,label,x0);
+    d = 1;  % TODO: Make this a variable parameter
+    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by AFMM observer
     obs.f = f;
@@ -142,7 +144,9 @@ function Q = construct_Q(Q0, B, sigma_wp, u_meas)
 
     % Number of states
     n = size(B, 1);
-    assert(isequal(size(Q0), [n n]))
+
+    % Check size of initial process covariance matrix
+    assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
     % Number of inputs
     nu = size(B, 2);

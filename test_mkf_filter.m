@@ -69,42 +69,42 @@ Gamma(t>=10, 1) = 1;
 % Simulate switching system
 [X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT);
 
-% Plot of inputs and outputs
-figure(1); clf
-
-ax1 = subplot(5,1,1:2);
-plot(t,Y,'Linewidth',2); hold on
-plot(t,Ym,'o');
-max_min = [min(min([Y Ym])) max(max([Y Ym]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('y(k)')
-title('System output and output measurements')
-grid on
-
-ax2 = subplot(5,1,3:4);
-stairs(t,U,'Linewidth',2);
-max_min = [min(min(U)) max(max(U))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('u(k) and w_p(k)')
-legend('u(k)')
-title('Input')
-grid on
-
-ax3 = subplot(5,1,5);
-stairs(t,Gamma,'Linewidth',2)
-max_min = [min(min(Gamma)) max(max(Gamma))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('gamma(k)')
-title('Model sequence')
-grid on
-
-linkaxes([ax1 ax2 ax3], 'x')
+% % Plot of inputs and outputs
+% figure(1); clf
+% 
+% ax1 = subplot(5,1,1:2);
+% plot(t,Y,'Linewidth',2); hold on
+% plot(t,Ym,'o');
+% max_min = [min(min([Y Ym])) max(max([Y Ym]))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('y(k)')
+% title('System output and output measurements')
+% grid on
+% 
+% ax2 = subplot(5,1,3:4);
+% stairs(t,U,'Linewidth',2);
+% max_min = [min(min(U)) max(max(U))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('u(k) and w_p(k)')
+% legend('u(k)')
+% title('Input')
+% grid on
+% 
+% ax3 = subplot(5,1,5);
+% stairs(t,Gamma,'Linewidth',2)
+% max_min = [min(min(Gamma)) max(max(Gamma))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('gamma(k)')
+% title('Model sequence')
+% grid on
+% 
+% linkaxes([ax1 ax2 ax3], 'x')
 
 
 % Kalman filters
@@ -315,7 +315,7 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
             obs = observers{f};
             if strcmp(obs.label, obs_mkf.label)
                 show_plots = false;
-                obs = update_MKF2(obs, uk, yk, show_plots);
+                obs = update_MKF(obs, uk, yk, show_plots);
                 MKF_i(i, :) = obs.i;
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
                 for j = 1:obs.n_filt
@@ -327,7 +327,7 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
                     case {'KF1', 'KF2'}
                         obs = update_KF(obs, uk, yk);
                     case {'MKF1', 'MKF2', 'MKF3'}
-                        obs = update_MKF2(obs, uk, yk);
+                        obs = update_MKF(obs, uk, yk);
                 end
             end
             xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';

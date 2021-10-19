@@ -57,11 +57,10 @@ function obs = update_AFMM(obs, uk, yk)
     % Index of current most likely sequence
     [~, f_max] = max(obs.p_seq_g_Yk);
 
-    % Set next sequence value to 0 (no shock) for
-    % all sequences
-    i_next = mod(obs.i, obs.nf) + 1;
+    % Set next sequence value to 0 (no shock) for all
+    % sequences
     for f = 1:obs.n_filt
-        obs.seq{f}(:, i_next) = 0;
+        obs.seq{f}(:, obs.i_next(1)) = 0;
     end
 
     % Number of disturbances
@@ -92,13 +91,13 @@ function obs = update_AFMM(obs, uk, yk)
         obs.p_seq_g_Ykm1(f_replace(i)) = obs.p_seq_g_Ykm1(f_max);
         obs.seq{f_replace(i)} = obs.seq{f_max};
         % Set next sequence value to 1 (shock)
-        obs.seq{f_replace(i)}(:, i_next) = i;
+        obs.seq{f_replace(i)}(:, obs.i_next(1)) = i;
     end
-    
+
     % TODO: Add online noise variance estimation with
     % forgetting factor as described in Anderson (1995)
     % equation (4.3).
-    
+
     % Run generic MKF updates and probability calcs first
     obs = update_MKF(obs, uk, yk);
 
