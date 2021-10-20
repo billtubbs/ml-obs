@@ -38,8 +38,8 @@ params2.dt = Ts;
 % Eqns for augmented model with one integrator
 % (these may be common to both observers)
 na = 3;
-f = @pend_StateFcn;
-h = @pend_MeasurementFcn;
+state_fcn = @pend_StateFcn;
+meas_fcn = @pend_MeasurementFcn;
 u_meas = true;
 y_meas = true;
 dfdx = @pend_F;
@@ -65,8 +65,8 @@ ny = 1;
 % Define extended Kalman filter 1
 x0 = [0.1; -0.5; 0];
 u0 = 0;
-y0 = h(x0,u0,params1);
-EKF1 = EKF_observer(na,f,h,{params1},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+y0 = meas_fcn(x0,u0,params1);
+EKF1 = EKF_observer(na,state_fcn,meas_fcn,{params1},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
     Q1,R1,'EKF1',x0,y0);
 assert(isequal(EKF1.xkp1_est, x0))
 assert(isequal(EKF1.ykp1_est, y0))
@@ -74,8 +74,8 @@ assert(isequal(EKF1.ykp1_est, y0))
 % Define extended Kalman filter 2
 x0 = [0.1; -0.5; 0];
 u0 = 0;
-y0 = h(x0,u0,params1);
-EKF2 = EKF_observer(na,f,h,{params2},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
+y0 = meas_fcn(x0,u0,params1);
+EKF2 = EKF_observer(na,state_fcn,meas_fcn,{params2},u_meas,y_meas,dfdx,dhdx,Ts,P0, ...
     Q2,R2,'EKF1',x0,y0);
 assert(isequal(EKF2.xkp1_est, x0))
 assert(isequal(EKF2.ykp1_est, y0))
@@ -100,8 +100,8 @@ seq = {
 n_filt = numel(seq);
 
 % Define multi-model Kalman filter
-f = {f, f};
-h = {h, h};
+state_fcn = {state_fcn, state_fcn};
+meas_fcn = {meas_fcn, meas_fcn};
 params = {{params1}, {params2}};
 dfdx = {dfdx, dfdx};
 dhdx = {dhdx, dhdx};
@@ -110,18 +110,19 @@ R = {R1, R2};
 P0 = repmat({P0}, n_filt, 1);
 x0 = [0.1; -0.5; 0];  % TODO: Check x0 is working
 u0 = 0;
-y0 = h{1}(x0,u0,params1);
-MEKF = MEKF_observer(na,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
-    P0,Q,R,seq,T,"MEKF",x0,y0);
+y0 = meas_fcn{1}(x0,u0,params1);
+d = 1;
+MEKF = MEKF_observer(na,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+    P0,Q,R,seq,T,d,"MEKF",x0,y0);
 assert(isequal(MEKF.xkp1_est, x0))
 assert(isequal(MEKF.ykp1_est, y0))
 
 % Re-define with no initial state specified (should be set to zero)
-MEKF = MEKF_observer(na,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
-    P0,Q,R,seq,T,"MEKF");
+MEKF = MEKF_observer(na,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+    P0,Q,R,seq,T,d,"MEKF");
 
-assert(isequal(MEKF.f, f))
-assert(isequal(MEKF.h, h))
+assert(isequal(MEKF.state_fcn, state_fcn))
+assert(isequal(MEKF.meas_fcn, meas_fcn))
 assert(isequal(MEKF.params, params))
 assert(isequal(MEKF.dfdx, dfdx))
 assert(isequal(MEKF.dhdx, dhdx))
@@ -131,12 +132,12 @@ assert(isequal(MEKF.Q, Q))
 assert(isequal(MEKF.R, R))
 assert(MEKF.n_filt == n_filt)
 assert(MEKF.n_filt == numel(MEKF.filters))
-assert(MEKF.i == 0)
+assert(isequaln(MEKF.i, nan(1, 2)))
 assert(MEKF.n == na)
 assert(MEKF.nu == nu)
 assert(MEKF.ny == ny)
 assert(MEKF.Ts == Ts)
-assert(MEKF.nf == size(MEKF.seq{1}, 2))
+assert(MEKF.f == size(MEKF.seq{1}, 2))
 assert(MEKF.nj == 2)
 assert(isequal(MEKF.T, T))
 for j = 1:n_filt

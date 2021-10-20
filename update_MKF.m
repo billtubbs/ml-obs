@@ -1,7 +1,8 @@
-function obs = update_MKF2(obs, uk, yk, show_plots)
-% obs = update_MKF2(obs) updates the multi-model Kalman
-% filter and calculates the estimates of the states and 
-% output at the next sample time.
+function obs = update_MKF(obs, uk, yk, show_plots)
+% obs = update_MKF(obs, uk, yk, show_plots)
+% updates the multi-model Kalman filter and calculate the
+% estimates of the states and output at the next sample
+% time.
 %
 % Modification to test lower rate of probability updates.
 %
@@ -146,7 +147,7 @@ function obs = update_MKF2(obs, uk, yk, show_plots)
     Xkf_est = zeros(obs.n_filt, obs.n);
     Ykf_est = zeros(obs.n_filt, obs.ny);
 
-    % Update all filter estimates
+    % Update all filters
     for f = 1:obs.n_filt
 
         % Update observer estimates and covariance matrices

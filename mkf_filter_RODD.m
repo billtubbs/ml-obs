@@ -29,13 +29,16 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %
-% Reference:
+% References:
 %  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
 %     Detection and estimation of randomly occurring 
 %     deterministic disturbances. Proceedings of 1995 American
 %     Control Conference - ACC?95, 6, 4453-4457. 
 %     https://doi.org/10.1109/ACC.1995.532779
-%
+%  -  Robertson, D. G., & Lee, J. H. (1998). A method for the
+%     estimation of infrequent abrupt changes in nonlinear 
+%     systems. Automatica, 34(2), 261–270. 
+%     https://doi.org/10.1016/S0005-1098(97)00192-1%
 
     % Number of states
     n = check_dimensions(A, B, C, D);
@@ -59,21 +62,24 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 
     % Probability of shock over a detection interval
     % (Detection interval is d sample periods).
-    p = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d)';
+    alpha = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d);
 
     % Probabilities of no-shock / shock over detection interval
-    p_gamma = [ones(size(p))-p; p];
+    % (this is named delta in Robertson et al. 1998)
+    p_gamma = [ones(size(alpha'))-alpha'; alpha'];
 
     if n_dist == 1
 
         % Number of Q matrices needed
         nj = 2;
 
-        % Generate required Q matrices
+        % Generate required Q matrices.
         Q = cell(1, nj);
         for i = 1:nj
             var_x = diag(Q0);
-            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(:, i).^2';
+            % Modified variance of shock signal over detection
+            % interval (see Robertson et al. 1998)
+            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(:, i).^2' ./ d;
             Q{i} = diag(var_x);
         end
 
@@ -105,8 +111,10 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
         for i = 1:nj
             ind = Z(i, :) + 1;
             var_x = diag(Q0);
+            % Modified variance of shock signal over detection
+            % interval (see Robertson et al. 1998)
             idx = sub2ind(size(sigma_wp), 1:n_dist, ind);
-            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2';
+            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2' ./ d;
             Q{i} = diag(var_x);
         end
 
@@ -155,7 +163,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     obs.sigma_wp = sigma_wp;
     obs.f = f;
     obs.m = m;
-    obs.p = p;
+    obs.alpha = alpha;
     obs.beta = beta;
     obs.p_gamma = p_gamma;
     obs.p_seq = p_seq;

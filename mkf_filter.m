@@ -43,7 +43,7 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
     obs.label = label;
 
     % Check transition probability matrix
-    assert(all(sum(T, 2) == 1), "ValueError: T")
+    assert(all(abs(sum(T, 2) - 1) < 1e-15), "ValueError: T")
 
     % Initialize covariance matrix of estimation errors
     obs.P = P0;
@@ -88,8 +88,9 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
 
     % Create multi-model observer
     obs.filters = cell(n_filt, 1);
+    fmt = strcat('%s%0', char(string(strlength(string(n_filt)))), 'd');
     for i = 1:n_filt
-        label_i = sprintf('%s%02d',label,i);
+        label_i = sprintf(fmt,label,i);
         % Initialize each filter with system #1
         obs.filters{i} = kalman_filter(A{1},B{1},C{1},D{1},Ts,P0{i}, ...
             Q{1},R{1},label_i,x0);

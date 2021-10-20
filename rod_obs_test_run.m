@@ -66,8 +66,12 @@ x0 = zeros(n, 1);
 [Pd, ~] = lsim(HDd, Wp, t);
 
 % Simulate whole system and observers
-sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, Pd, V, W, ...
-    x0, u_meas, y_meas, observers);
+input_data = table(alpha, U, V, W, Pd);
+sim_out = run_simulation_obs(Ts, input_data, state_fcn, meas_fcn, params, x0, u_meas, ...
+    observers);
+% Old function:
+%sim_out = run_simulation_obs(Ts, nT, A, B, C, U, alpha, Pd, V, W, ...
+%    x0, u_meas, y_meas, observers);
 
 % Updated observers
 observers = sim_out.observers;

@@ -34,8 +34,8 @@ assert(isequal(MKF1.C{1}, C) && isequal(MKF1.C{2}, C))
 assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
 assert(MKF1.Ts == Ts)
 assert(isequal(size(MKF1.Q), [1 2]))
-assert(isequal(MKF1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF1.Q{2}, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequal(MKF1.Q{1}, [0.01 0; 0 sigma_wp(1)^2/MKF1.d]))
+assert(isequal(MKF1.Q{2}, [0.01 0; 0 sigma_wp(2)^2/MKF1.d]))
 assert(isequal(size(MKF1.R), [1 2]))
 assert(isequal(MKF1.R{1}, R) && isequal(MKF1.R{2}, R))
 assert(numel(MKF1.filters) == MKF1.n_filt)
@@ -45,6 +45,7 @@ assert(MKF1.beta == sum(MKF1.p_seq))
 assert(MKF1.f == size(MKF1.seq{1}, 2))
 assert(isequal(MKF1.xkp1_est, zeros(n,1)))
 assert(isequal(MKF1.ykp1_est, zeros(ny,1)))
+assert(isequal(round(MKF1.alpha, 4), 0.0490))
 assert(isequal(round(MKF1.p_gamma, 4), [0.9510; 0.0490]))
 
 assert(MKF2.epsilon == epsilon)
@@ -61,8 +62,8 @@ assert(isequal(MKF2.C{1}, C) && isequal(MKF2.C{2}, C))
 assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
 assert(MKF2.Ts == Ts)
 assert(isequal(size(MKF2.Q), [1 2]))
-assert(isequal(MKF2.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF2.Q{2}, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequal(MKF2.Q{1}, [0.01 0; 0 sigma_wp(1)^2/MKF2.d]))
+assert(isequal(MKF2.Q{2}, [0.01 0; 0 sigma_wp(2)^2/MKF2.d]))
 assert(isequal(size(MKF1.R), [1 2]))
 assert(isequal(MKF2.R{1}, R) && isequal(MKF2.R{2}, R))
 assert(numel(MKF2.filters) == MKF2.n_filt)
@@ -72,7 +73,9 @@ assert(MKF2.beta == sum(MKF2.p_seq))
 assert(MKF2.f == size(MKF2.seq{1}, 2))
 assert(isequal(MKF2.xkp1_est, zeros(n,1)))
 assert(isequal(MKF2.ykp1_est, zeros(ny,1)))
+assert(isequal(round(MKF2.alpha, 4), MKF2.epsilon))
 assert(isequal(round(MKF2.p_gamma, 4), [1-MKF2.epsilon; MKF2.epsilon]))
+
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
@@ -132,6 +135,7 @@ p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
 MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
+
 
 % Choose observers to test
 observers = {KF2, KF3, SKF, MKF1, MKF2, MKF3, MKF4};
@@ -214,7 +218,7 @@ MSE_test_values = containers.Map(...
 
 % TODO: Verify the current estimates:
 %   {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  'SKF'}, ...
-%   [0.000934 0.003524 0.008958 0.005016 0.002709 0.000929 0.000929]
+%   [0.000934 0.003524 0.009457 0.005016 0.002709 0.000929 0.000929]
 % Note: Only MKF1 has changed it looks like.
 
 
@@ -225,143 +229,143 @@ MSE_test_values = containers.Map(...
 
 % Display results of last simulation
 
-X_est = sim_results.X_est;
-E_obs = sim_results.E_obs;
-K_obs = sim_results.K_obs;
-trP_obs = sim_results.trP_obs;
-
-table(t,alpha,U,Du,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
-
-% Display gains and trace of covariance matrix
-table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
-    'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
-
-% Show table of mean-squared errors
-table(MSE.keys', cell2mat(MSE.values'), ...
-    'VariableNames', {'Observer', 'MSE'})
-
-
-% Plot of inputs and outputs
-
-set(groot,'defaultAxesTickLabelInterpreter','latex');
-set(groot,'defaulttextinterpreter','latex');
-set(groot,'defaultLegendInterpreter','latex');
-
-figure(1); clf
-colors = get(gca,'colororder');
-ax1 = subplot(4,1,1);
-stairs(t,Y_m); hold on
-stairs(t,Y_est,'Linewidth',2);
-ax1.ColorOrder = colors(1:size(Y_m,2),:);
-max_min = [min(min([Y_m Y_est])) max(max([Y_m Y_est]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('$y_m(k)$ and $\hat{y}(k)$')
-title('Process output measurements and estimates')
-legend('$y_m(k)$','$\hat{y}(k)$')
-grid on
-
-ax2 = subplot(4,1,2);
-stairs(t,X); hold on
-stairs(t,X_est,'Linewidth',2);
-ax2.ColorOrder = colors(size(Y,2)+1:size(Y,2)+size(X,2),:);
-max_min = [min(min([X X_est])) max(max([X X_est]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('$x_i(k)$ and $\hat{x}_i(k)$')
-labels = repmat({''}, 1, n*2);
-for i=1:n
-    labels{i} = sprintf("$x_{%d}(k)$", i);
-end
-for i=1:n
-    labels{i+n} = sprintf("$%s{x}_{%d}(k)$", '\hat', i);
-end
-legend(labels)
-title('Actual states and estimates')
-grid on
-
-ax3 = subplot(4,1,3);
-stairs(t,U,'Linewidth',2); hold on;
-stairs(t,Wp,'Linewidth',2)
-stairs(t,Du(:,1),'Linewidth',2)
-max_min = [min(min([U Wp Du(:,1)])) max(max([U Wp Du(:,1)]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('$u(k)$, $w_p(k)$ and $d_u(k)$')
-legend('$u(k)$', '$w_p(k)$', '$d_u(k)$')
-title('Actual process inputs')
-grid on
-
-ax4 = subplot(4,1,4);
-stairs(t,alpha,'Color',colors(end,:),'Linewidth',2)
-max_min = [min(min(alpha)) max(max(alpha))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('$\gamma(k)$')
-title('Random shock sequence')
-grid on
-
-linkaxes([ax1, ax2 ax3 ax4], 'x')
-
-set(gcf,'Position',[100 200 560 600]);
-
-
-% Plot of conditional filter probabilities
-
-switch obs.label
-    case {'MKF1', 'MKF2'}
-        p_seq_g_Yk = sim_results.MKF_p_seq_g_Yk;
-        % Note: first data points are nans,
-        % ignore last data point to make plot wider
-
-        figure(11); clf
-        t = Ts*(0:nT)';
-        ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Pr(\Gamma(k) \mid Y(k))$'};
-        filename = sprintf('rod_mkf_filter_test_pyk_wfplot.png');
-        filepath = fullfile(plot_dir, filename);
-        show_waterfall_plot(t(2:end-1), p_seq_g_Yk(2:end-1, :), [0 1], ...
-            ax_labels, [0 82], filepath);
-        title('Conditional probabilities of y(k)')
-end
-
-
-% Plot of trace of filter covariance matrices
-
-switch obs.label
-    case {'MKF1', 'MKF2'}
-        trP_obs = cell2mat(sim_results.trP_obs);
-
-        figure(12); clf
-        t = Ts*(0:nT)';
-        ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
-        filename = sprintf('rod_mkf_filter_test_trP_wfplot.png');
-        filepath = fullfile(plot_dir, filename);
-        show_waterfall_plot(t, trP_obs, [0 5], ax_labels, [0 82], filepath);
-        title('Trace of covariance matrices')
-
-end
-
-% Plot of filter correction gains (k1)
-
-switch obs.label
-    case {'MKF1', 'MKF2'}
-        K_obs = cell2mat(sim_results.K_obs);
-        % Select first gain value onlu
-        K1_obs = K_obs(:,1:2:end);
-
-        figure(13); clf
-        t = Ts*(0:nT)';
-        ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
-        filename = sprintf('rod_mkf_filter_test_K_wfplot.png');
-        filepath = fullfile(plot_dir, filename);
-        show_waterfall_plot(t, K1_obs, [0 5], ax_labels, [0 82], filepath);
-        title('Filter correction gains (k1)')
-
-end
+% X_est = sim_results.X_est;
+% E_obs = sim_results.E_obs;
+% K_obs = sim_results.K_obs;
+% trP_obs = sim_results.trP_obs;
+% 
+% table(t,alpha,U,Du,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
+% 
+% % Display gains and trace of covariance matrix
+% table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
+%     'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
+% 
+% % Show table of mean-squared errors
+% table(MSE.keys', cell2mat(MSE.values'), ...
+%     'VariableNames', {'Observer', 'MSE'})
+% 
+% 
+% % Plot of inputs and outputs
+% 
+% set(groot,'defaultAxesTickLabelInterpreter','latex');
+% set(groot,'defaulttextinterpreter','latex');
+% set(groot,'defaultLegendInterpreter','latex');
+% 
+% figure(1); clf
+% colors = get(gca,'colororder');
+% ax1 = subplot(4,1,1);
+% stairs(t,Y_m); hold on
+% stairs(t,Y_est,'Linewidth',2);
+% ax1.ColorOrder = colors(1:size(Y_m,2),:);
+% max_min = [min(min([Y_m Y_est])) max(max([Y_m Y_est]))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('$y_m(k)$ and $\hat{y}(k)$')
+% title('Process output measurements and estimates')
+% legend('$y_m(k)$','$\hat{y}(k)$')
+% grid on
+% 
+% ax2 = subplot(4,1,2);
+% stairs(t,X); hold on
+% stairs(t,X_est,'Linewidth',2);
+% ax2.ColorOrder = colors(size(Y,2)+1:size(Y,2)+size(X,2),:);
+% max_min = [min(min([X X_est])) max(max([X X_est]))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('$x_i(k)$ and $\hat{x}_i(k)$')
+% labels = repmat({''}, 1, n*2);
+% for i=1:n
+%     labels{i} = sprintf("$x_{%d}(k)$", i);
+% end
+% for i=1:n
+%     labels{i+n} = sprintf("$%s{x}_{%d}(k)$", '\hat', i);
+% end
+% legend(labels)
+% title('Actual states and estimates')
+% grid on
+% 
+% ax3 = subplot(4,1,3);
+% stairs(t,U,'Linewidth',2); hold on;
+% stairs(t,Wp,'Linewidth',2)
+% stairs(t,Du(:,1),'Linewidth',2)
+% max_min = [min(min([U Wp Du(:,1)])) max(max([U Wp Du(:,1)]))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('$u(k)$, $w_p(k)$ and $d_u(k)$')
+% legend('$u(k)$', '$w_p(k)$', '$d_u(k)$')
+% title('Actual process inputs')
+% grid on
+% 
+% ax4 = subplot(4,1,4);
+% stairs(t,alpha,'Color',colors(end,:),'Linewidth',2)
+% max_min = [min(min(alpha)) max(max(alpha))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('$\gamma(k)$')
+% title('Random shock sequence')
+% grid on
+% 
+% linkaxes([ax1, ax2 ax3 ax4], 'x')
+% 
+% set(gcf,'Position',[100 200 560 600]);
+% 
+% 
+% % Plot of conditional filter probabilities
+% 
+% switch obs.label
+%     case {'MKF1', 'MKF2'}
+%         p_seq_g_Yk = sim_results.MKF_p_seq_g_Yk;
+%         % Note: first data points are nans,
+%         % ignore last data point to make plot wider
+% 
+%         figure(11); clf
+%         t = Ts*(0:nT)';
+%         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Pr(\Gamma(k) \mid Y(k))$'};
+%         filename = sprintf('rod_mkf_filter_test_pyk_wfplot.png');
+%         filepath = fullfile(plot_dir, filename);
+%         show_waterfall_plot(t(2:end-1), p_seq_g_Yk(2:end-1, :), [0 1], ...
+%             ax_labels, [0 82], filepath);
+%         title('Conditional probabilities of y(k)')
+% end
+% 
+% 
+% % Plot of trace of filter covariance matrices
+% 
+% switch obs.label
+%     case {'MKF1', 'MKF2'}
+%         trP_obs = cell2mat(sim_results.trP_obs);
+% 
+%         figure(12); clf
+%         t = Ts*(0:nT)';
+%         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
+%         filename = sprintf('rod_mkf_filter_test_trP_wfplot.png');
+%         filepath = fullfile(plot_dir, filename);
+%         show_waterfall_plot(t, trP_obs, [0 5], ax_labels, [0 82], filepath);
+%         title('Trace of covariance matrices')
+% 
+% end
+% 
+% % Plot of filter correction gains (k1)
+% 
+% switch obs.label
+%     case {'MKF1', 'MKF2'}
+%         K_obs = cell2mat(sim_results.K_obs);
+%         % Select first gain value onlu
+%         K1_obs = K_obs(:,1:2:end);
+% 
+%         figure(13); clf
+%         t = Ts*(0:nT)';
+%         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
+%         filename = sprintf('rod_mkf_filter_test_K_wfplot.png');
+%         filepath = fullfile(plot_dir, filename);
+%         show_waterfall_plot(t, K1_obs, [0 5], ax_labels, [0 82], filepath);
+%         title('Filter correction gains (k1)')
+% 
+% end
 
 
 %% Test initialization of MKF observers on 2x2 system
@@ -435,11 +439,11 @@ assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
 assert(MKF1.Ts == Ts)
 assert(isequal(size(MKF1.Q), [1 3]))
 assert(isequal(MKF1.Q{1}, ...
-    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 1).^2])))
+    diag([0.01 0.01 sigma_wp(1, 1)^2/MKF1.d sigma_wp(2, 1)^2/MKF1.d])))
 assert(isequal(MKF1.Q{2}, ...
-    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 2).^2])))
+    diag([0.01 0.01 sigma_wp(1, 1)^2/MKF1.d sigma_wp(2, 2)^2/MKF1.d])))
 assert(isequal(MKF1.Q{3}, ...
-    diag([0.01 0.01 sigma_wp(1, 2).^2 sigma_wp(2, 1).^2])))
+    diag([0.01 0.01 sigma_wp(1, 2)^2/MKF1.d sigma_wp(2, 1)^2/MKF1.d])))
 assert(isequal(size(MKF1.R), [1 3]))
 assert(isequal(MKF1.R{1}, R) && isequal(MKF1.R{2}, R) && isequal(MKF1.R{3}, R))
 assert(numel(MKF1.filters) == MKF1.n_filt)
@@ -467,13 +471,13 @@ assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
 assert(MKF2.Ts == Ts)
 assert(isequal(size(MKF2.Q), [1 4]))
 assert(isequal(MKF2.Q{1}, ...
-    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 1).^2])))
+    diag([0.01 0.01 sigma_wp(1, 1)^2/MKF2.d sigma_wp(2, 1)^2/MKF2.d])))
 assert(isequal(MKF2.Q{2}, ...
-    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 2).^2])))
+    diag([0.01 0.01 sigma_wp(1, 1)^2/MKF2.d sigma_wp(2, 2)^2/MKF2.d])))
 assert(isequal(MKF2.Q{3}, ...
-    diag([0.01 0.01 sigma_wp(1, 2).^2 sigma_wp(2, 1).^2])))
+    diag([0.01 0.01 sigma_wp(1, 2)^2/MKF2.d sigma_wp(2, 1)^2/MKF2.d])))
 assert(isequal(MKF2.Q{4}, ...
-    diag([0.01 0.01 sigma_wp(1, 2).^2 sigma_wp(2, 2).^2])))
+    diag([0.01 0.01 sigma_wp(1, 2)^2/MKF2.d sigma_wp(2, 2)^2/MKF2.d])))
 assert(isequal(size(MKF2.R), [1 4]))
 assert(isequal(MKF2.R{1}, R) && isequal(MKF2.R{2}, R))
 assert(isequal(MKF2.R{3}, R) && isequal(MKF2.R{4}, R))

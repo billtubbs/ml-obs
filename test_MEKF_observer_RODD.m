@@ -42,7 +42,7 @@ cov_w = [0.0033; 0.0033];
 Q = diag([0.25; 1; 1; cov_w]);
 
 % Define multi-model RODD observer
-label = 'MEKF';
+label = 'MEKF1';
 state_fcn = @arom3_StateFcnRodin;
 meas_fcn = @arom3_MeasurementFcnRodin2;
 u_meas = [false; false];
@@ -59,40 +59,68 @@ m = 2;  % maximum number of shocks
 d = 30;  % spacing parameter
 %MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %    Q0,R,f,m,d,label);
-MEKF1 = MEKF_observer_RODD(na,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx, ...
+MEKF1 = MEKF_observer_RODD(na,state_fcn,meas_fcn,{params},u_meas,y_meas,dfdx, ...
     dhdx,dt,P0,epsilon,sigma_wp,Q0,R,f,m,d,label,xa0,y0);
+
+% TODO: Set these correctly.
+Q_test{1} = [
+    0.0250         0         0         0         0;
+         0    1.0000         0         0         0;
+         0         0    1.0000         0         0;
+         0         0         0    0.0033         0;
+         0         0         0         0    0.0033];
+Q_test{2} = [
+    0.0250         0         0         0         0;
+         0    1.0000         0         0         0;
+         0         0    1.0000         0         0;
+         0         0         0    0.0033         0;
+         0         0         0         0    0.0033];
+Q_test{3} = [
+    0.0250         0         0         0         0;
+         0    1.0000         0         0         0;
+         0         0    1.0000         0         0;
+         0         0         0    0.0033         0;
+         0         0         0         0    0.0033];
+Q_test{4} = [
+    0.0250         0         0         0         0;
+         0    1.0000         0         0         0;
+         0         0    1.0000         0         0;
+         0         0         0    0.0033         0;
+         0         0         0         0    0.0033];
 
 % Check observer attributes
 assert(isequal(MEKF1.epsilon, epsilon))
 assert(isequal(MEKF1.sigma_wp, sigma_wp))
 assert(MEKF1.n_filt == 22)
-assert(MEKF1.i == 0)
+assert(isequaln(MEKF1.i, nan(1, 2)))
 assert(MEKF1.n == na)
 assert(MEKF1.nu == nu)
 assert(MEKF1.ny == ny)
 assert(MEKF1.nj == 4)
-assert(isequal(MEKF1.f, repmat({@arom3_StateFcnRodin}, 1, 4)))
-assert(isequal(MEKF1.h, repmat({@arom3_MeasurementFcnRodin2}, 1, 4)))
+assert(isequal(MEKF1.state_fcn, repmat({@arom3_StateFcnRodin}, 1, 4)))
+assert(isequal(MEKF1.meas_fcn, repmat({@arom3_MeasurementFcnRodin2}, 1, 4)))
 assert(isequal(MEKF1.dfdx, repmat({@arom3_StateJacobianFcnRodin}, 1, 4)))
 assert(isequal(MEKF1.dhdx, repmat({@arom3_MeasurementJacobianFcnRodin2}, 1, 4)))
-assert(isequal(MEKF1.params, repmat({params}, 1, 4)))
+assert(isequal(MEKF1.params, repmat({{params}}, 1, MEKF1.nj)))
 assert(MEKF1.Ts == dt)
-%assert(isequal(size(MEKF1.Q), [1 4]))
-%assert(isequal(MEKF1.Q, repmat({Q0}, 1, 4)))
-%assert(isequal(size(MEKF1.R), [1 4]))
+assert(isequal(size(MEKF1.Q), [1 4]))
+assert(isequal(size(MEKF1.R), [1 4]))
+assert(isequal(MEKF1.Q, Q_test))
 assert(isequal(MEKF1.R, repmat({R}, 1, 4)))
 assert(isequal(size(MEKF1.filters), [MEKF1.n_filt 1]))
+assert(strcmp(MEKF1.filters{2}.label, 'MEKF102'))
 assert(isequal(size(MEKF1.seq), [MEKF1.n_filt 1]))
-assert(isequal(size(cell2mat(MEKF1.seq)), [MEKF1.n_filt MEKF1.fh*MEKF1.d]))
+assert(isequal(size(cell2mat(MEKF1.seq)), [MEKF1.n_filt MEKF1.f]))
 assert(MEKF1.beta == sum(MEKF1.p_seq))
-assert(MEKF1.nf == size(MEKF1.seq{1}, 2))
+assert(MEKF1.f == size(MEKF1.seq{1}, 2))
 assert(isequal(MEKF1.xkp1_est, xa0))
 assert(isequal(MEKF1.ykp1_est, y0))
+assert(isequal(round(MEKF1.alpha, 6), [0.032479; 0.032479]))
 %TODO: Are these values are correct?
-assert(isequal(round(MEKF1.p_gamma, 4), [0.9978; 0.0011; 0.0011; 0.0000]))
+assert(isequal(round(MEKF1.p_gamma, 4), [0.9361; 0.0314; 0.0314; 0.0011]))
 
 % Check optional definition without an initial state estimate
-MEKF1_testx0 = MEKF_observer_RODD(na,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx, ...
+MEKF1_testx0 = MEKF_observer_RODD(na,state_fcn,meas_fcn,{params},u_meas,y_meas,dfdx, ...
     dhdx,dt,P0,epsilon,sigma_wp,Q0,R,f,m,d,label);
 assert(isequal(MEKF1_testx0.xkp1_est, zeros(na, 1)))
 assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
@@ -434,7 +462,7 @@ assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 % assert(isequal(MEKF1.epsilon, epsilon))
 % assert(isequal(MEKF1.sigma_wp, sigma_wp))
 % assert(MEKF1.n_filt == 7)
-% assert(MEKF1.i == 0)
+% assert(isequaln(MEKF1.i, nan(1, 2))
 % assert(MEKF1.n == n)
 % assert(MEKF1.nu == nu)
 % assert(MEKF1.ny == ny)
@@ -457,7 +485,7 @@ assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 % assert(isequal(size(MEKF1.seq), [MEKF1.n_filt 1]))
 % assert(isequal(size(cell2mat(MEKF1.seq)), [MEKF1.n_filt MEKF1.f*MEKF1.d]))
 % assert(MEKF1.beta == sum(MEKF1.p_seq))
-% assert(MEKF1.nf == size(MEKF1.seq{1}, 2))
+% assert(MEKF1.f == size(MEKF1.seq{1}, 2))
 % assert(isequal(size(MEKF1.xkp1_est), [n 1]))
 % assert(isequal(size(MEKF1.ykp1_est), [ny 1]))
 % assert(isequal(round(MEKF1.p_gamma, 6), [0.980198; 0.009901; 0.009901]))
@@ -466,7 +494,7 @@ assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 % assert(isequal(MKF2.epsilon, epsilon))
 % assert(isequal(MKF2.sigma_wp, sigma_wp))
 % assert(MKF2.n_filt == 56)
-% assert(MKF2.i == 0)
+% assert(isequaln(MKF2.i, nan(1, 2))
 % assert(MKF2.n == n)
 % assert(MKF2.nu == nu)
 % assert(MKF2.ny == ny)
@@ -492,7 +520,7 @@ assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 % assert(isequal(size(MKF2.seq), [MKF2.n_filt 1]))
 % assert(isequal(size(cell2mat(MKF2.seq)), [MKF2.n_filt MKF2.f*MKF2.d]))
 % assert(MKF2.beta == sum(MKF2.p_seq))
-% assert(MKF2.nf == size(MKF2.seq{1}, 2))
+% assert(MKF2.f == size(MKF2.seq{1}, 2))
 % assert(isequal(size(MKF2.xkp1_est), [n 1]))
 % assert(isequal(size(MKF2.ykp1_est), [ny 1]))
 % assert(isequal(round(MKF2.p_gamma, 6), ...

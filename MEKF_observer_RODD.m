@@ -1,5 +1,5 @@
 function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx, ...
-    dhdx,Ts,P0,epsilon,sigma_wp,Q0,R,fh,m,d,label,x0,y0)
+    dhdx,Ts,P0,epsilon,sigma_wp,Q0,R,f,m,d,label,x0,y0)
 % obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx, ...
 %     dhdx,P0,epsilon,sigma_wp,Q0,R,f,m,d,label,x0,y0)
 %
@@ -33,23 +33,27 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
 %        be modified for each filter by multiplying by the
 %        appropriate variances in sigma_wp.
 %   R : output measurement noise covariance matrix (ny, ny).
-%   fh : fusion horizon (length of disturbance sequences).
+%   f : fusion horizon (length of disturbance sequences).
 %   m : maximum number of disturbances over fusion horizon.
 %   d : spacing parameter in number of sample periods.
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %   y0 : intial output estimates (optional).
 %
-% Reference:
+% References:
 %  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
 %     Detection and estimation of randomly occurring 
 %     deterministic disturbances. Proceedings of 1995 American
 %     Control Conference - ACC?95, 6, 4453-4457. 
 %     https://doi.org/10.1109/ACC.1995.532779
+%  -  Robertson, D. G., & Lee, J. H. (1998). A method for the
+%     estimation of infrequent abrupt changes in nonlinear 
+%     systems. Automatica, 34(2), 261–270. 
+%     https://doi.org/10.1016/S0005-1098(97)00192-1
 %
 
     % Number of switching systems
-    nj = numel(fh);
+    nj = numel(state_fcn);
 
     obs.n = n;
     if nargin == 18
@@ -62,73 +66,80 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
         y0 = zeros(ny, 1);
     end
 
+    % Check size of process covariance default matrix
+    assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
+
     % Number of input disturbances
     n_dist = sum(~u_meas);
 
     % Number of filters needed
-    n_filt = n_filters(m, fh, n_dist);
+    n_filt = n_filters(m, f, n_dist);
 
     % Generate indicator sequences
-    S = combinations_lte(fh*n_dist, m);
+    seq = combinations_lte(f*n_dist, m);
 
-    % Probability of no-shock / shock each period
-    % TODO: Is this actually used?
-    p = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d)';
-    p = [ones(size(p))-p; p];
+    % Probability of shock over a detection interval
+    % (Detection interval is d sample periods).
+    alpha = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d);
 
-    % Probabilities of no-shock, shock
-    p_gamma = [1-epsilon epsilon]';
-
-    % Check size of process covariance default matrix
-    assert(isequal(size(Q0), [n n]))
+    % Probabilities of no-shock / shock over detection interval
+    % (this is named delta in Robertson et al. 1998)
+    p_gamma = [ones(size(alpha'))-alpha'; alpha'];
 
     if n_dist == 1
 
         % Number of Q matrices needed
         nj = 2;
 
-        % Generate required Q matrices
+        % Generate required Q matrices.
         Q = cell(1, nj);
         for i = 1:nj
             var_x = diag(Q0);
-            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(:, i).^2';
+            % Modified variance of shock signal over detection
+            % interval (see Robertson et al. 1998)
+            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(:, i).^2' ./ d;
             Q{i} = diag(var_x);
         end
 
     elseif n_dist > 1
-        
-        % Note: In the case of more than one input disturbance,
+
+        % Note: In the case of more than one input disturbance
         % there may be multiple combinations of disturbances
         % occuring simultaneously. To simulate these, construct
         % a different Q matrix for each possible combination.
-        
-        % Reshape sequence data so that each row represents a
-        % an input disturbance sequence
-        S = cellfun(@(x) reshape(x, n_dist, []), S, ...
+
+        % Reshape sequences into matrices with a row for each
+        % input disturbance sequence
+        seq = cellfun(@(x) reshape(x, n_dist, []), seq, ...
             'UniformOutput', false);
 
-        % Find unique combinations of simultaneous shocks
-        [Z,~,ic] = unique(cell2mat(S')', 'sorted', 'rows');
+        % Find all unique combinations of simultaneous shocks
+        [Z,~,ic] = unique(cell2mat(seq')', 'sorted', 'rows');
 
         % Number of Q matrices needed
         nj = size(Z, 1);
 
         % Rearrange as one sequence for each filter and convert
         % back to cell array
-        S = reshape((ic - 1)', [], n_filt)'; 
-        S = mat2cell(S, ones(n_filt, 1), fh);
+        seq = reshape((ic - 1)', [], n_filt)'; 
+        seq = mat2cell(seq, ones(n_filt, 1), f);
 
         % Generate required Q matrices
+        % TODO: This does not work since u_meas does not match x dim
+        % Need a B matrix?  or always assume shocks are final states?
         Q = cell(1, nj);
         for i = 1:nj
             ind = Z(i, :) + 1;
             var_x = diag(Q0);
+            % Modified variance of shock signal over detection
+            % interval (see Robertson et al. 1998)
             idx = sub2ind(size(sigma_wp), 1:n_dist, ind);
-            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2';
+            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2' ./ d;
             Q{i} = diag(var_x);
         end
 
-        % Modified indicator value probabilities
+        % Modify indicator value probabilities for
+        % combinations of shocks
         p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 
         % Normalize so that sum(Pr(gamma(k))) = 1
@@ -136,7 +147,7 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
         p_gamma = p_gamma ./ sum(p_gamma);
 
     else
-
+        
         error("Value error: no unmeasured inputs")
 
     end
@@ -145,16 +156,6 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
     % Note that for RODD disturbances Pr(gamma(k)) is
     % assumed to be an independent random variable.
     T = repmat(p_gamma', nj, 1);
-
-    % Create lengthened indicator sequences by inserting
-    % zeros between periods when shocks occur.
-    seq = cell(n_filt, 1);
-    for i = 1:n_filt
-        % Fusion horizon
-        fh = size(S{i}, 2);
-        seq{i} = zeros(size(S{i}, 1), fh*d);
-        seq{i}(:, (1:fh) * d) = S{i};
-    end
 
     % Sequence probabilities Pr(Gamma(k))
     p_seq = prob_Gammas(seq, p_gamma);
@@ -175,18 +176,16 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
 
     % Create MKF observer struct
     obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas, ...
-        dfdx,dhdx,Ts,P0_init,Q,R,seq,T,label,x0,y0);
+        dfdx,dhdx,Ts,P0_init,Q,R,seq,T,d,label,x0,y0);
 
     % Add additional variables used by RODD observer
-    obs.S = S;
     obs.P0 = P0;
     obs.Q0 = Q0;
     obs.epsilon = epsilon;
     obs.sigma_wp = sigma_wp;
-    obs.fh = fh;
+    obs.f = f;
     obs.m = m;
-    obs.d = d;
-    obs.p = p;
+    obs.alpha = alpha;
     obs.beta = beta;
     obs.p_gamma = p_gamma;
     obs.p_seq = p_seq;

@@ -1,17 +1,17 @@
-function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
-    P0,Q,R,seq,T,label,x0,y0)
-% obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
-%     P0,Q,R,seq,T,label,x0,y0)
-%
+function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+    P0,Q,R,seq,T,d,label,x0,y0)
+% obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
+%     P0,Q,R,seq,T,d,label,x0,y0)
+%state_fcn,meas_fcn,
 % Creates a struct for simulating a multi-model extended 
 % Kalman filter for state estimation of a non-linear 
 % Markov jump system.
 %
 % Arguments:
 %   n : Number of model states.
-%   f, h : cell arrays containing state transition functions 
-%       and measurement functions for each switching system
-%       modelled.
+%   state_fcn, meas_fcn : cell arrays containing state 
+%       transition functions and measurement functions for 
+%       each switching system modelled.
 %   params : cell array of cell arrays containing any 
 %       additional parameters for each switching system that
 %       should be passed to functions f, h, dfdx, and dhdx.
@@ -33,27 +33,28 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
 %   seq : model indicator sequences for each filter (in rows).
 %   T : transition probabity matrix of the Markov switching
 %       process.
+%   d : detection interval length in number of sample periods.
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %   y0 : intial output estimates (optional).
 %
 
     % Number of switching systems
-    nj = numel(f);
+    nj = numel(state_fcn);
 
     obs.n = n;
-    if nargin == 15
+    if nargin == 16
         % Default initial state estimate
         x0 = zeros(n, 1);
     end
     ny = size(y_meas,1);
-    if nargin < 17
+    if nargin < 18
         % Default initial state estimate
         y0 = zeros(ny, 1);
     end
 
-    obs.f = f;
-    obs.h = h;
+    obs.state_fcn = state_fcn;
+    obs.meas_fcn = meas_fcn;
     obs.params = params;
     obs.u_meas = u_meas;  % TODO implement these
     obs.y_meas = y_meas;  % 
@@ -65,10 +66,11 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     obs.R = R;
     obs.seq = seq;
     obs.T = T;
+    obs.d = d;
     obs.label = label;
 
     % Check transition probability matrix
-    assert(all(abs(sum(T, 2) - 1) < 1e-15))
+    assert(all(abs(sum(T, 2) - 1) < 1e-15), "ValueError: T")
 
     % Check matrices dimensions.
     for j = 1:nj
@@ -80,12 +82,13 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     n_filt = size(seq, 1);
 
     % Fusion horizon length
-    nf = size(cell2mat(seq), 2);
+    f = size(cell2mat(seq), 2);
 
-    % Initialize sequence index for online operation
-    % Start at 0 because update_MKF increments it before
-    % starting the update
-    obs.i = 0;
+    % Sequence index and counter for prob. updates
+    % obs.i(1) is the sequence index (1 <= i(1) <= obs.f)
+    % obs.i(2) is the counter for prob. updates (1 <= i(2) <= obs.d)
+    obs.i = nan(1, 2);
+    obs.i_next = int16([1 1]);
 
     % Initialize conditional probabilities: all equally likely
     obs.p_seq_g_Yk = ones(n_filt, 1) ./ n_filt;
@@ -102,11 +105,13 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
 
     % Create multi-model observer
     obs.filters = cell(n_filt, 1);
+    fmt = strcat('%s%0', char(string(strlength(string(n_filt)))), 'd');
     for i = 1:n_filt
-        label_i = sprintf('%s%02d',label,i);
+        label_i = sprintf(fmt,label,i);
         % Initialize each filter with system #1
-        obs.filters{i} = EKF_observer(n,f{1},h{1},params,u_meas, ...
-            y_meas,dfdx{1},dhdx{1},Ts,P0{i},Q{1},R{1},label_i,x0,y0);
+        obs.filters{i} = EKF_observer(n,state_fcn{1},meas_fcn{1}, ...
+            params{1},u_meas,y_meas,dfdx{1},dhdx{1},Ts,P0{i},Q{1}, ...
+            R{1},label_i,x0,y0);
     end
 
     % Initialize estimates
@@ -119,6 +124,6 @@ function obs = MEKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     obs.nu = size(u_meas,1);
     obs.ny = ny;
     obs.n_filt = n_filt;
-    obs.nf = nf;
+    obs.f = f;
 
 end
