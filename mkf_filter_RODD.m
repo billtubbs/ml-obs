@@ -157,6 +157,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by RODD observer
+    obs.u_meas = u_meas;
     obs.P0 = P0;
     obs.Q0 = Q0;
     obs.epsilon = epsilon;

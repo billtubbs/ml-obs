@@ -111,6 +111,7 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by AFMM observer
+    obs.u_meas = u_meas;
     obs.f = f;
     obs.n_min = n_min;
     obs.f_main = f_main;

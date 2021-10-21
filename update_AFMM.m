@@ -101,5 +101,4 @@ function obs = update_AFMM(obs, uk, yk)
     % Run generic MKF updates and probability calcs first
     obs = update_MKF(obs, uk, yk);
 
-
 end
