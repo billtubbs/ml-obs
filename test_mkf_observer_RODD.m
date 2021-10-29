@@ -1,4 +1,4 @@
-% Test functions mkf_filter_RODD.m and update_MKF.m
+% Test functions mkf_observer_RODD.m and update_MKF.m
 
 clear all
 plot_dir = 'plots';
@@ -87,7 +87,7 @@ assert(isequal(round(MKF2.p_gamma, 4), [1-MKF2.epsilon; MKF2.epsilon]))
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
-MKF_testx0 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
@@ -135,14 +135,14 @@ seq{2}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
-MKF3 = mkf_filter(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
+MKF3 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
-MKF4 = mkf_filter(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
+MKF4 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
 
 
 % Choose observers to test
@@ -329,7 +329,7 @@ MSE_test_values = containers.Map(...
 %         figure(11); clf
 %         t = Ts*(0:nT)';
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Pr(\Gamma(k) \mid Y(k))$'};
-%         filename = sprintf('rod_mkf_filter_test_pyk_wfplot.png');
+%         filename = sprintf('rod_mkf_observer_test_pyk_wfplot.png');
 %         filepath = fullfile(plot_dir, filename);
 %         show_waterfall_plot(t(2:end-1), p_seq_g_Yk(2:end-1, :), [0 1], ...
 %             ax_labels, [0 82], filepath);
@@ -346,7 +346,7 @@ MSE_test_values = containers.Map(...
 %         figure(12); clf
 %         t = Ts*(0:nT)';
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
-%         filename = sprintf('rod_mkf_filter_test_trP_wfplot.png');
+%         filename = sprintf('rod_mkf_observer_test_trP_wfplot.png');
 %         filepath = fullfile(plot_dir, filename);
 %         show_waterfall_plot(t, trP_obs, [0 5], ax_labels, [0 82], filepath);
 %         title('Trace of covariance matrices')
@@ -364,7 +364,7 @@ MSE_test_values = containers.Map(...
 %         figure(13); clf
 %         t = Ts*(0:nT)';
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
-%         filename = sprintf('rod_mkf_filter_test_K_wfplot.png');
+%         filename = sprintf('rod_mkf_observer_test_K_wfplot.png');
 %         filepath = fullfile(plot_dir, filename);
 %         show_waterfall_plot(t, K1_obs, [0 5], ax_labels, [0 82], filepath);
 %         title('Filter correction gains (k1)')
@@ -419,7 +419,7 @@ R = diag(sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
 d = 2;  % 10 spacing parameter
-MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
@@ -430,7 +430,7 @@ R = diag(sigma_M.^2);
 f = 5;  % 10 fusion horizon
 m = 2;  % 2 maximum number of shocks
 d = 2;  % 5 spacing parameter
-MKF2 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF2 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Tests for MKF1

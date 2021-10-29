@@ -1,12 +1,12 @@
-function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     sigma_wp,Q0,R,f,m,d,label,x0)
-% obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,label,x0)
 %
-% Creates a struct for simulating a multi-model Kalman 
-% filter for state estimation in the presence of randomly-
-% occurring deterministic disturbances (RODDs) as described
-% in Robertson et al. (1995).
+% Creates a struct for simulating a multi-model observer for
+% state estimation in the presence of randomly-occurring
+% deterministic disturbances (RODDs) as described in
+% Robertson et al. (1995).
 %
 % Arguments:
 %   A, B, C, D : matrices of the discrete time state-space
@@ -162,7 +162,7 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     P0_init = repmat({P0}, 1, n_filt);
 
     % Create MKF observer struct
-    obs = mkf_filter(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,label,x0);
+    obs = mkf_observer(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by RODD observer
     obs.u_meas = u_meas;

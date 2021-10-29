@@ -40,6 +40,9 @@ function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx
 
     % Number of switching systems
     nj = numel(state_fcn);
+    assert(numel(meas_fcn) == nj)
+    assert(numel(dfdx) == nj)
+    assert(numel(dhdx) == nj)
 
     obs.n = n;
     if nargin == 16

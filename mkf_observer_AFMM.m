@@ -1,13 +1,13 @@
-function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
-% obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,n_filt,f,n_min,label,x0)
 %
-% Creates a struct for simulating the multi-model Kalman
-% filter using the adaptive forgetting through multiple
-% models (AFMM) method for state estimation in the presence 
-% of infrequently-occurring deterministic disturbances, 
-% as described in Eriksson and Isaksson (1996).
+% Creates a struct for simulating the multi-model observer
+% using the adaptive forgetting through multiple models 
+% (AFMM) method for state estimation in the presence of 
+% infrequently-occurring deterministic disturbances, as 
+% described in Eriksson and Isaksson (1996).
 %
 % Arguments:
 %   A, B, C, D : matrices of the discrete time state-space
@@ -116,7 +116,7 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
 
     % Create MKF observer struct
     d = 1;  % TODO: Make this a variable parameter
-    obs = mkf_filter(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,label,x0);
+    obs = mkf_observer(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by AFMM observer
     obs.u_meas = u_meas;

@@ -85,7 +85,7 @@ R = diag(Radj*sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
 d = 2;  % 10 spacing parameter
-MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
@@ -97,11 +97,11 @@ R = diag(Radj*sigma_M.^2);
 f = 5;  % 10 fusion horizon
 m = 2;  % 2 maximum number of shocks
 d = 2;  % 5 spacing parameter
-MKF2 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF2 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % General MKF equivalent to MKF2
-%MKF3 = mkf_filter({A,A},{B,B},{C,C},{D,D},Ts,repmat({P0},1,MKF2.n_filt),Q,R,MKF2.S,MKF2.p_seq,d,'MKF3');
+%MKF3 = mkf_observer({A,A},{B,B},{C,C},{D,D},Ts,repmat({P0},1,MKF2.n_filt),Q,R,MKF2.S,MKF2.p_seq,d,'MKF3');
 
 % Multiple model AFMM filter 1
 label = 'AFMM1';
@@ -111,7 +111,7 @@ R = diag(Radj*sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters
 n_min = 3;  % minimum life of cloned filters
-AFMM1 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
 % Multiple model AFMM filter 2
@@ -122,5 +122,5 @@ R = diag(Radj*sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 30;  % number of filters
 n_min = 10;  % minimum life of cloned filters
-AFMM2 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+AFMM2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);

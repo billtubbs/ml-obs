@@ -1,4 +1,4 @@
-% Test functions mkf_filter.m and update_MKF.m
+% Test functions mkf_observer.m and update_MKF.m
 
 clear all
 
@@ -147,7 +147,7 @@ P0j = repmat({P0}, n_filt, 1);
 d = 1;
 
 % First, define with no initial state specified (should be set to zero)
-MKF1 = mkf_filter(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1');
+MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1');
 
 assert(isequal(MKF1.A, A))
 assert(isequal(MKF1.B, B))
@@ -172,7 +172,7 @@ assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
 assert(MKF1.ykp1_est == 0)
 
 % Redefine this time with initial condition
-MKF1 = mkf_filter(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0);
+MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
 
