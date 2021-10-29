@@ -21,9 +21,19 @@ N = zeros(n,ny);
 x0 = [0.1; 0.5];
 
 % Define steady-state Kalman filter using kalman_filter_ss function
-KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS",x0);
+label = 'KFSS';
+KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0);
+assert(isequal(KFSS.A, A))
+assert(isequal(KFSS.B, B))
+assert(isequal(KFSS.C, C))
+assert(isequal(KFSS.D, D))
+assert(isequal(KFSS.Ts, Ts))
+assert(isequal(KFSS.Q, Q))
+assert(isequal(KFSS.R, R))
+assert(isequal(KFSS.label, label))
 assert(isequal(KFSS.xkp1_est, x0))
 assert(KFSS.ykp1_est == C * x0)
+assert(isa(KFSS.sys, 'ss'))
 
 % Re-define with no initial state specified (should be set to zero)
 KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS");

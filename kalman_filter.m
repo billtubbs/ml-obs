@@ -37,5 +37,5 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
     obs.static_gain = false;
     obs.xkp1_est = x0;
     obs.ykp1_est = C * obs.xkp1_est;
-    
+
 end
