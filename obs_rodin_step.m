@@ -1,15 +1,24 @@
 % Various observers designed for the system defined in:
 %  - sys_rodin_step.m
 
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+
+% Check observability of system
+Qobs = obsv(A,C);
+unobs = length(A) - rank(Qobs);
+assert(unobs == 0);
+
 % Steady-state Luenberger observer 1
 % Specify poles of observer dynamics
 poles = [0.8; 0.8];
-LB1 = luenberger_filter(A,B,C,D,Ts,poles,'LB1');
+LB1 = luenberger_filter(A,Bu,C,Du,Ts,poles,'LB1');
 
 % Steady-state Luenberger observer 2
 % Specify poles of observer dynamics
 poles = [0.6; 0.6];
-LB2 = luenberger_filter(A,B,C,D,Ts,poles,'LB2');
+LB2 = luenberger_filter(A,Bu,C,Du,Ts,poles,'LB2');
 
 % Specify covariance for state variable 1
 % This is used by all observers
@@ -27,46 +36,46 @@ adj =  1;
 % Steady-state Kalman filter 1 - tuned to sigma_wp(1)
 Q = diag([Q1 sigma_wp(1)^2]);
 R = sigma_M^2;
-KFSS1 = kalman_filter_ss(A,B,C,D,Ts,Q,R,'KFSS1');
+KFSS1 = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,'KFSS1');
 
 % Steady-state Kalman filter 2 - tuned to sigma_wp(2)
 Q = diag([Q1 sigma_wp(2)^2]);
 R = sigma_M^2;
-KFSS2 = kalman_filter_ss(A,B,C,D,Ts,Q,R,'KFSS2');
+KFSS2 = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,'KFSS2');
 
 % Kalman filter 1 - tuned to sigma_wp(1)
 % Covariance matrices
 P0 = 1000*eye(n);
 Q = diag([Q1 adj*sigma_wp(1)^2]);
 R = sigma_M^2;
-KF1 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF1');
+KF1 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
 % Covariance matrices
 P0 = 1000*eye(n);
 Q = diag([Q1 adj*sigma_wp(2)^2]);
 R = sigma_M^2;
-KF2 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF2');
+KF2 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF2');
 
 % Kalman filter 3 - manually tuned
 % Covariance matrices
 P0 = 1000*eye(n);
 Q = diag([Q1 adj*0.1^2]);
 R = sigma_M^2;
-KF3 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF3');
+KF3 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
 % Scheduled Kalman filter
 P0 = 1000*eye(n);
 Q0 = diag([Q1 1]);
 R = sigma_M^2;
-SKF = kalman_filter(A,B,C,D,Ts,P0,Q0,R,'SKF');
+SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
 SKF.sigma_wp = sigma_wp;
 
 % Multiple model filter 1
 label = 'MKF1';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 1]);
+Q0 = diag([Q1 0]);
 R = sigma_M^2;
 f = 3;  % fusion horizon
 m = 2;  % maximum number of shocks
@@ -86,7 +95,7 @@ MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model filter 2
 label = 'MKF2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 1]);
+Q0 = diag([Q1 0]);
 R = sigma_M^2;
 f = 10;  % fusion horizon
 m = 2;  % maximum number of shocks

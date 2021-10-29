@@ -12,6 +12,12 @@ rng(seed)
 % Load system and disturbance model from file
 sys_rodin_step
 
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+
 % Set noise variances for observer design
 sigma_M = 0.1;
 sigma_W = [0; 0];
@@ -29,9 +35,9 @@ assert(MKF1.nu == nu)
 assert(MKF1.ny == ny)
 assert(MKF1.nj == 2)
 assert(isequal(MKF1.A{1}, A) && isequal(MKF1.A{2}, A))
-assert(isequal(MKF1.B{1}, B) && isequal(MKF1.B{2}, B))
+assert(isequal(MKF1.B{1}, Bu) && isequal(MKF1.B{2}, Bu))
 assert(isequal(MKF1.C{1}, C) && isequal(MKF1.C{2}, C))
-assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
+assert(isequal(MKF1.D{1}, Du) && isequal(MKF1.D{2}, Du))
 assert(MKF1.Ts == Ts)
 assert(isequaln(MKF1.u_meas, u_meas))
 assert(isequal(size(MKF1.Q), [1 2]))
@@ -58,9 +64,9 @@ assert(MKF2.nu == nu)
 assert(MKF2.ny == ny)
 assert(MKF2.nj == 2)
 assert(isequal(MKF2.A{1}, A) && isequal(MKF2.A{2}, A))
-assert(isequal(MKF2.B{1}, B) && isequal(MKF2.B{2}, B))
+assert(isequal(MKF2.B{1}, Bu) && isequal(MKF2.B{2}, Bu))
 assert(isequal(MKF2.C{1}, C) && isequal(MKF2.C{2}, C))
-assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
+assert(isequal(MKF2.D{1}, Du) && isequal(MKF2.D{2}, Du))
 assert(MKF2.Ts == Ts)
 assert(isequaln(MKF2.u_meas, u_meas))
 assert(isequal(size(MKF2.Q), [1 2]))
@@ -105,8 +111,8 @@ Wp = zeros(size(t));  % Set RODD disturbance to 0 for this test
 U_sim = [U Wp];
 
 % Apply the input disturbance
-Du = zeros(size(U_sim));
-Du(t >= t_shock, 1) = du0;
+Wp = zeros(size(U_sim));
+Wp(t >= t_shock, 1) = du0;
 
 % Custom MKF test observer
 
@@ -115,9 +121,9 @@ Du(t >= t_shock, 1) = du0;
 % this test simulation (t = t_shock)
 % Multiple model filter 1
 A2 = repmat({A}, 1, 2);
-B2 = repmat({B}, 1, 2);
+Bu2 = repmat({Bu}, 1, 2);
 C2 = repmat({C}, 1, 2);
-D2 = repmat({D}, 1, 2);
+Du2 = repmat({Du}, 1, 2);
 P0 = 1000*eye(n);
 Q0 = diag([Q1 1]);
 P0_init = repmat({P0}, 1, 2);
@@ -129,14 +135,14 @@ seq{2}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
-MKF3 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
+MKF3 = mkf_filter(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == 9.5) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
-MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
+MKF4 = mkf_filter(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
 
 
 % Choose observers to test
@@ -152,7 +158,7 @@ xk = zeros(n,1);
 for i=1:nT+1
 
     % Inputs
-    uk = U_sim(i,:)' + Du(i,:)';
+    uk = U_sim(i,:)' + Wp(i,:)';
 
     % Compute y(k)
     yk = C*xk + D*uk;
@@ -167,7 +173,7 @@ for i=1:nT+1
 end
 
 % Check simulation output is correct
-[Y2, t, X2] = lsim(Gpss,U_sim + Du,t);
+[Y2, t, X2] = lsim(Gpss,U_sim + Wp,t);
 assert(isequal(X, X2))
 assert(isequal(Y, Y2))
 
@@ -178,17 +184,13 @@ Y_m = Y + sigma_MP'.*randn(size(Y));
 
 % Simulate observers
 
-% Set disturbance inputs to zero for observer
-% simulation since they are not measured.
-U_obs = [U zeros(nT+1,1)];
-
 n_obs = numel(observers);
 MSE = containers.Map();
 
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_obs,Y_m,obs,alpha);
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m,obs,alpha);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -398,6 +400,12 @@ ny = size(C, 1);
 u_meas = [true; true; false; false];
 y_meas = [true; true];
 
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
 sigma_M = [0.1; 0.1];
@@ -406,7 +414,7 @@ sigma_wp = [0.01 1; 0.01 1];
 % Multiple model filter 1
 label = 'MKF1';
 P0 = 1000*eye(n);
-Q0 = diag([0.01 0.01 1 1]);
+Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
@@ -417,7 +425,7 @@ MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model filter 2
 label = 'MKF2';
 P0 = 1000*eye(n);
-Q0 = diag([0.01 0.01 1 1]);
+Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 f = 5;  % 10 fusion horizon
 m = 2;  % 2 maximum number of shocks
@@ -435,9 +443,9 @@ assert(MKF1.nu == nu)
 assert(MKF1.ny == ny)
 assert(MKF1.nj == 3)
 assert(isequal(MKF1.A{1}, A) && isequal(MKF1.A{2}, A))
-assert(isequal(MKF1.B{1}, B) && isequal(MKF1.B{2}, B))
+assert(isequal(MKF1.B{1}, Bu) && isequal(MKF1.B{2}, Bu))
 assert(isequal(MKF1.C{1}, C) && isequal(MKF1.C{2}, C))
-assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
+assert(isequal(MKF1.D{1}, Du) && isequal(MKF1.D{2}, Du))
 assert(MKF1.Ts == Ts)
 assert(isequaln(MKF1.u_meas, u_meas))
 assert(isequal(size(MKF1.Q), [1 3]))
@@ -468,9 +476,9 @@ assert(MKF2.nu == nu)
 assert(MKF2.ny == ny)
 assert(MKF2.nj == 4)
 assert(isequal(MKF2.A{1}, A) && isequal(MKF2.A{2}, A))
-assert(isequal(MKF2.B{1}, B) && isequal(MKF2.B{2}, B))
+assert(isequal(MKF2.B{1}, Bu) && isequal(MKF2.B{2}, Bu))
 assert(isequal(MKF2.C{1}, C) && isequal(MKF2.C{2}, C))
-assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
+assert(isequal(MKF2.D{1}, Du) && isequal(MKF2.D{2}, Du))
 assert(MKF2.Ts == Ts)
 assert(isequaln(MKF2.u_meas, u_meas))
 assert(isequal(size(MKF2.Q), [1 4]))

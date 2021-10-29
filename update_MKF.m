@@ -20,6 +20,9 @@ function obs = update_MKF(obs, uk, yk, show_plots)
         show_plots = false;
     end
 
+    assert(isequal(size(uk), [obs.nu 1]), "ValueError: size(uk)")
+    assert(isequal(size(yk), [obs.ny 1]), "ValueError: size(yk)")
+
     % Increment sequence index and update counter
     % obs.i(1) is the sequence index (1 <= i(1) <= obs.f)
     % obs.i(2) is the counter for prob. updates (1 <= i(2) <= obs.d)

@@ -2,7 +2,6 @@ function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx
     P0,Q,R,seq,T,d,label,x0,y0)
 % obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
 %     P0,Q,R,seq,T,d,label,x0,y0)
-%state_fcn,meas_fcn,
 % Creates a struct for simulating a multi-model extended 
 % Kalman filter for state estimation of a non-linear 
 % Markov jump system.

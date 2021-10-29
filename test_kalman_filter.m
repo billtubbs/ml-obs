@@ -36,6 +36,7 @@ assert(isequal(KF.Q, Q))
 assert(isequal(KF.R, R))
 assert(isequal(KF.P, P0))
 assert(isequal(KF.label, label))
+assert(KF.static_gain == false)
 assert(isequal(KF.xkp1_est, x0))
 assert(KF.ykp1_est == C * x0)
 

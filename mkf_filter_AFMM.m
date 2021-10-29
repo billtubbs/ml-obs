@@ -1,5 +1,5 @@
-function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label,x0)
+function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+    sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
 % obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,n_filt,f,n_min,label,x0)
 %
@@ -10,7 +10,9 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % as described in Eriksson and Isaksson (1996).
 %
 % Arguments:
-%   A, B, C, D : discrete time system matrices.
+%   A, B, C, D : matrices of the discrete time state-space
+%       system representing the augmented system (including
+%       disturbances and unmeasured inputs).
 %   Ts : sample period.
 %   u_meas : binary vector indicating measured inputs.
 %   P0 : Initial value of covariance matrix of the state
@@ -47,15 +49,21 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
         x0 = zeros(n,1);
     end
 
-    % Number of input disturbances
-    n_dist = sum(~u_meas);
-    assert(n_dist > 0);
+    % Check size of process covariance default matrix
+    assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
+
+    % Observer model without disturbance noise input
+    Bu = B(:, u_meas);
+    Du = D(:, u_meas);
+    nu = sum(u_meas);  % Number of measured inputs
+    nw = sum(~u_meas);  % Number of input disturbances
+    assert(nw > 0, "ValueError: u_meas");
 
     % Check there are enough filters in total to accommodate
     % those in the holding group + at least one in main group
     assert(n_min > 0)
     assert(n_filt > 0)
-    assert((n_filt - n_dist*n_min) >= n_min, ...
+    assert((n_filt - nw*n_min) >= n_min, ...
         "ValueError: n_filt is too low.")
 
     % Process noise covariance matrices for each
@@ -68,11 +76,11 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     % Probabilities of no-shock, shock
     p_gamma = [1-epsilon epsilon]';
 
-    if n_dist > 1
+    if nw > 1
 
         % Possible combinations of each disturbance input:
         % Assume only one may occur in the same sample period
-        Z = [zeros(1, n_dist); eye(n_dist)];
+        Z = [zeros(1, nw); eye(nw)];
  
         % Modified indicator value probabilities
         p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
@@ -93,14 +101,14 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 
     % Initial index to sequences in main filter group
     % and in holding group
-    f_hold = 1:n_dist*n_min;
+    f_hold = 1:nw*n_min;
     f_main = f_hold(end)+1:n_filt;
 
     % System model doesn't change
     A = repmat({A}, 1, nj);
-    B = repmat({B}, 1, nj);
+    Bu = repmat({Bu}, 1, nj);
     C = repmat({C}, 1, nj);
-    D = repmat({D}, 1, nj);
+    Du = repmat({Du}, 1, nj);
     R = repmat({R}, 1, nj);
 
     % Initial covariance matrix is the same for all filters
@@ -108,7 +116,7 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 
     % Create MKF observer struct
     d = 1;  % TODO: Make this a variable parameter
-    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,d,label,x0);
+    obs = mkf_filter(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by AFMM observer
     obs.u_meas = u_meas;

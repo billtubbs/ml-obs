@@ -29,8 +29,8 @@ function obs = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0)
     obs.status = 1;
     % Model
     N = zeros(n, ny);
-    G = eye(n);
-    H = zeros(ny, n);
+    G = eye(n);  % apply process noises to all states
+    H = zeros(ny, n);  % no direct transmission of noises
     Gmodel = ss(A, [B G], C, [D H], Ts);
     % Use MATLAB's Kalman filter object to compute
     % steady-state gain and covariance matrix
