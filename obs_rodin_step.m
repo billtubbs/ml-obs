@@ -66,7 +66,7 @@ KF3 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
 % Scheduled Kalman filter
 P0 = 1000*eye(n);
-Q0 = diag([Q1 1]);
+Q0 = diag([Q1 0]);
 R = sigma_M^2;
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
@@ -83,15 +83,6 @@ d = 5;  % spacing parameter
 MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
-% Modified version of MKF1 with custom-shifted sequences
-% seq_mod = cell2mat(MKF1.seq);
-% seq_mod(2:4, :) = circshift(seq_mod(2:4,:),-2,2);
-% seq_mod(5:6, :) = circshift(seq_mod(5:6,:),-1,2);
-% seq_mod(6,2:3) = [0 1];
-% MKF1m = MKF1;  % make a copy
-% MKF1m.seq = mat2cell(seq_mod, ones(MKF1.n_filt,1), MKF1.nf);
-% MKF1m.label = strcat(MKF1.label, 'm');
-
 % Multiple model filter 2
 label = 'MKF2';
 P0 = 1000*eye(n);
@@ -103,28 +94,13 @@ d = 1;  % spacing parameter
 MKF2 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
-% Modified version of MKF1 with custom-shifted sequences
-% seq_mod = cell2mat(MKF2.seq);
-% seq_mod(2:11, :) = circshift(seq_mod(2:11, :), -1, 2);
-% seq_mod(12:15, :) = circshift(seq_mod(12:15, :), -1, 2);
-% seq_mod(16:20, 3:end) = circshift(seq_mod(16:20, 3:end), -1, 2);
-% seq_mod(21:23, 3:end) = circshift(seq_mod(21:23, 3:end), -1, 2);
-% seq_mod(24:28, 5:end) = circshift(seq_mod(24:28, 5:end), -1, 2);
-% seq_mod(29:30, 5:end) = circshift(seq_mod(29:30, 5:end), -1, 2);
-% seq_mod(31:35, 7:end) = circshift(seq_mod(31:35, 7:end), -1, 2);
-% seq_mod(36:36, 7:end) = circshift(seq_mod(36:36, 7:end), -1, 2);
-% seq_mod(37:41, 9:end) = circshift(seq_mod(37:41, 9:end), -1, 2);
-% MKF2m = MKF2;  % make a copy
-% MKF2m.seq = mat2cell(seq_mod, ones(MKF1.n_filt,1), MKF2.nf);
-% MKF2m.label = strcat(MKF2.label, 'm');
-
 % General MKF equivalent to MKF2
 %MKF3 = mkf_observer({A,A},{B,B},{C,C},{D,D},Ts,repmat({P0},1,MKF2.n_filt),Q,R,MKF2.S,MKF2.p_seq,d,'MKF3');
 
 % Multiple model AFMM filter 1
 label = 'AFMM1';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 1]);
+Q0 = diag([Q1 0]);
 R = sigma_M^2;
 f = 100;  % sequence history length
 n_filt = 5;  % number of filters
@@ -135,7 +111,7 @@ AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model AFMM filter 2
 label = 'AFMM2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 1]);
+Q0 = diag([Q1 0]);
 R = sigma_M^2;
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters

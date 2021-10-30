@@ -71,7 +71,7 @@ KF3 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF3');
 
 % Scheduled Kalman filter
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 nan nan]);
+Q0 = diag([Q1 Q2 0 0]);
 R = diag(Radj*sigma_M.^2);
 SKF = kalman_filter(A,B,C,D,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
@@ -80,7 +80,7 @@ SKF.sigma_wp = sigma_wp;
 % Multiple model filter 1
 label = 'MKF1';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 adj adj]);  % TODO: Is this correct?
+Q0 = diag([Q1 Q2 0 0]);
 R = diag(Radj*sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
@@ -91,7 +91,7 @@ MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model filter 2
 label = 'MKF2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 adj adj]);  % TODO: Is this correct?
+Q0 = diag([Q1 Q2 0 0]);
 R = diag(Radj*sigma_M.^2);
 %R = diag([1; 2.3].*sigma_M.^2);
 f = 5;  % 10 fusion horizon
@@ -106,7 +106,7 @@ MKF2 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model AFMM filter 1
 label = 'AFMM1';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 adj adj]);
+Q0 = diag([Q1 Q2 0 0]);
 R = diag(Radj*sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters
@@ -117,7 +117,7 @@ AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model AFMM filter 2
 label = 'AFMM2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 adj adj]);
+Q0 = diag([Q1 Q2 0 0]);
 R = diag(Radj*sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 30;  % number of filters

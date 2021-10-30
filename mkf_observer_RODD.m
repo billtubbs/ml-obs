@@ -35,11 +35,11 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
 %  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
 %     Detection and estimation of randomly occurring 
 %     deterministic disturbances. Proceedings of 1995 American
-%     Control Conference - ACC?95, 6, 4453-4457. 
+%     Control Conference - ACC'95, 6, 4453-4457. 
 %     https://doi.org/10.1109/ACC.1995.532779
 %  -  Robertson, D. G., & Lee, J. H. (1998). A method for the
 %     estimation of infrequent abrupt changes in nonlinear 
-%     systems. Automatica, 34(2), 261–270. 
+%     systems. Automatica, 34(2), 261-270. 
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 
     % Number of states
