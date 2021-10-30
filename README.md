@@ -1,8 +1,8 @@
 # process-observers
 
-MATLAB scripts for simulating process observers for online state estimation and sensor fusion.  
+MATLAB scripts for simulating [process observers](https://en.wikipedia.org/wiki/State_observer) for online state estimation and [sensor fusion](https://en.wikipedia.org/wiki/Sensor_fusion).  
 
-Each observer is produced by a different function but they are implemented as [structure arrays](https://www.mathworks.com/help/matlab/ref/struct.html) ('structs') with many similar attribues that can be passed as arguments to the associated update functions producing similar behaviours.
+Each observer is produced by a separate MATLAB function but they are implemented as [structure arrays](https://www.mathworks.com/help/matlab/ref/struct.html) ('structs') with many similar attribues that can be passed as arguments to the associated update functions producing similar behaviours.
 
 For example, the following statement creates a struct which contains all the data needed to simulate a discrete-time Kalman filter.
 
@@ -32,20 +32,28 @@ end
 ## Contents
 
 Observers currently included:
-- [luenberger_filter.m](luenberger_filter.m) - Luenberger observer (with static correction gain) [[4]](#4).
+- [luenberger_filter.m](luenberger_filter.m) - Luenberger observer (with static correction gain) [[2]](#2).
 - [kalman_filter.m](kalman_filter.m) - Kalman filter [[1]](#1).
 - [kalman_filter_ss.m](kalman_filter_ss.m) - steady-state Kalman filter (with static correction gain).
 - [EKF_observer.m](EKF_observer.m) - extended Kalman filter for non-linear systems.
 
-Multi-model observers:
-- [mkf_observer.m](mkf_observer.m) - general purpose multi-model Kalman filter observer.
-- [mkf_observer_RODD.m](mkf_observer_RODD.m) - multi-model Kalman filter observer for state estimation in the presence of randomly-occurring deterministic disturbances (RODDs) as described in Robertson et al. [[2]](#2).
-- [mkf_observer_AFMM.m](mkf_observer_AFMM.m) - multi-model Kalman filter using the adaptive forgetting through multiple models (AFMM) algorithm for state estimation in the presence of infrequently-occurring deterministic disturbances as described in Eriksson and Isaksson [[3]](#3).
-- [MEKF_observer.m](MEKF_observer.m) - general purpose multi-model extended Kalman filter observer.
+General-purpose multi-model observers:
+- [mkf_observer.m](mkf_observer.m) - multi-model Kalman filter observer.
+- [MEKF_observer.m](MEKF_observer.m) - multi-model extended Kalman filter observer.
+
+Specialised multi-model observers:
+- [mkf_observer_RODD.m](mkf_observer_RODD.m) and [MEKF_observer_RODD.m](MEKF_observer_RODD.m) - multi-model observers for state estimation in the presence of *randomly-occurring deterministic disturbances* (RODDs) as described in Robertson et al. [[3]](#3).
+- [mkf_observer_AFMM.m](mkf_observer_AFMM.m) and [MEKF_observer_AFMM.m](MEKF_observer_AFMM.m) - multi-model observers for state estimation in the presence of *infreuently-occurring disturbances* with the adaptive forgetting through multiple models (AFMM) algorithm as described in Eriksson and Isaksson [[4]](#4).
+
+<p align="center">
+    <img src="images/obj_struct_basic.png" alt="Diagram of objects and functions" width="75%">
+</p>
+
 
 ## Installation
 
 Clone this repository to your local machine and either add the root to your MATLAB path or work within the main folder.
+
 
 ## Minimal example
 
@@ -162,8 +170,8 @@ A number of unit test scripts are included.  You can run all the tests by runnin
 
 <a id="1">[1]</a> Kalman, R. E. (1960). A New Approach to Linear Filtering and Prediction Problems. Journal of Basic Engineering. 82: 35–45. https://doi.org/10.1115%2F1.3662552.
 
-<a id="2">[2]</a> Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). Detection and estimation of randomly occurring deterministic disturbances. Proceedings of 1995 American Control Conference - ACC 95, 6, 4453–4457. https://doi.org/10.1109/ACC.1995.532779
+<a id="2">[2]</a> Luenberger, D., An Introduction to Observers. IEEE Transactions on Automatic Control 1971, 16 (6), 596–602. https://doi.org/10.1109/TAC.1971.1099826.
 
-<a id="3">[3]</a> Eriksson, P.-G., & Isaksson, A. J. (1996). Classification of Infrequent Disturbances. IFAC Proceedings Volumes, 29(1), 6614–6619. https://doi.org/10.1016/S1474-6670(17)58744-3
+<a id="3">[3]</a> Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). Detection and estimation of randomly occurring deterministic disturbances. Proceedings of 1995 American Control Conference - ACC 95, 6, 4453–4457. https://doi.org/10.1109/ACC.1995.532779
 
-<a id="4">[4]</a> Luenberger, D., An Introduction to Observers. IEEE Transactions on Automatic Control 1971, 16 (6), 596–602. https://doi.org/10.1109/TAC.1971.1099826.
+<a id="4">[4]</a> Eriksson, P.-G., & Isaksson, A. J. (1996). Classification of Infrequent Disturbances. IFAC Proceedings Volumes, 29(1), 6614–6619. https://doi.org/10.1016/S1474-6670(17)58744-3
