@@ -1,8 +1,9 @@
-function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx, ...
-    dhdx,Ts,P0,epsilon,sigma_wp,Q0,R,f,m,d,label,x0,y0)
-% obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx, ...
-%     dhdx,P0,epsilon,sigma_wp,Q0,R,f,m,d,label,x0,y0)
-%
+function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params, ...
+    u_meas,y_meas,dfdx,dhdx,Ts,P0,Bw,epsilon,sigma_wp,Q0,R,f,m,d, ...
+    label,x0,y0)
+% obs = obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params, ...
+%     u_meas,y_meas,dfdx,dhdx,Ts,P0,Bw,epsilon,sigma_wp,Q0,R,f,m,d, ...
+%     label,x0,y0)
 % Creates a struct for simulating a multi-model extended 
 % Kalman filter for state estimation in the presence of 
 % randomly-occurring deterministic disturbances (RODDs) 
@@ -24,6 +25,9 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
 %   Ts : sample period.
 %   P0 : Initial value of covariance matrix of the state
 %       estimates.
+%   Bw : system matrix describing how unmeasured disturbance
+%       inputs affect the states. This must be consistent
+%       with state_fcn.
 %   epsilon : probability of a shock disturbance.
 %   sigma_wp : standard deviation of shock disturbances.
 %   Q0 : initial process noise covariance matrix (n, n) with 
@@ -52,16 +56,12 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
 %     https://doi.org/10.1016/S0005-1098(97)00192-1
 %
 
-    % Number of switching systems
-    nj = numel(state_fcn);
-
-    obs.n = n;
-    if nargin == 18
+    if nargin == 19
         % Default initial state estimate
         x0 = zeros(n, 1);
     end
     ny = size(y_meas,1);
-    if nargin < 20
+    if nargin < 21
         % Default initial state estimate
         y0 = zeros(ny, 1);
     end
@@ -70,13 +70,13 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
     assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
     % Number of input disturbances
-    n_dist = sum(~u_meas);
+    nw = sum(~u_meas);
 
     % Number of filters needed
-    n_filt = n_filters(m, f, n_dist);
+    n_filt = n_filters(m, f, nw);
 
     % Generate indicator sequences
-    seq = combinations_lte(f*n_dist, m);
+    seq = combinations_lte(f*nw, m);
 
     % Probability of shock over a detection interval
     % (Detection interval is d sample periods).
@@ -86,9 +86,9 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
     % (this is named delta in Robertson et al. 1998)
     p_gamma = [ones(size(alpha'))-alpha'; alpha'];
 
-    if n_dist == 1
+    if nw == 1
 
-        % Number of Q matrices needed
+        % Number of models (with different Q matrices)
         nj = 2;
 
         % Generate required Q matrices.
@@ -97,11 +97,11 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
             var_x = diag(Q0);
             % Modified variance of shock signal over detection
             % interval (see Robertson et al. 1998)
-            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(:, i).^2' ./ d;
+            var_x = var_x + Bw * sigma_wp(:, i).^2' ./ d;
             Q{i} = diag(var_x);
         end
 
-    elseif n_dist > 1
+    elseif nw > 1
 
         % Note: In the case of more than one input disturbance
         % there may be multiple combinations of disturbances
@@ -110,7 +110,7 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
 
         % Reshape sequences into matrices with a row for each
         % input disturbance sequence
-        seq = cellfun(@(x) reshape(x, n_dist, []), seq, ...
+        seq = cellfun(@(x) reshape(x, nw, []), seq, ...
             'UniformOutput', false);
 
         % Find all unique combinations of simultaneous shocks
@@ -125,16 +125,15 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
         seq = mat2cell(seq, ones(n_filt, 1), f);
 
         % Generate required Q matrices
-        % TODO: This does not work since u_meas does not match x dim
-        % Need a B matrix?  or always assume shocks are final states?
         Q = cell(1, nj);
         for i = 1:nj
             ind = Z(i, :) + 1;
             var_x = diag(Q0);
             % Modified variance of shock signal over detection
             % interval (see Robertson et al. 1998)
-            idx = sub2ind(size(sigma_wp), 1:n_dist, ind);
-            var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2' ./ d;
+            idx = sub2ind(size(sigma_wp), 1:nw, ind);
+            var_x = var_x + Bw * sigma_wp(idx).^2' ./ d;
+            %var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2' ./ d;
             Q{i} = diag(var_x);
         end
 
@@ -179,6 +178,7 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx
         dfdx,dhdx,Ts,P0_init,Q,R,seq,T,d,label,x0,y0);
 
     % Add additional variables used by RODD observer
+    obs.n = n;
     obs.P0 = P0;
     obs.Q0 = Q0;
     obs.epsilon = epsilon;

@@ -34,6 +34,9 @@ function obs = update_MEKF(obs, yk, varargin)
         % Bayesian update to conditional probabilities
         for f = 1:obs.n_filt
 
+            %TODO: I think this should be updated each timestep
+            %      only model indicator and covariances are changed
+            %      every detection interval.
             % Compute posterior probability density of y(k)
             % using posterior PDF (normal distribution) and
             % estimates computed in previous timestep

@@ -76,8 +76,8 @@ function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx
 
     % Check matrices dimensions.
     for j = 1:nj
-        assert(isequal(size(R{j}), [ny ny]))
-        assert(isequal(size(Q{j}), [n n]))
+        assert(isequal(size(Q{j}), [n n]), "ValueError: Q")
+        assert(isequal(size(R{j}), [ny ny]), "ValueError: R")
     end
 
     % Number of filters required
