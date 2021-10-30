@@ -2,7 +2,7 @@
 
 MATLAB scripts for simulating process observers for online state estimation and sensor fusion.  
 
-Each observer makes use of different functions, including a few built-in functions from MATLAB, but they are implemented as [structure arrays](https://www.mathworks.com/help/matlab/ref/struct.html) ('structs') with many similar attribues and that can be passed as arguments to the associated functions producing similar behaviours.
+Each observer is produced by a different function but they are implemented as [structure arrays](https://www.mathworks.com/help/matlab/ref/struct.html) ('structs') with many similar attribues that can be passed as arguments to the associated update functions producing similar behaviours.
 
 For example, the following statement creates a struct which contains all the data needed to simulate a discrete-time Kalman filter.
 
