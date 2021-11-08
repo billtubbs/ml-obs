@@ -10,6 +10,11 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %
+% References:
+%  -  D. Luenberger, "An introduction to observers," in IEEE 
+%     Transactions on Automatic Control, vol. 16, no. 6, pp. 596-602,
+%     December 1971, doi: 10.1109/TAC.1971.1099826.
+%
     n = size(A,1);
     if nargin == 7
         x0 = zeros(n,1);

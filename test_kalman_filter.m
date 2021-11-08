@@ -24,7 +24,19 @@ R = diag(repmat(V,ny,1));
 x0 = [0.1; 0.5];
 
 % Define dynamic Kalman filter using kalman_filter function
-KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KF",x0);
+label = 'KF';
+KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0);
+assert(isequal(KF.A, A))
+assert(isequal(KF.B, B))
+assert(isequal(KF.C, C))
+assert(isequal(KF.D, D))
+assert(isequal(KF.Ts, Ts))
+assert(isequal(KF.P0, P0))
+assert(isequal(KF.Q, Q))
+assert(isequal(KF.R, R))
+assert(isequal(KF.P, P0))
+assert(isequal(KF.label, label))
+assert(KF.static_gain == false)
 assert(isequal(KF.xkp1_est, x0))
 assert(KF.ykp1_est == C * x0)
 
@@ -53,7 +65,8 @@ x0 = zeros(n, 1);
 x = x0;
 
 % Input signal - pseudo-random binary sequence
-warnId = 'Controllib:estimation:initialPRBSSequence';
+%warnId = 'Controllib:estimation:initialPRBSSequence';
+warnId = 'Ident:dataprocess:idinput7';
 warnStruct = warning('off',warnId);
 U = idinput(nT+1, 'PRBS', [0 0.5]);
 warning(warnStruct);

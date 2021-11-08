@@ -37,9 +37,9 @@ dt = 1/60;
 na = n + 2;
 P0 = diag([1 25 25 0.5 0.5]);  % see p268
 R = diag([1; 100]);  % see p268
-cov_w = [0.0033; 0.0033];
+cov_w = [0.0033; 0.0033];  % This is for the EKF
 % TODO: Doesn't say what process noise on x(1) to x(3) is
-Q = diag([0.25; 1; 1; cov_w]);
+Q = diag([0.25; 1; 1; 0; 0]);
 
 % Define multi-model RODD observer
 label = 'MEKF1';
@@ -57,36 +57,35 @@ sigma_wp = [[0.01; 0.01] sigma_w_theta];
 f = 3;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 30;  % spacing parameter
-%MKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%    Q0,R,f,m,d,label);
+
 MEKF1 = MEKF_observer_RODD(na,state_fcn,meas_fcn,{params},u_meas,y_meas,dfdx, ...
-    dhdx,dt,P0,epsilon,sigma_wp,Q0,R,f,m,d,label,xa0,y0);
+    dhdx,dt,P0,Bw,epsilon,sigma_wp,Q0,R,f,m,d,label,xa0,y0);
 
 % TODO: Set these correctly.
 Q_test{1} = [
-    0.0250         0         0         0         0;
+    0.2500         0         0         0         0;
          0    1.0000         0         0         0;
          0         0    1.0000         0         0;
-         0         0         0    0.0033         0;
-         0         0         0         0    0.0033];
+         0         0         0    0.0000         0;
+         0         0         0         0    0.0000];
 Q_test{2} = [
-    0.0250         0         0         0         0;
+    0.2500         0         0         0         0;
          0    1.0000         0         0         0;
          0         0    1.0000         0         0;
-         0         0         0    0.0033         0;
-         0         0         0         0    0.0033];
+         0         0         0    0.0000         0;
+         0         0         0         0    0.1000];
 Q_test{3} = [
-    0.0250         0         0         0         0;
+    0.2500         0         0         0         0;
          0    1.0000         0         0         0;
          0         0    1.0000         0         0;
-         0         0         0    0.0033         0;
-         0         0         0         0    0.0033];
+         0         0         0    0.1000         0;
+         0         0         0         0    0.0000];
 Q_test{4} = [
-    0.0250         0         0         0         0;
+    0.2500         0         0         0         0;
          0    1.0000         0         0         0;
          0         0    1.0000         0         0;
-         0         0         0    0.0033         0;
-         0         0         0         0    0.0033];
+         0         0         0    0.1000         0;
+         0         0         0         0    0.1000];
 
 % Check observer attributes
 assert(isequal(MEKF1.epsilon, epsilon))
@@ -105,7 +104,9 @@ assert(isequal(MEKF1.params, repmat({{params}}, 1, MEKF1.nj)))
 assert(MEKF1.Ts == dt)
 assert(isequal(size(MEKF1.Q), [1 4]))
 assert(isequal(size(MEKF1.R), [1 4]))
-assert(isequal(MEKF1.Q, Q_test))
+for i = 1:4
+    assert(isequal(round(MEKF1.Q{i}, 4), Q_test{i}))
+end
 assert(isequal(MEKF1.R, repmat({R}, 1, 4)))
 assert(isequal(size(MEKF1.filters), [MEKF1.n_filt 1]))
 assert(strcmp(MEKF1.filters{2}.label, 'MEKF102'))
@@ -121,7 +122,7 @@ assert(isequal(round(MEKF1.p_gamma, 4), [0.9361; 0.0314; 0.0314; 0.0011]))
 
 % Check optional definition without an initial state estimate
 MEKF1_testx0 = MEKF_observer_RODD(na,state_fcn,meas_fcn,{params},u_meas,y_meas,dfdx, ...
-    dhdx,dt,P0,epsilon,sigma_wp,Q0,R,f,m,d,label);
+    dhdx,dt,P0,Bw,epsilon,sigma_wp,Q0,R,f,m,d,label);
 assert(isequal(MEKF1_testx0.xkp1_est, zeros(na, 1)))
 assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 

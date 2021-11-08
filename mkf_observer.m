@@ -1,5 +1,5 @@
-function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
-% obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
+function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
+% obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
 %
 % Creates a struct for simulating a multi-model Kalman filter
 % for state estimation of a Markov jump linear system.
@@ -48,17 +48,12 @@ function obs = mkf_filter(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
     % Initialize covariance matrix of estimation errors
     obs.P = P0;
 
-    % Check system matrix dimensions. All systems must
-    % have same input/output dimensions and number of
-    % states.
-    for j = 1:nj
-        assert(size(A{j}, 2) == n)
-        assert(isequal(size(Q{j}), size(A{j})))
-        assert(isequal(size(R{j}), [ny ny]))
-        assert(size(B{j}, 2) == nu)
-        assert(size(C{j}, 1) == ny)
-        assert(isequal(size(R{j}), [ny ny]))
-        assert(isequal(size(Q{j}), [n n]))
+    % Check all other system matrix dimensions have same 
+    % input/output dimensions and number of states.
+    for j = 2:nj
+        [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
+        assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
+            "ValueError: A, B, C, D")
     end
 
     % Number of filters required

@@ -2,7 +2,6 @@ function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx
     P0,Q,R,seq,T,d,label,x0,y0)
 % obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
 %     P0,Q,R,seq,T,d,label,x0,y0)
-%state_fcn,meas_fcn,
 % Creates a struct for simulating a multi-model extended 
 % Kalman filter for state estimation of a non-linear 
 % Markov jump system.
@@ -41,6 +40,9 @@ function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx
 
     % Number of switching systems
     nj = numel(state_fcn);
+    assert(numel(meas_fcn) == nj)
+    assert(numel(dfdx) == nj)
+    assert(numel(dhdx) == nj)
 
     obs.n = n;
     if nargin == 16
@@ -74,8 +76,8 @@ function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx
 
     % Check matrices dimensions.
     for j = 1:nj
-        assert(isequal(size(R{j}), [ny ny]))
-        assert(isequal(size(Q{j}), [n n]))
+        assert(isequal(size(Q{j}), [n n]), "ValueError: Q")
+        assert(isequal(size(R{j}), [ny ny]), "ValueError: R")
     end
 
     % Number of filters required

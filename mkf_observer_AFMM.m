@@ -1,16 +1,18 @@
-function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label,x0)
-% obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+    sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
+% obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,n_filt,f,n_min,label,x0)
 %
-% Creates a struct for simulating the multi-model Kalman
-% filter using the adaptive forgetting through multiple
-% models (AFMM) method for state estimation in the presence 
-% of infrequently-occurring deterministic disturbances, 
-% as described in Eriksson and Isaksson (1996).
+% Creates a struct for simulating the multi-model observer
+% using the adaptive forgetting through multiple models 
+% (AFMM) method for state estimation in the presence of 
+% infrequently-occurring deterministic disturbances, as 
+% described in Eriksson and Isaksson (1996).
 %
 % Arguments:
-%   A, B, C, D : discrete time system matrices.
+%   A, B, C, D : matrices of the discrete time state-space
+%       system representing the augmented system (including
+%       disturbances and unmeasured inputs).
 %   Ts : sample period.
 %   u_meas : binary vector indicating measured inputs.
 %   P0 : Initial value of covariance matrix of the state
@@ -34,33 +36,43 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Reference:
 %  -  Eriksson, P.-G., & Isaksson, A. J. (1996). Classification
 %     of Infrequent Disturbances. IFAC Proceedings Volumes, 29(1), 
-%     6614–6619. https://doi.org/10.1016/S1474-6670(17)58744-3
+%     6614-6619. https://doi.org/10.1016/S1474-6670(17)58744-3
 %
 
-    % TODO: Could re-introduce spacing parameter d
+    % TODO: Expose spacing parameter d as an argument
 
     % Number of states
     n = check_dimensions(A, B, C, D);
+
+    % Detection interval length in number of sample periods.
+    d = 1;  % TODO: Make this a variable parameter
 
     % Initial state estimates
     if nargin == 15
         x0 = zeros(n,1);
     end
 
-    % Number of input disturbances
-    n_dist = sum(~u_meas);
-    assert(n_dist > 0);
+    % Observer model without disturbance noise input
+    Bu = B(:, u_meas);
+    Bw = B(:, ~u_meas);
+    Du = D(:, u_meas);
+    nw = sum(~u_meas);  % Number of input disturbances
+    assert(nw > 0, "ValueError: u_meas");
 
     % Check there are enough filters in total to accommodate
     % those in the holding group + at least one in main group
     assert(n_min > 0)
     assert(n_filt > 0)
-    assert((n_filt - n_dist*n_min) >= n_min, ...
+    assert((n_filt - nw*n_min) >= n_min, ...
         "ValueError: n_filt is too low.")
 
-    % Process noise covariance matrices for each
-    % possible input disturbance
-    Q = construct_Q(Q0, B, sigma_wp, u_meas);
+    % Modified variances of shock signal over detection
+    % interval (see 'nu' on p.265 of Robertson et al. 1998)
+    var_wp = sigma_wp.^2 ./ d;
+
+    % Process noise covariance matrices for each possible
+    % input disturbance
+    Q = construct_Q(Q0, Bw, var_wp, u_meas);
 
     % Number of switching models
     nj = numel(Q);
@@ -68,11 +80,11 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     % Probabilities of no-shock, shock
     p_gamma = [1-epsilon epsilon]';
 
-    if n_dist > 1
+    if nw > 1
 
         % Possible combinations of each disturbance input:
         % Assume only one may occur in the same sample period
-        Z = [zeros(1, n_dist); eye(n_dist)];
+        Z = [zeros(1, nw); eye(nw)];
  
         % Modified indicator value probabilities
         p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
@@ -93,26 +105,21 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 
     % Initial index to sequences in main filter group
     % and in holding group
-    f_hold = 1:n_dist*n_min;
+    f_hold = 1:nw*n_min;
     f_main = f_hold(end)+1:n_filt;
-
-    % Input matrices for observer models
-    B_obs = B(:, u_meas);
-    D_obs = D(:, u_meas);
 
     % System model doesn't change
     A = repmat({A}, 1, nj);
-    B = repmat({B_obs}, 1, nj);
+    Bu = repmat({Bu}, 1, nj);
     C = repmat({C}, 1, nj);
-    D = repmat({D_obs}, 1, nj);
+    Du = repmat({Du}, 1, nj);
     R = repmat({R}, 1, nj);
 
     % Initial covariance matrix is the same for all filters
     P0_init = repmat({P0}, 1, n_filt);
 
     % Create MKF observer struct
-    d = 1;  % TODO: Make this a variable parameter
-    obs = mkf_filter(A,B,C,D,Ts,P0_init,Q,R,seq,T,d,label,x0);
+    obs = mkf_observer(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,label,x0);
 
     % Add additional variables used by AFMM observer
     obs.u_meas = u_meas;
@@ -130,8 +137,8 @@ function obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 end
 
 
-function Q = construct_Q(Q0, B, sigma_wp, u_meas)
-% Q = construct_Q(Q0, B, sigma_wp, u_meas) 
+function Q = construct_Q(Q0, Bw, var_wp, u_meas)
+% Q = construct_Q(Q0, B, var_wp, u_meas) 
 % returns a cell array of different process noise 
 % covariance matrices Qj for each filter model j = 
 % 1:nj for the tracking of infrequently-occurring
@@ -141,56 +148,54 @@ function Q = construct_Q(Q0, B, sigma_wp, u_meas)
 %   Q0 : nxn matrix containing variances for measured
 %        states on the diagonal (all other elements 
 %        are ignored).
-%   B : system input matrix (n x nu)
-%   sigma_wp : standard deviation of shock disturbances.
+%   Bw : system input matrix for the random shock signals
+%       (n x nw).
+%   var_wp : variances of shock disturbances over 
+%       detection interval.
 %   u_meas : binary vector indicating which inputs are
 %        measured.
 %
 
     % Number of states
-    n = size(B, 1);
+    n = size(Bw, 1);
 
     % Check size of initial process covariance matrix
     assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
-    % Number of inputs
-    nu = size(B, 2);
-    assert(isequal(size(u_meas), [nu 1]))
-
     % Number of input disturbances
-    n_dist = sum(~u_meas);
+    nw = sum(~u_meas);
+    % Check size of disturbance input matrix
+    assert(isequal(size(Bw), [n nw]))
 
     % TODO: This only works for disturbances with 2
     % states (i.e. shock/no shock). Could be extended
     % to other cases (e.g. no shock, small shock, big
     % shock)
-    assert(size(sigma_wp, 2) == 2)
+    assert(size(var_wp, 2) == 2)
 
-    % Number of switching models
-    % Assume only one shock at a time possible
-    nj = 1 + n_dist;
+    % Number of switching models required. Assume only 
+    % one shock per detection period is possible.
+    nj = 1 + nw;
 
-    % Get noise variances provided for states
-    % corresponding to measured inputs.
-    var_x = diag(Q0);
+    % Array of variances of each shock combination
+    var_x = repmat(diag(Q0), 1, nj);
 
-    % Set noise variances corresponding to input
-    % disturbances to default (no shock) values
+    % Add noise variances for model 1 assuming no shocks
+    % occurred
+    var_x(:, 1) = var_x(:, 1) + Bw * var_wp(:, 1);
+
+    % Add variances for models 2 to nj to reflect one
+    % of each shocks occuring.
     idx = find(~u_meas);
-    for i = 1:n_dist
-        var_x(idx(i)) = var_x(idx(i)) * ...
-            (B(idx(i), idx(i)) * sigma_wp(i,1)).^2;
-    end
-
-    % Modify sequences 2:nj for each possible shock
-    var_x = repmat(var_x, 1, nj);
-    for i = 1:n_dist
-        var_x(idx(i), i+1) = (B(idx(i), idx(i)) * sigma_wp(i,2)).^2;
+    for i = 1:nw
+        var_i = var_wp(:, 1);  % no shock
+        var_i(i) = var_wp(i, 2);  % shock
+        var_x(:, i+1) = var_x(:, i+1) + Bw * var_i;
     end
 
     Q = cell(1, nj);
     for j = 1:nj
-        Q{j} = diag(var_x(:,j));
+        Q{j} = diag(var_x(:, j));
     end
 
 end
