@@ -67,12 +67,12 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     seq = combinations_lte(f*nw, m);
 
     % Probability of shock over a detection interval
-    % (Detection interval is d sample periods).
-    alpha = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d);
+    % (Detection interval is d sample periods in length).
+    alpha = (1 - (1 - epsilon).^d);
 
     % Probabilities of no-shock / shock over detection interval
     % (this is named delta in Robertson et al. 1998)
-    p_gamma = [ones(size(alpha'))-alpha'; alpha'];
+    p_gamma = [1-alpha'; alpha'];
 
     if nw == 1
 

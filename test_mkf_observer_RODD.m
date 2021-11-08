@@ -84,7 +84,6 @@ assert(isequal(MKF2.ykp1_est, zeros(ny,1)))
 assert(isequal(round(MKF2.alpha, 4), MKF2.epsilon))
 assert(isequal(round(MKF2.p_gamma, 4), [1-MKF2.epsilon; MKF2.epsilon]))
 
-
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
 MKF_testx0 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
@@ -97,29 +96,31 @@ nT = 100;
 t = Ts*(0:nT)';
 
 % Choose time and amplitude of input disturbance
-t_shock = 10;
+t_shock = 9.5;
 du0 = 1;
+% When you make the shock larger the MKF observers
+% do better
+%du0 = 2;
 
-% Inputs
+% Measured input
 %U = (idinput(size(t)) + 1)/2;
 U = zeros(size(t));
 U(t >= 1) = -1;
-alpha = zeros(size(t));
-alpha(t == 9.5) = 1;  % this is used by the SKF observer
-%Wp = 1*alpha;
-Wp = zeros(size(t));  % Set RODD disturbance to 0 for this test
-U_sim = [U Wp];
 
-% Apply the input disturbance
-Wp = zeros(size(U_sim));
-Wp(t >= t_shock, 1) = du0;
+% Disturbance input
+alpha = zeros(nT+1, 1);
+alpha(t == t_shock) = 1;  % this is used by the SKF observer
+Wp = du0 .* alpha;
+
+U_sim = [U Wp];
 
 % Custom MKF test observer
 
 % Devise a custom multi-model filter with a shock indicator 
 % sequence that perfectly reflects the shock occurence in
-% this test simulation (t = t_shock)
-% Multiple model filter 1
+% this test simulation (t == t_shock)
+
+% Multiple model filter - two sequences, one empty, one correct
 A2 = repmat({A}, 1, 2);
 Bu2 = repmat({Bu}, 1, 2);
 C2 = repmat({C}, 1, 2);
@@ -131,14 +132,15 @@ Q2 = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
       diag([Q0(1,1) sigma_wp(1,2)^2])};
 R2 = {sigma_M^2, sigma_M^2};
 seq = {zeros(1, nT+1); zeros(1, nT+1)};
-seq{2}(t == 9.5) = 1;
+seq{2}(t == t_shock) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
 MKF3 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
 
+% Multiple model filter - one sequence with correct shock
 seq = {zeros(1, nT+1)};
-seq{1}(t == 9.5) = 1;
+seq{1}(t == t_shock) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
@@ -147,6 +149,7 @@ MKF4 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
 
 % Choose observers to test
 observers = {KF2, KF3, SKF, MKF1, MKF2, MKF3, MKF4};
+
 
 % Note: KF1 is too slow to pass static error test here
 
@@ -158,7 +161,7 @@ xk = zeros(n,1);
 for i=1:nT+1
 
     % Inputs
-    uk = U_sim(i,:)' + Wp(i,:)';
+    uk = U_sim(i,:)';
 
     % Compute y(k)
     yk = C*xk + D*uk;
@@ -173,7 +176,7 @@ for i=1:nT+1
 end
 
 % Check simulation output is correct
-[Y2, t, X2] = lsim(Gpss,U_sim + Wp,t);
+[Y2, t, X2] = lsim(Gpss, U_sim, t);
 assert(isequal(X, X2))
 assert(isequal(Y, Y2))
 
@@ -186,9 +189,9 @@ Y_m = Y + sigma_MP'.*randn(size(Y));
 
 % Measured inputs (not including disturbances)
 U_m = U;
+
 n_obs = numel(observers);
 MSE = containers.Map();
-
 for i = 1:n_obs
 
     obs = observers{i};
@@ -211,115 +214,101 @@ for i = 1:n_obs
     Y_est = sim_results.Y_est;
     MSE(obs.label) = mean((Y_est - Y).^2);
     %fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
-    
+
     % Save updated observer
     observers{i} = obs;
 
 end
 
-MSE_test_values = containers.Map(...
-    {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  'SKF'}, ...
-    [0.000934 0.003524 0.004914 0.005016 0.002709 0.000929 0.000929]' ...
-);
-
-% TODO: Verify the current estimates:
-%   {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  'SKF'}, ...
-%   [0.000934 0.003524 0.009457 0.005016 0.002709 0.000929 0.000929]
-% Note: Only MKF1 has changed it looks like.
-
-
-% for label = MSE.keys
-%    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
-% end
-
 
 % Display results of last simulation
 
-% X_est = sim_results.X_est;
-% E_obs = sim_results.E_obs;
-% K_obs = sim_results.K_obs;
-% trP_obs = sim_results.trP_obs;
-% 
-% table(t,alpha,U,Du,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
-% 
-% % Display gains and trace of covariance matrix
-% table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
-%     'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
-% 
-% % Show table of mean-squared errors
-% table(MSE.keys', cell2mat(MSE.values'), ...
-%     'VariableNames', {'Observer', 'MSE'})
-% 
-% 
-% % Plot of inputs and outputs
-% 
-% set(groot,'defaultAxesTickLabelInterpreter','latex');
-% set(groot,'defaulttextinterpreter','latex');
-% set(groot,'defaultLegendInterpreter','latex');
-% 
-% figure(1); clf
-% colors = get(gca,'colororder');
-% ax1 = subplot(4,1,1);
-% stairs(t,Y_m); hold on
-% stairs(t,Y_est,'Linewidth',2);
-% ax1.ColorOrder = colors(1:size(Y_m,2),:);
-% max_min = [min(min([Y_m Y_est])) max(max([Y_m Y_est]))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('$y_m(k)$ and $\hat{y}(k)$')
-% title('Process output measurements and estimates')
-% legend('$y_m(k)$','$\hat{y}(k)$')
-% grid on
-% 
-% ax2 = subplot(4,1,2);
-% stairs(t,X); hold on
-% stairs(t,X_est,'Linewidth',2);
-% ax2.ColorOrder = colors(size(Y,2)+1:size(Y,2)+size(X,2),:);
-% max_min = [min(min([X X_est])) max(max([X X_est]))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('$x_i(k)$ and $\hat{x}_i(k)$')
-% labels = repmat({''}, 1, n*2);
-% for i=1:n
-%     labels{i} = sprintf("$x_{%d}(k)$", i);
-% end
-% for i=1:n
-%     labels{i+n} = sprintf("$%s{x}_{%d}(k)$", '\hat', i);
-% end
-% legend(labels)
-% title('Actual states and estimates')
-% grid on
-% 
-% ax3 = subplot(4,1,3);
-% stairs(t,U,'Linewidth',2); hold on;
-% stairs(t,Wp,'Linewidth',2)
-% stairs(t,Du(:,1),'Linewidth',2)
-% max_min = [min(min([U Wp Du(:,1)])) max(max([U Wp Du(:,1)]))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('$u(k)$, $w_p(k)$ and $d_u(k)$')
-% legend('$u(k)$', '$w_p(k)$', '$d_u(k)$')
-% title('Actual process inputs')
-% grid on
-% 
-% ax4 = subplot(4,1,4);
-% stairs(t,alpha,'Color',colors(end,:),'Linewidth',2)
-% max_min = [min(min(alpha)) max(max(alpha))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('$\gamma(k)$')
-% title('Random shock sequence')
-% grid on
-% 
-% linkaxes([ax1, ax2 ax3 ax4], 'x')
-% 
-% set(gcf,'Position',[100 200 560 600]);
-% 
-% 
+X_est = sim_results.X_est;
+E_obs = sim_results.E_obs;
+K_obs = sim_results.K_obs;
+trP_obs = sim_results.trP_obs;
+
+table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
+
+% Display gains and trace of covariance matrix
+table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
+    'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
+
+% Show table of mean-squared errors
+table(MSE.keys', cell2mat(MSE.values'), ...
+    'VariableNames', {'Observer', 'MSE'})
+
+
+% Plot of inputs and outputs
+
+obs_label = obs.label;
+
+set(groot,'defaultAxesTickLabelInterpreter','latex');
+set(groot,'defaulttextinterpreter','latex');
+set(groot,'defaultLegendInterpreter','latex');
+
+figure(1); clf
+colors = get(gca,'colororder');
+ax1 = subplot(4,1,1);
+stairs(t,Y_m); hold on
+stairs(t,Y_est,'Linewidth',2);
+ax1.ColorOrder = colors(1:size(Y_m,2),:);
+max_min = [min(min([Y_m Y_est])) max(max([Y_m Y_est]))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('$y_m(k)$ and $\hat{y}(k)$')
+title(sprintf('%s - Process output measurements and estimates', obs_label))
+legend('$y_m(k)$','$\hat{y}(k)$')
+grid on
+
+ax2 = subplot(4,1,2);
+stairs(t,X); hold on
+stairs(t,X_est,'Linewidth',2);
+ax2.ColorOrder = colors(size(Y,2)+1:size(Y,2)+size(X,2),:);
+max_min = [min(min([X X_est])) max(max([X X_est]))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('$x_i(k)$ and $\hat{x}_i(k)$')
+labels = repmat({''}, 1, n*2);
+for i=1:n
+    labels{i} = sprintf("$x_{%d}(k)$", i);
+end
+for i=1:n
+    labels{i+n} = sprintf("$%s{x}_{%d}(k)$", '\hat', i);
+end
+legend(labels)
+title('States and state estimates')
+grid on
+
+ax3 = subplot(4,1,3);
+stairs(t,U,'Linewidth',2); hold on;
+stairs(t,Wp,'Linewidth',2)
+max_min = [min(min([U Wp])) max(max([U Wp]))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('$u(k)$ and $w_p(k)$')
+legend('$u(k)$', '$w_p(k)$')
+title('Process inputs')
+grid on
+
+ax4 = subplot(4,1,4);
+stairs(t,alpha,'Color',colors(end,:),'Linewidth',2)
+max_min = [min(min(alpha)) max(max(alpha))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('$\gamma(k)$')
+title('Random shock sequence')
+grid on
+
+linkaxes([ax1, ax2 ax3 ax4], 'x')
+
+set(gcf,'Position',[100 200 560 600]);
+
+
 % % Plot of conditional filter probabilities
 % 
 % switch obs.label
@@ -372,6 +361,31 @@ MSE_test_values = containers.Map(...
 %         title('Filter correction gains (k1)')
 % 
 % end
+
+% Earlier test results (with a shock of amplitude 1)
+% MSE_test_values = containers.Map(...
+%     {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  'SKF'}, ...
+%     [0.000934 0.003524 0.004914 0.005016 0.002709 0.000929 0.000929] ...
+% );
+
+% TODO: Verify the current estimates somehow:
+MSE_test_values = containers.Map(...
+  {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  'SKF'}, ...
+  [0.000934 0.003524 0.009456 0.005016 0.002709 0.000929 0.000929] ...
+);
+% Recent changes: 
+%  - f, m, d parameters for MK1 changed.
+%  - Shock probability and variance modified to reflect detection
+%    intervals.
+% Note: performance of MKF3 increases if shock amplitude is increased.
+
+
+for label = MSE.keys
+   assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
+end
+
+
+return
 
 
 %% Test initialization of MKF observers on 2x2 system
@@ -466,6 +480,13 @@ assert(MKF1.beta == sum(MKF1.p_seq))
 assert(MKF1.f == size(MKF1.seq{1}, 2))
 assert(isequal(size(MKF1.xkp1_est), [n 1]))
 assert(isequal(size(MKF1.ykp1_est), [ny 1]))
+assert(sum(MKF1.p_gamma) == 1)
+alpha = (1 - (1 - epsilon).^d);  % prob. over detection interval 
+p_gamma = [1-alpha'; alpha'];
+Z = [0 0; 0 1; 1 0];  % combinations
+p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
+p_gamma = p_gamma ./ sum(p_gamma);  % normalized
+assert(isequal(round(p_gamma, 6), [0.960977; 0.019512; 0.019512]))
 assert(isequal(round(MKF1.p_gamma, 6), [0.960977; 0.019512; 0.019512]))
 
 % Tests for MKF2
@@ -502,12 +523,116 @@ assert(MKF2.beta == sum(MKF2.p_seq))
 assert(MKF2.f == size(MKF2.seq{1}, 2))
 assert(isequal(size(MKF2.xkp1_est), [n 1]))
 assert(isequal(size(MKF2.ykp1_est), [ny 1]))
+assert(sum(MKF2.p_gamma) == 1)
+alpha = (1 - (1 - epsilon).^d);  % prob. over detection interval 
+p_gamma = [1-alpha'; alpha'];
+Z = [0 0; 0 1; 1 0; 1 1];  % combinations
+p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
+p_gamma = p_gamma ./ sum(p_gamma);  % normalized
+assert(isequal(round(p_gamma, 6), ...
+    [0.960596; 0.019504; 0.019504; 0.000396]))
 assert(isequal(round(MKF2.p_gamma, 6), ...
     [0.960596; 0.019504; 0.019504; 0.000396]))
 
-% TODO: Check above values for p_gamma
+% Check optional definition with an initial state estimate works
+x0 = [0.1; 0.5; -0.2; -0.4];
+MKF_testx0 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,label,x0);
+assert(isequal(MKF_testx0.xkp1_est, x0))
+assert(isequal(MKF_testx0.ykp1_est, C * x0))
 
-% TODO: What about a simulation test?
+
+% Simulation settings
+nT = 100;
+t = Ts*(0:nT)';
+
+% Choose time and amplitude of input disturbances
+t_shock = [8 10];
+du0 = [1 -1.5];
+n_dist = size(t_shock, 2);
+
+% Inputs
+%U = (idinput(size(t)) + 1)/2;
+U = zeros(nT+1, nu);
+U(t >= 1) = [-1 0];
+
+% This is used by the SKF observer
+alpha = zeros(size(t), n_dist);
+alpha(t == t_shock(1)-0.5, 1) = du0(1);
+alpha(t == t_shock(2)-0.5, 2) = du0(2);
+Wp = du0 .* alpha;
+U_sim = [U Wp];
+
+% Apply the input disturbance
+Wp = zeros(size(U_sim));
+Wp(t >= t_shock, 1) = du0;
+
+% Custom MKF test observer
+
+% Devise a custom multi-model filter with a shock indicator 
+% sequence that perfectly reflects the shock occurence in
+% this test simulation (t = t_shock)
+% Multiple model filter 1
+A2 = repmat({A}, 1, 2);
+Bu2 = repmat({Bu}, 1, 2);
+C2 = repmat({C}, 1, 2);
+Du2 = repmat({Du}, 1, 2);
+P0 = 1000*eye(n);
+Q0 = diag([Q1 1]);
+P0_init = repmat({P0}, 1, 2);
+Q2 = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
+      diag([Q0(1,1) sigma_wp(1,2)^2])};
+R2 = {sigma_M^2, sigma_M^2};
+seq = {zeros(1, nT+1); zeros(1, nT+1)};
+seq{2}(t == 9.5) = 1;
+p_gamma = [1-epsilon epsilon]';
+T = repmat(p_gamma', 2, 1);
+d = 1;
+MKF3 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
+
+seq = {zeros(1, nT+1)};
+seq{1}(t == 9.5) = 1;
+p_gamma = [1-epsilon epsilon]';
+T = repmat(p_gamma', 2, 1);
+d = 1;
+MKF4 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
+
+
+% Choose observers to test
+observers = {KF2, KF3, SKF, MKF1, MKF2, MKF3, MKF4};
+
+% Note: KF1 is too slow to pass static error test here
+
+% Simulate system
+X = zeros(nT+1,n);
+Y = zeros(nT+1,ny);
+xk = zeros(n,1);
+
+for i=1:nT+1
+
+    % Inputs
+    uk = U_sim(i,:)';
+
+    % Compute y(k)
+    yk = C*xk + D*uk;
+
+    % Store results
+    X(i, :) = xk';
+    Y(i, :) = yk';
+    
+    % Compute x(k+1)
+    xk = A*xk + B*uk;
+
+end
+
+% Check simulation output is correct
+[Y2, t, X2] = lsim(Gpss,U_sim,t);
+assert(isequal(X, X2))
+assert(isequal(Y, Y2))
+
+% Choose measurement noise for plant
+sigma_MP = 0;  % Set to zero for testing
+Y_m = Y + sigma_MP'.*randn(size(Y));
 
 
 function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...

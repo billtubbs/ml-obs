@@ -1,4 +1,4 @@
-%% SISO system model for testing observers
+%% System model definition
 %
 % Discrete transfer function polynomial models for a
 % first-order process with a RODD step disturbance at
@@ -75,6 +75,10 @@ ny = size(C, 1);
 u_meas = [true; false];
 y_meas = true;
 
+% Default initial condition
+x0 = zeros(n, 1);
+p0 = 0;
+
 
 %% Parameters for random inputs
 
@@ -91,3 +95,6 @@ sigma_M = 0.1;
 % To check observer with no noise disturbances
 %sigma_W = [0; 0];
 %sigma_M = 0.001;
+
+% Initial state of disturbance process
+p0 = 0;

@@ -172,13 +172,13 @@ assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 % seq{2}(t == 9.5) = 1;
 % p_gamma = [1-epsilon epsilon]';
 % T = repmat(p_gamma', 2, 1);
-% MKF3 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF3');
+% MKF3 = mkf_observer(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF3');
 % 
 % seq = {zeros(1, nT+1)};
 % seq{1}(t == 9.5) = 1;
 % p_gamma = [1-epsilon epsilon]';
 % T = repmat(p_gamma', 2, 1);
-% MKF4 = mkf_filter(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF4');
+% MKF4 = mkf_observer(A2,B2,C2,D2,Ts,P0_init,Q2,R2,seq,T,'MKF4');
 % 
 % % Choose observers to test
 % observers = {KF2, KF3, SKF, MEKF1, MKF2, MKF3, MKF4};
@@ -445,7 +445,7 @@ assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 % f = 3;  % 5 fusion horizon
 % m = 1;  % 1 maximum number of shocks
 % d = 2;  % 10 spacing parameter
-% MEKF1 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% MEKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,label);
 % 
 % % Multiple model filter 2
@@ -456,7 +456,7 @@ assert(isequal(MEKF1_testx0.ykp1_est, zeros(ny, 1)))
 % f = 5;  % 10 fusion horizon
 % m = 2;  % 2 maximum number of shocks
 % d = 2;  % 5 spacing parameter
-% MKF2 = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% MKF2 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,label);
 % 
 % % Tests for MKF1
