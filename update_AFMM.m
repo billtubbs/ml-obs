@@ -77,11 +77,11 @@ function obs = update_AFMM(obs, uk, yk)
     obs.f_main(f_min) = obs.f_hold(f_old);
     obs.f_hold(f_old) = f_replace;
 
-    % Shuffle observers in holding group
+    % Shift observers in holding group
     obs.f_hold = circshift(obs.f_hold, n_dist);
 
-    % Split most probable filter and add new 
-    % filter(s) to holding group
+    % Split most probable filter and add new filter(s)
+    % to holding group
     for i = 1:n_dist
         label = obs.filters{f_replace(i)}.label;
         obs.filters{f_replace(i)} = obs.filters{f_max};

@@ -24,14 +24,14 @@ assert(MKF1.epsilon == epsilon)
 assert(isequal(MKF1.sigma_wp, sigma_wp))
 assert(MKF1.n_filt == 7)
 assert(isequaln(MKF1.i, nan(1, 2)))
-assert(MKF1.n == n)
-assert(MKF1.nu == nu)
-assert(MKF1.ny == ny)
+assert(MKF1.n == 2)
+assert(MKF1.nu == 1)
+assert(MKF1.ny == 1)
 assert(MKF1.nj == 2)
 assert(isequal(MKF1.A{1}, A) && isequal(MKF1.A{2}, A))
-assert(isequal(MKF1.B{1}, B) && isequal(MKF1.B{2}, B))
+assert(isequal(MKF1.B{1}, B_obs) && isequal(MKF1.B{2}, B_obs))
 assert(isequal(MKF1.C{1}, C) && isequal(MKF1.C{2}, C))
-assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
+assert(isequal(MKF1.D{1}, D_obs) && isequal(MKF1.D{2}, D_obs))
 assert(MKF1.Ts == Ts)
 assert(isequaln(MKF1.u_meas, u_meas))
 assert(isequal(size(MKF1.Q), [1 2]))
@@ -53,14 +53,14 @@ assert(MKF2.epsilon == epsilon)
 assert(isequal(MKF2.sigma_wp, sigma_wp))
 assert(MKF2.n_filt == 56)
 assert(isequaln(MKF1.i, nan(1, 2)))
-assert(MKF2.n == n)
-assert(MKF2.nu == nu)
-assert(MKF2.ny == ny)
+assert(MKF2.n == 2)
+assert(MKF2.nu == 1)
+assert(MKF2.ny == 1)
 assert(MKF2.nj == 2)
 assert(isequal(MKF2.A{1}, A) && isequal(MKF2.A{2}, A))
-assert(isequal(MKF2.B{1}, B) && isequal(MKF2.B{2}, B))
+assert(isequal(MKF2.B{1}, B_obs) && isequal(MKF2.B{2}, B_obs))
 assert(isequal(MKF2.C{1}, C) && isequal(MKF2.C{2}, C))
-assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
+assert(isequal(MKF2.D{1}, D_obs) && isequal(MKF2.D{2}, D_obs))
 assert(MKF2.Ts == Ts)
 assert(isequaln(MKF2.u_meas, u_meas))
 assert(isequal(size(MKF2.Q), [1 2]))
@@ -115,9 +115,9 @@ Du(t >= t_shock, 1) = du0;
 % this test simulation (t = t_shock)
 % Multiple model filter 1
 A2 = repmat({A}, 1, 2);
-B2 = repmat({B}, 1, 2);
+B2 = repmat({B_obs}, 1, 2);
 C2 = repmat({C}, 1, 2);
-D2 = repmat({D}, 1, 2);
+D2 = repmat({D_obs}, 1, 2);
 P0 = 1000*eye(n);
 Q0 = diag([Q1 1]);
 P0_init = repmat({P0}, 1, 2);
@@ -178,9 +178,8 @@ Y_m = Y + sigma_MP'.*randn(size(Y));
 
 % Simulate observers
 
-% Set disturbance inputs to zero for observer
-% simulation since they are not measured.
-U_obs = [U zeros(nT+1,1)];
+% Measured inputs (not including disturbances)
+U_m = U;
 
 n_obs = numel(observers);
 MSE = containers.Map();
@@ -188,7 +187,7 @@ MSE = containers.Map();
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_obs,Y_m,obs,alpha);
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs,alpha);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -430,14 +429,14 @@ assert(isequal(MKF1.epsilon, epsilon))
 assert(isequal(MKF1.sigma_wp, sigma_wp))
 assert(MKF1.n_filt == 7)
 assert(isequaln(MKF1.i, nan(1, 2)))
-assert(MKF1.n == n)
-assert(MKF1.nu == nu)
-assert(MKF1.ny == ny)
+assert(MKF1.n == 4)
+assert(MKF1.nu == 2)
+assert(MKF1.ny == 2)
 assert(MKF1.nj == 3)
 assert(isequal(MKF1.A{1}, A) && isequal(MKF1.A{2}, A))
-assert(isequal(MKF1.B{1}, B) && isequal(MKF1.B{2}, B))
+assert(isequal(MKF1.B{1}, B(:,u_meas)) && isequal(MKF1.B{2}, B(:,u_meas)))
 assert(isequal(MKF1.C{1}, C) && isequal(MKF1.C{2}, C))
-assert(isequal(MKF1.D{1}, D) && isequal(MKF1.D{2}, D))
+assert(isequal(MKF1.D{1}, D(:,u_meas)) && isequal(MKF1.D{2}, D(:,u_meas)))
 assert(MKF1.Ts == Ts)
 assert(isequaln(MKF1.u_meas, u_meas))
 assert(isequal(size(MKF1.Q), [1 3]))
@@ -463,14 +462,14 @@ assert(isequal(MKF2.epsilon, epsilon))
 assert(isequal(MKF2.sigma_wp, sigma_wp))
 assert(MKF2.n_filt == 56)
 assert(isequaln(MKF2.i, nan(1, 2)))
-assert(MKF2.n == n)
-assert(MKF2.nu == nu)
-assert(MKF2.ny == ny)
+assert(MKF2.n == 4)
+assert(MKF2.nu == 2)
+assert(MKF2.ny == 2)
 assert(MKF2.nj == 4)
 assert(isequal(MKF2.A{1}, A) && isequal(MKF2.A{2}, A))
-assert(isequal(MKF2.B{1}, B) && isequal(MKF2.B{2}, B))
+assert(isequal(MKF2.B{1}, B(:,u_meas)) && isequal(MKF2.B{2}, B(:,u_meas)))
 assert(isequal(MKF2.C{1}, C) && isequal(MKF2.C{2}, C))
-assert(isequal(MKF2.D{1}, D) && isequal(MKF2.D{2}, D))
+assert(isequal(MKF2.D{1}, D(:,u_meas)) && isequal(MKF2.D{2}, D(:,u_meas)))
 assert(MKF2.Ts == Ts)
 assert(isequaln(MKF2.u_meas, u_meas))
 assert(isequal(size(MKF2.Q), [1 4]))
@@ -500,7 +499,7 @@ assert(isequal(round(MKF2.p_gamma, 6), ...
 % TODO: What about a simulation test?
 
 
-function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
+function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     obs,alpha)
 
     k = (0:nT)';
@@ -527,20 +526,20 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
         %fprintf("t = %f\n", t(i));
 
         % Process measurements
-        uk = U(i,:)';
-        yk = Y_m(i,:)';
+        uk_m = U_m(i,:)';
+        yk_m = Y_m(i,:)';
 
         % Record observer estimates and output errors
         X_est(i, :) = obs.xkp1_est';
         Y_est(i, :) = obs.ykp1_est';
-        E_obs(i, :) = yk' - obs.ykp1_est';
+        E_obs(i, :) = yk_m' - obs.ykp1_est';
 
         % Kalman update equations
         % Update observer gains and covariance matrix
         switch obs.label
 
             case {'KF1', 'KF2', 'KF3'}
-                obs = update_KF(obs, uk, yk);
+                obs = update_KF(obs, uk_m, yk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K';
@@ -559,14 +558,14 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
                 obs.Q = diag(x_var);
 
                 % Update observer gains and covariance matrix
-                obs = update_KF(obs, uk, yk);
+                obs = update_KF(obs, uk_m, yk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K';
                 trP_obs{i, 1} = trace(obs.P);
 
             case {'MKF1', 'MKF2', 'MKF3', 'MKF4'}
-                obs = update_MKF(obs, uk, yk);
+                obs = update_MKF(obs, uk_m, yk_m);
 
                 % Record filter gains and covariance matrices
                 for j=1:obs.n_filt

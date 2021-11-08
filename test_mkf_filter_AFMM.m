@@ -6,14 +6,11 @@ plot_dir = 'plots';
 seed = 0;
 rng(seed)
 
-%% Test observers for SISO system
+
+%% Test initialization with rodin_step system
 
 % Load system and disturbance model from file
 sys_rodin_step
-
-% Set noise variances for observer design
-sigma_M = 0.1;
-sigma_W = [0; 0];
 
 % Load observers from file
 obs_rodin_step
@@ -26,14 +23,14 @@ assert(AFMM1.n_min == 2)
 assert(isequal(AFMM1.f_hold, 1:2))
 assert(isequal(AFMM1.f_main, 3:5))
 assert(isequaln(AFMM1.i, nan(1, 2)))
-assert(AFMM1.n == n)
-assert(AFMM1.nu == nu)
-assert(AFMM1.ny == ny)
+assert(AFMM1.n == 2)
+assert(AFMM1.nu == 1)
+assert(AFMM1.ny == 1)
 assert(AFMM1.nj == 2)
 assert(isequal(AFMM1.A{1}, A) && isequal(AFMM1.A{2}, A))
-assert(isequal(AFMM1.B{1}, B) && isequal(AFMM1.B{2}, B))
+assert(isequal(AFMM1.B{1}, B_obs) && isequal(AFMM1.B{2}, B_obs))
 assert(isequal(AFMM1.C{1}, C) && isequal(AFMM1.C{2}, C))
-assert(isequal(AFMM1.D{1}, D) && isequal(AFMM1.D{2}, D))
+assert(isequal(AFMM1.D{1}, D_obs) && isequal(AFMM1.D{2}, D_obs))
 assert(AFMM1.Ts == Ts)
 assert(isequaln(AFMM1.u_meas, u_meas))
 assert(isequal(AFMM1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
@@ -54,14 +51,14 @@ assert(AFMM2.n_min == 3)
 assert(isequal(AFMM2.f_hold, 1:3))
 assert(isequal(AFMM2.f_main, 4:10))
 assert(isequaln(AFMM2.i, nan(1, 2)))
-assert(AFMM2.n == n)
-assert(AFMM2.nu == nu)
-assert(AFMM2.ny == ny)
+assert(AFMM2.n == 2)
+assert(AFMM2.nu == 1)
+assert(AFMM2.ny == 1)
 assert(AFMM2.nj == 2)
 assert(isequal(AFMM2.A{1}, A) && isequal(AFMM2.A{2}, A))
-assert(isequal(AFMM2.B{1}, B) && isequal(AFMM2.B{2}, B))
+assert(isequal(AFMM2.B{1}, B_obs) && isequal(AFMM2.B{2}, B_obs))
 assert(isequal(AFMM2.C{1}, C) && isequal(AFMM2.C{2}, C))
-assert(isequal(AFMM2.D{1}, D) && isequal(AFMM2.D{2}, D))
+assert(isequal(AFMM2.D{1}, D_obs) && isequal(AFMM2.D{2}, D_obs))
 assert(AFMM2.Ts == Ts)
 assert(isequaln(AFMM2.u_meas, u_meas))
 assert(isequal(AFMM2.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
@@ -81,6 +78,212 @@ AFMM_testx0 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(AFMM_testx0.xkp1_est, x0))
 assert(isequal(AFMM_testx0.ykp1_est, C * x0))
+
+
+%% Test update_AFMM function
+
+% Load system and disturbance model from file
+sys_rodin_step
+
+% Load observers from file
+obs_rodin_step
+
+% Check steady-state at x0 = [0; 0]
+obs = AFMM1;
+assert(isequal(obs.xkp1_est, [0; 0]))
+assert(isequal(obs.ykp1_est, 0))
+nT = 10;
+U_m = zeros(nT+1, sum(u_meas));
+Y_m = zeros(nT+1, ny);
+for i = 1:(nT+1)
+    uk = U_m(i,:)';
+    yk = Y_m(i,:)';
+    obs = update_AFMM(obs, uk, yk);
+    assert(isequal(obs.xkp1_est, [0; 0]))
+    assert(isequal(obs.ykp1_est, 0))
+end
+
+% Check steady-state at x0 = [1; 0]
+x0 = [1; 0];
+obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label,x0);
+assert(isequal(obs.xkp1_est, x0))
+assert(isequal(obs.ykp1_est, 0.3))
+nT = 10;
+U_m = 0.3*ones(nT+1, 1);
+U = [U_m zeros(nT+1,1)];
+t = Ts*(0:nT)';
+[Y,t,X] = lsim(Gpss,U,t,x0);
+assert(all(Y == Y(1,1)))
+for i = 1:(nT+1)
+    uk = U_m(i,:)';
+    yk = Y(i,:)';
+    obs = update_AFMM(obs, uk, yk);
+    assert(all(abs(obs.xkp1_est - x0) < 1e-6))
+    assert(abs(obs.ykp1_est - 0.3) < 1e-6)
+end
+
+% Check sequence updates
+x0 = [0; 0];
+n_filt = 5;
+f = 8;
+n_min = 2;
+obs = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label,x0);
+assert(isequal(obs.xkp1_est, x0))
+assert(isequal(obs.ykp1_est, 0))
+assert(obs.d == 1)
+nT = 10;
+U_m = zeros(nT+1, sum(u_meas));
+Y_m = zeros(nT+1, ny);
+% Set marker values on each sequence
+for i = 1:n_filt
+    obs.seq{i}(:) = nan;
+    obs.seq{i}(8) = i;
+end
+seq0 = [
+    nan nan nan nan nan nan nan 1
+    nan nan nan nan nan nan nan 2
+    nan nan nan nan nan nan nan 3
+    nan nan nan nan nan nan nan 4
+    nan nan nan nan nan nan nan 5
+];
+assert(isequaln(obs.i, nan(1, 2)))
+assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(cell2mat(obs.seq), seq0))
+assert(isequal(obs.f_hold, [1 2]))
+assert(isequal(obs.f_main, [3 4 5]))
+%disp(obs.i)  % use for debugging
+%disp(debug_array(obs))
+
+% Update at k = 0
+i = 1;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs = update_AFMM(obs, uk, yk);
+seq = [
+    0 nan nan nan nan nan nan 1
+    0 nan nan nan nan nan nan 2
+    1 nan nan nan nan nan nan 1
+    0 nan nan nan nan nan nan 4
+    0 nan nan nan nan nan nan 5
+];
+assert(isequaln(obs.i, [1 1]))
+assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequal(obs.f_hold, [3 1]))
+assert(isequal(obs.f_main, [2 4 5]))
+%disp(obs.i)
+%disp(debug_array(obs))
+
+% Update at k = 1
+i = 2;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs = update_AFMM(obs, uk, yk);
+seq = [
+    0 0 nan nan nan nan nan 1
+    0 1 nan nan nan nan nan 1
+    1 0 nan nan nan nan nan 1
+    0 0 nan nan nan nan nan 4
+    0 0 nan nan nan nan nan 5
+];
+assert(isequaln(obs.i, [2 1]))
+assert(isequaln(obs.i_next, [3 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequal(obs.f_hold, [2 3]))
+assert(isequal(obs.f_main, [1 4 5]))
+%disp(obs.i)
+%disp(debug_array(obs))
+
+% Update at k = 2
+i = 3;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs = update_AFMM(obs, uk, yk);
+seq = [
+    0 0 1 nan nan nan nan 1
+    0 1 0 nan nan nan nan 1
+    1 0 0 nan nan nan nan 1
+    0 0 0 nan nan nan nan 4
+    0 0 0 nan nan nan nan 5
+];
+assert(isequaln(obs.i, [3 1]))
+assert(isequaln(obs.i_next, [4 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequal(obs.f_hold, [1 2]))
+assert(isequal(obs.f_main, [3 4 5]))
+%disp(obs.i)
+%disp(debug_array(obs))
+
+% Update at k = 3
+i = 4;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs = update_AFMM(obs, uk, yk);
+seq = [
+    0 0 1 0 nan nan nan 1
+    0 1 0 0 nan nan nan 1
+    0 0 0 1 nan nan nan 4
+    0 0 0 0 nan nan nan 4
+    0 0 0 0 nan nan nan 5
+];
+assert(isequaln(obs.i, [4 1]))
+assert(isequaln(obs.i_next, [5 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequal(obs.f_hold, [3 1]))
+assert(isequal(obs.f_main, [2 4 5]))
+%disp(obs.i)
+%disp(debug_array(obs))
+
+% Update at k = 4
+i = 5;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs = update_AFMM(obs, uk, yk);
+seq = [
+    0 0 1 0 0 nan nan 1
+    0 0 0 0 1 nan nan 4
+    0 0 0 1 0 nan nan 4
+    0 0 0 0 0 nan nan 4
+    0 0 0 0 0 nan nan 5
+];
+assert(isequaln(obs.i, [5 1]))
+assert(isequaln(obs.i_next, [6 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequal(obs.f_hold, [2 3]))
+assert(isequal(obs.f_main, [1 4 5]))
+%disp(obs.i)
+%disp(debug_array(obs))
+
+% Update at k = 5
+i = 6;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs = update_AFMM(obs, uk, yk);
+seq = [
+    0 0 0 0 0 1 nan 4
+    0 0 0 0 1 0 nan 4
+    0 0 0 1 0 0 nan 4
+    0 0 0 0 0 0 nan 4
+    0 0 0 0 0 0 nan 5
+];
+assert(isequaln(obs.i, [6 1]))
+assert(isequaln(obs.i_next, [7 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequal(obs.f_hold, [1 2]))
+assert(isequal(obs.f_main, [3 4 5]))
+%disp(obs.i)
+%disp(debug_array(obs))
+
+
+%% Run full simulation
+
+% Load system and disturbance model from file
+sys_rodin_step
+
+% Load observers from file
+obs_rodin_step
 
 % Simulation settings
 nT = 100;
@@ -111,9 +314,9 @@ Du(t >= t_shock, 1) = du0;
 % this test simulation (t = t_shock)
 % Multiple model filter 1
 A2 = repmat({A}, 1, 2);
-B2 = repmat({B}, 1, 2);
+B2 = repmat({B_obs}, 1, 2);
 C2 = repmat({C}, 1, 2);
-D2 = repmat({D}, 1, 2);
+D2 = repmat({D_obs}, 1, 2);
 P0 = 1000*eye(n);
 Q0 = diag([Q1 1]);
 P0_init = repmat({P0}, 1, 2);
@@ -173,9 +376,8 @@ Y_m = Y + sigma_MP'.*randn(size(Y));
 
 % Simulate observers
 
-% Set disturbance inputs to zero for observer
-% simulation since they are not measured.
-U_obs = [U zeros(nT+1,1)];
+% Measured inputs (not including disturbances)
+U_m = U;
 
 n_obs = numel(observers);
 MSE = containers.Map();
@@ -183,7 +385,7 @@ MSE = containers.Map();
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_obs,Y_m,obs,alpha);
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs,alpha);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -386,22 +588,22 @@ end
 % end
 
 
-%% Test initialization of AFMM observers on 2x2 system
+%% Test initialization on 2x2 system
 
 % Sample time
 Ts = 1;
 
 % Discrete time state space model
-A = [ 0.8890       0  1 -1;
-           0  0.9394  1  1;
-           0       0  1  0;
-           0       0  0  1];
+A = [ 0.8890   0  1 -1;
+       0  0.9394  1  1;
+       0   0  1  0;
+       0   0  0  1];
 B = [ 1 -1  0  0;
-      1  1  0  0;
-      0  0  1  0;
-      0  0  0  1];
-C = [-0.07769  0       0  0;
-            0  0.09088 0  0];
+  1  1  0  0;
+  0  0  1  0;
+  0  0  0  1];
+C = [-0.07769  0   0  0;
+        0  0.09088 0  0];
 D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 
@@ -443,7 +645,7 @@ AFMM2 = mkf_filter_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % TODO: Do a simulation test of the 2x2 observers.
 
 
-function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
+function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     obs,alpha)
 
     k = (0:nT)';
@@ -475,20 +677,20 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
         %fprintf("t = %f\n", t(i));
 
         % Process measurements
-        uk = U(i,:)';
-        yk = Y_m(i,:)';
+        uk_m = U_m(i,:)';
+        yk_m = Y_m(i,:)';
 
         % Record observer estimates and output errors
         X_est(i, :) = obs.xkp1_est';
         Y_est(i, :) = obs.ykp1_est';
-        E_obs(i, :) = yk' - obs.ykp1_est';
+        E_obs(i, :) = yk_m' - obs.ykp1_est';
 
         % Kalman update equations
         % Update observer gains and covariance matrix
         switch obs.label
 
             case {'KF1', 'KF2', 'KF3'}
-                obs = update_KF(obs, uk, yk);
+                obs = update_KF(obs, uk_m, yk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K';
@@ -503,18 +705,18 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
                 x_var = diag(obs.Q0);
                 u_meas = [1; 0];
                 x_var(~u_meas) = obs.sigma_wp(sub2ind(size(obs.sigma_wp), ...
-                    1:n_dist, a+1)).^2;
+                1:n_dist, a+1)).^2;
                 obs.Q = diag(x_var);
 
                 % Update observer gains and covariance matrix
-                obs = update_KF(obs, uk, yk);
+                obs = update_KF(obs, uk_m, yk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K';
                 trP_obs{i, 1} = trace(obs.P);
 
             case {'MKF1', 'MKF2', 'MKF3', 'MKF4'}
-                obs = update_MKF(obs, uk, yk);
+                obs = update_MKF(obs, uk_m, yk_m);
 
                 % Record filter gains and covariance matrices
                 for j=1:obs.n_filt
@@ -526,7 +728,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
 
             case {'AFMM1', 'AFMM2'}
-                obs = update_AFMM(obs, uk, yk);
+                obs = update_AFMM(obs, uk_m, yk_m);
 
                 % Record filter gains and covariance matrices
                 for j=1:obs.n_filt
@@ -566,3 +768,15 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U,Y_m, ...
     end
 
 end
+
+
+% function dba = debug_array(obs)
+% % For debugging and testing sequences
+%     hold = zeros(obs.n_filt, 1);
+%     hold(obs.f_hold) = obs.f_hold;
+%     main = zeros(obs.n_filt, 1);
+%     main(obs.f_main) = obs.f_main;
+%     seq = cell2mat(obs.seq);
+%     p_max = (obs.p_seq_g_Yk == max(obs.p_seq_g_Yk));
+%     dba = [table(hold, main) array2table(seq) table(p_max)];
+% end

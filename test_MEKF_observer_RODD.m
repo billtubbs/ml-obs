@@ -5,7 +5,7 @@ seed = 0;
 rng(seed)
 
 
-%% Test observers for SISO system
+%% Test observers on nonlinear system with 5 states
 
 % Specify path to process model files
 addpath('~/process-models/arom3')

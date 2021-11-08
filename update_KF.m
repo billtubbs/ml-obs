@@ -12,7 +12,9 @@ function obs = update_KF(obs, uk, yk)
 %       sample time k.
 %
 
-% TODO: Switch argument order to(obs, yk, uk) for consistency with EKF
+% TODO: Consider switching argument order to (obs, yk, uk) for
+% consistency with MATLAB's correct(obj,y) and predict(obj)
+% functions for extendedKalmanFilter
 
     if ~obs.static_gain
         % Update observer gain and covariance matrix

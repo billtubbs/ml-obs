@@ -143,11 +143,15 @@ function obs = mkf_filter_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     % Tolerance parameter (total probability of defined sequences)
     beta = sum(p_seq);
 
+    % Input matrices for observer models
+    B_obs = B(:, u_meas);
+    D_obs = D(:, u_meas);
+
     % System model doesn't change
     A = repmat({A}, 1, nj);
-    B = repmat({B}, 1, nj);
+    B = repmat({B_obs}, 1, nj);
     C = repmat({C}, 1, nj);
-    D = repmat({D}, 1, nj);
+    D = repmat({D_obs}, 1, nj);
     R = repmat({R}, 1, nj);
 
     % Initial covariance matrix is the same for all filters
