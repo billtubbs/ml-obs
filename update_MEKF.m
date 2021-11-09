@@ -41,25 +41,15 @@ function obs = update_MEKF(obs, yk, varargin)
         % Get y_est(k/k-1) estimated in previous time step
         yk_est = obs.filters{f}.ykp1_est;
 
-        % Model indicator value from previous sample time
-        gamma_km1 = gamma_k(f);
-
-        % Update model indicator value gamma(k) with the
-        % current value from the filter's sequence
-        gamma_k(f) = obs.seq{f}(:, obs.i(1));
-
-        % Model index
-        ind = gamma_k(f) + 1;
-
-        % Compute Pr(gamma(k)) based on Markov transition
-        % probability matrix
-        p_gamma_k(f) = prob_gamma(gamma_k(f), obs.T(gamma_km1+1, :)');
+        % Index of model used in previous sample time
+        ind_km1 = gamma_k(f) + 1;
 
         % Calculate covariance of the output estimation errors
         P = obs.filters{f}.Pkp1;
         % Calculate Jacobian of measurement function linearized at
         % current state estimates.
-        varargin2 = [varargin obs.params{ind}{:}];
+        % TODO: Should the params from past or current timestep be used?
+        varargin2 = [varargin obs.params{ind_km1}{:}];
         H = obs.filters{f}.dhdx(obs.filters{f}.xkp1_est, varargin2{:});
         yk_cov = H*P*H' + obs.filters{f}.R;
 
@@ -73,6 +63,17 @@ function obs = update_MEKF(obs, yk, varargin)
 
         % Calculate normal probability density (multivariate)
         obs.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
+
+        % Update model indicator value gamma(k) with the
+        % current value from the filter's sequence
+        gamma_k(f) = obs.seq{f}(:, obs.i(1));
+
+        % Model index
+        ind = gamma_k(f) + 1;
+
+        % Compute Pr(gamma(k)) based on Markov transition
+        % probability matrix
+        p_gamma_k(f) = prob_gamma(gamma_k(f), obs.T(ind_km1, :)');
 
         % Update filter covariances if at start of a detection
         % interval, TODO: Is this the right time/place to do

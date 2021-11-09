@@ -1,5 +1,5 @@
 function p = prob_gamma(gamma, epsilon)
-% p = prob_gamma(gamma_k, epsilon) returns the probability
+% p = prob_gamma(gamma, epsilon) returns the probability
 % of the integer value or values of gamma given the probabilities
 % in epsilon which are defined as follows:
 %   Pr(gamma=0) = epsilon(1)
