@@ -2,63 +2,6 @@
 
 clear all
 
-%% Test function add_to_group
-
-% DELETE: This function is not needed
-
-assert(isequal(add_to_group([nan], 1), 1))
-assert(isequal(add_to_group([1 nan], 2), [1 2]))
-assert(isequal(add_to_group([nan 2], 3), [3 2]))
-assert(isequal(add_to_group([nan nan], [1 2]), [1 2]))
-assert(isequal(add_to_group([nan nan 3], [1 2]), [1 2 3]))
-assert(isequal(add_to_group([1 2 3], []), [1 2 3]))
-
-error = false;
-try
-    % This should raise the following error:
-    % Index exceeds the number of array elements (0).
-    add_to_group([], 1)
-catch ME
-    assert(strcmp(ME.identifier, "MATLAB:badsubscript"))
-    error = true;
-end
-assert(error)
-
-error = false;
-try
-    % This should raise the following error:
-    % Index exceeds the number of array elements (0).
-    add_to_group([1 nan], [2 3])
-catch ME
-    assert(strcmp(ME.identifier, "MATLAB:badsubscript"))
-    error = true;
-end
-assert(error)
-
-error = false;
-try
-    % This should raise the following error:
-    % Index exceeds the number of array elements (0).
-    add_to_group([1 2], [3 4])
-catch ME
-    assert(strcmp(ME.identifier, "MATLAB:badsubscript"))
-    error = true;
-end
-assert(error)
-
-
-%% Test function free_spaces
-
-% DELETE: This function is not needed
-
-assert(free_spaces(nan) == 1)
-assert(isequal(free_spaces([nan nan nan]), [1 2 3]))
-assert(isequal(free_spaces([1 nan nan]), [2 3]))
-assert(isequal(free_spaces([1 2 nan]), 3))
-assert(isequal(free_spaces([nan 2 nan]), [1 3]))
-assert(isequal(free_spaces([1 2 3]), nan(1, 0)))
-assert(isequal(free_spaces([]), []))
-
 
 %% Test function add_to_group_with_replacement
 

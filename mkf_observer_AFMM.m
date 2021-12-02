@@ -103,7 +103,8 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     n_main = n_filt - n_hold;
     f_hold = nan(1, n_hold);
     f_main = nan(1, n_main);
-    f_unused = 1:n_filt;
+    f_main(1) = 1;  % initialize with one active filter
+    f_unused = [2:n_filt];
 
     % Check there are enough filters in total to accommodate
     % those in the holding group + at least one in main group
@@ -121,6 +122,9 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
 
     % Create MKF observer struct
     obs = mkf_observer(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,label,x0);
+
+    % AFMM is initialized differently
+    obs.p_seq_g_Yk = [1; zeros(obs.n_filt-1, 1)];
 
     % Add additional variables used by AFMM observer
     obs.u_meas = u_meas;

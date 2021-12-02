@@ -6,11 +6,14 @@ plot_dir = 'plots';
 seed = 0;
 rng(seed)
 
-
-%% Test initialization with rodin_step system
-
 % Load system and disturbance model from file
 sys_rodin_step
+
+% Load observers from file
+obs_rodin_step
+
+
+%% Test initialization with rodin_step system
 
 % Observer model without disturbance noise input
 Bu = B(:, u_meas);
@@ -33,8 +36,8 @@ assert(AFMM1.n_min == 2)
 assert(isequal(AFMM1.n_hold, 2))
 assert(isequal(AFMM1.n_main, 3))
 assert(isequaln(AFMM1.f_hold, nan(1, 2)))
-assert(isequaln(AFMM1.f_main, nan(1, 3)))
-assert(isequal(AFMM1.f_unused, 1:AFMM1.n_filt))
+assert(isequaln(AFMM1.f_main, [1 nan(1, 2)]))
+assert(isequal(AFMM1.f_unused, 2:AFMM1.n_filt))
 assert(isequaln(AFMM1.i, nan(1, 2)))
 assert(AFMM1.n == 2)
 assert(AFMM1.nu == 1)
@@ -64,8 +67,8 @@ assert(AFMM2.n_min == 3)
 assert(isequal(AFMM2.n_hold, 3))
 assert(isequal(AFMM2.n_main, 7))
 assert(isequaln(AFMM2.f_hold, nan(1, 3)))
-assert(isequaln(AFMM2.f_main, nan(1, 7)))
-assert(isequal(AFMM2.f_unused, 1:AFMM2.n_filt))
+assert(isequaln(AFMM2.f_main, [1 nan(1, 6)]))
+assert(isequal(AFMM2.f_unused, 2:AFMM2.n_filt))
 assert(isequaln(AFMM2.i, nan(1, 2)))
 assert(AFMM2.n == 2)
 assert(AFMM2.nu == 1)
@@ -100,12 +103,6 @@ assert(isequal(AFMM_testx0.ykp1_est, C * x0))
 
 
 %% Test convergence to steady-state
-
-% Load system and disturbance model from file
-sys_rodin_step
-
-% Load observers from file
-obs_rodin_step
 
 % Check steady-state at x0 = [0; 0]
 obs = AFMM1;
@@ -144,9 +141,6 @@ end
 
 
 %% Test sequence updates
-
-% Load system and disturbance model from file
-sys_rodin_step
 
 nT = 6;
 x0 = [0; 0];
@@ -206,9 +200,9 @@ assert(isequaln(obs.i_next, [1 1]))
 assert(isequaln(cell2mat(obs.seq), seq0))
 assert(isequal(obs.n_hold, 2))
 assert(isequal(obs.n_main, 3))
-assert(isequaln(obs.f_hold, nan(1, 2)))
-assert(isequaln(obs.f_main, nan(1, 3)))
-assert(isequal(obs.f_unused, 1:obs.n_filt))
+assert(isequaln(obs.f_hold, [nan nan]))
+assert(isequaln(obs.f_main, [1 nan nan]))
+assert(isequal(obs.f_unused, 2:obs.n_filt))
 %disp(obs.i)  % use for debugging
 %disp(debug_array(obs))
 
@@ -216,7 +210,7 @@ assert(isequal(obs.f_unused, 1:obs.n_filt))
 assert(isequal(obs.p_gamma_k, [0 0 0 0 0]'))
 assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0]'))
 assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0]'))
-assert(isequal(obs.p_seq_g_Yk, [0.2 0.2 0.2 0.2 0.2]'))
+assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 4)]'))
 
 % Update at k = 0
 i = 1;
@@ -225,24 +219,24 @@ yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
     0 nan nan nan nan nan nan 1
-    0 nan nan nan nan nan nan 2
     1 nan nan nan nan nan nan 1
+    0 nan nan nan nan nan nan 3
     0 nan nan nan nan nan nan 4
     0 nan nan nan nan nan nan 5
 ];
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [3 1]))
-assert(isequal(obs.f_main, [2 4 5]))
+assert(isequaln(obs.f_hold, [2 nan]))
+assert(isequaln(obs.f_main, [1 nan nan]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0420 0.0420 0.0420 0.0420 0.0420]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.1980 0.1980 0.0020 0.1980 0.1980]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.2494 0.2494 0.0025 0.2494 0.2494]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.99 0.01 0 0 0]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.99 0.01 0 0 0]'))
 
 % Update at k = 1
 i = 2;
@@ -251,24 +245,24 @@ yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
     0 0 nan nan nan nan nan 1
-    0 1 nan nan nan nan nan 1
     1 0 nan nan nan nan nan 1
+    0 1 nan nan nan nan nan 1
     0 0 nan nan nan nan nan 4
     0 0 nan nan nan nan nan 5
 ];
 assert(isequaln(obs.i, [2 1]))
 assert(isequaln(obs.i_next, [3 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [2 3]))
-assert(isequal(obs.f_main, [1 4 5]))
+assert(isequaln(obs.f_hold, [3 2]))
+assert(isequaln(obs.f_main, [1 nan nan]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0420 0.0420 0.0420 0.0420 0.0420]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.2469 0.0025 0.0025 0.2469 0.2469]'))  % NOTE: doesn't sum to 1
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.3311 0.0033 0.0033 0.3311 0.3311]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9801 0.0099 0.0099 0 0]'))  % NOTE: doesn't quite sum to 1
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9802 0.0099 0.0099 0 0]'))
 
 % Update at k = 2
 i = 3;
@@ -276,25 +270,25 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 1 nan nan nan nan 1
-    0 1 0 nan nan nan nan 1
+    0 0 0 nan nan nan nan 1
     1 0 0 nan nan nan nan 1
-    0 0 0 nan nan nan nan 4
-    0 0 0 nan nan nan nan 5
+    0 1 0 nan nan nan nan 1
+    0 0 1 nan nan nan nan 1  % all sequences are splits from #1
+    0 0 0 nan nan nan nan 5  % (this is not in use)
 ];
 assert(isequaln(obs.i, [3 1]))
 assert(isequaln(obs.i_next, [4 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [1 2]))
-assert(isequal(obs.f_main, [3 4 5]))
+assert(isequaln(obs.f_hold, [4 3]))
+assert(isequaln(obs.f_main, [1 2 nan]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.01 0.99 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [1.8682 1.8682 1.0834 1.8682 1.8682]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.0033 0.0033 0.0033 0.3278 0.3278]'))  % NOTE: doesn't sum to 1
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0050 0.0050 0.0029 0.4936 0.4936]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [1.8682 1.0834 1.8682 1.8682 1.8682]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9704 0.0098 0.0098 0.0098 0]'))  % NOTE: doesn't quite sum to 1
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9746 0.0057 0.0098 0.0098 0]'))
 
 % Update at k = 3
 i = 4;
@@ -302,25 +296,26 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 1 0 nan nan nan 1
+    0 0 0 0 nan nan nan 1
+    1 0 0 0 nan nan nan 1
     0 1 0 0 nan nan nan 1
-    0 0 0 1 nan nan nan 4
-    0 0 0 0 nan nan nan 4
-    0 0 0 0 nan nan nan 5
+    0 0 1 0 nan nan nan 1
+    0 0 0 1 nan nan nan 1  % all sequences are splits from #1
 ];
 assert(isequaln(obs.i, [4 1]))
 assert(isequaln(obs.i_next, [5 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [3 1]))
-assert(isequal(obs.f_main, [2 4 5]))
+assert(isequaln(obs.f_hold, [5 4]))
+assert(isequaln(obs.f_main, [1 2 3]))
+assert(isequaln(obs.f_unused, nan(1, 4)))  % all filters now in use
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.4676 1.1707 2.4676 2.4676 2.4676]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.0049 0.0049 0.0049 0.4886 0.4886]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0050 0.0024 0.0050 0.4938 0.4938]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.4676 2.0186 1.1707 2.4676 2.4676]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9649 0.0057 0.0097 0.0097 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9711 0.0047 0.0047 0.0098 0.0098]'))
 
 % Update at k = 4
 i = 5;
@@ -328,25 +323,26 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
+    0 0 0 0 0 nan nan 1
+    0 0 0 0 1 nan nan 1  % this seq. has now been replaced
+    0 1 0 0 0 nan nan 1
     0 0 1 0 0 nan nan 1
-    0 0 0 0 1 nan nan 4
-    0 0 0 1 0 nan nan 4
-    0 0 0 0 0 nan nan 4
-    0 0 0 0 0 nan nan 5
+    0 0 0 1 0 nan nan 1
 ];
 assert(isequaln(obs.i, [5 1]))
 assert(isequaln(obs.i_next, [6 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [2 3]))
-assert(isequal(obs.f_main, [1 4 5]))
+assert(isequaln(obs.f_hold, [2 5]))
+assert(isequaln(obs.f_main, [1 4 3]))
+assert(isequaln(obs.f_unused, nan(1, 4)))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
 assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [1.2019 2.8078 2.8078 2.8078 2.8078]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.0049 0.0049 0.0049 0.4889 0.4889]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0021 0.0050 0.0050 0.4939 0.4939]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.8078 2.8078 2.0187 1.2019 2.8078]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9614 0.0097 0.0046 0.0097 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9728 0.0098 0.0034 0.0042 0.0098]'))
 
 % Update at k = 5
 i = 6;
@@ -354,25 +350,25 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 0 0 0 1 nan 4
-    0 0 0 0 1 0 nan 4
-    0 0 0 1 0 0 nan 4
-    0 0 0 0 0 0 nan 4
-    0 0 0 0 0 0 nan 5
+    0 0 0 0 0 0 nan 1
+    0 0 0 0 1 0 nan 1
+    0 0 0 0 0 1 nan 1
+    0 0 1 0 0 0 nan 1
+    0 0 0 1 0 0 nan 1
 ];
 assert(isequaln(obs.i, [6 1]))
 assert(isequaln(obs.i_next, [7 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [1 2]))
-assert(isequal(obs.f_main, [3 4 5]))
+assert(isequaln(obs.f_hold, [3 2]))
+assert(isequaln(obs.f_main, [1 4 5]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.01 0.99 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.0218 3.0218 1.2172 3.0218 3.0218]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.0049 0.0049 0.0049 0.4890 0.4890]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0050 0.0050 0.0020 0.4940 0.4940]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.0218 3.0218 3.0218 2.0223 1.2172]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9631 0.0097 0.0097 0.0042 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9736 0.0098 0.0098 0.0028 0.0040]'))
 
 % Update at k = 6  *** First non-zero measurement ***
 i = 7;
@@ -380,25 +376,25 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 0 0 0 1 0 4
-    0 0 0 0 1 0 0 4
-    0 0 0 0 0 0 1 4
-    0 0 0 0 0 0 0 4
-    0 0 0 0 0 0 0 5
+    0 0 0 0 0 0 0 1
+    0 0 0 0 1 0 0 1
+    0 0 0 0 0 1 0 1
+    0 0 0 0 0 0 1 1
+    0 0 0 1 0 0 0 1
 ];
 assert(isequaln(obs.i, [7 1]))
 assert(isequaln(obs.i_next, [8 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [3 1]))
-assert(isequal(obs.f_main, [2 4 5]))
+assert(isequaln(obs.f_hold, [4 3]))
+assert(isequaln(obs.f_main, [1 2 5]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.1865 0.8015 0.1865 0.1865 0.1865]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.0049 0.0049 0.0049 0.4891 0.4891]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0049 0.0210 0.0049 0.4846 0.4846]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.1865 0.8015 0.1865 0.1865 0.6345]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9638 0.0097 0.0097 0.0097 0.0039]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9281 0.0403 0.0094 0.0094 0.0129]'))
 
 % For comparison: probability densities if yk had been 0:
 % assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.1646 1.2260 3.1646 3.1646 3.1646]'))
@@ -410,25 +406,25 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 0 0 0 1 0 0
-    0 0 0 0 0 0 0 1  % why did it replace this sequence?
+    0 0 0 0 0 0 0 0
+    0 0 0 0 1 0 0 0
+    0 0 0 0 0 0 0 1
     0 0 0 0 0 0 1 0
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
+    0 0 0 1 0 0 0 0
 ];
 assert(isequaln(obs.i, [8 1]))
 assert(isequaln(obs.i_next, [1 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [2 3]))
-assert(isequal(obs.f_main, [1 4 5]))
+assert(isequaln(obs.f_hold, [3 4]))
+assert(isequaln(obs.f_main, [1 2 5]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.5807 0.0166 0.0166 0.0166 0.0166]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.0048 0.0048 0.0048 0.4797 0.4797]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.1487 0.0043 0.0043 0.4214 0.4214]'))  % This is definitely wrong
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0166 1.9388 0.0166 0.0166 0.9494]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9188 0.0399 0.0093 0.0093 0.0127]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.1454 0.7366 0.0015 0.0015 0.1150]'))
 
 % Update at k = 8
 i = 9;
@@ -436,36 +432,28 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    1 0 0 0 0 0 0 0  % why did it replace this sequence?
+    0 0 0 0 0 0 0 0
+    0 0 0 0 1 0 0 0
     0 0 0 0 0 0 0 1
-    0 0 0 0 0 0 1 0
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
+    1 0 0 0 1 0 0 0  % New additions have looped back to 1st position
+    0 0 0 1 0 0 0 0
 ];
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequal(obs.f_hold, [1 2]))
-assert(isequal(obs.f_main, [3 4 5]))
+assert(isequaln(obs.f_hold, [4 3]))
+assert(isequaln(obs.f_main, [1 2 5]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
 % Check probabilities
-assert(isequal(obs.p_gamma_k, [0.01 0.99 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0084 0.0084 0.5437 0.0084 0.0084]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.0042 0.0042 0.0042 0.4172 0.4172]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0038 0.0038 0.2442 0.3741    0.3741]'))
-
-return
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0084 2.5317 0.0084 2.5317 1.3806]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.1439 0.7293 0.0015 0.0074 0.1139]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0006 0.9125 0.0000 0.0092 0.0777]'))
 
 
 %% Run full simulation
-
-% Load system and disturbance model from file
-sys_rodin_step
-
-% Load observers from file
-obs_rodin_step
 
 % Simulation settings
 nT = 100;
@@ -593,7 +581,7 @@ end
 
 MSE_test_values = containers.Map(...
     {'AFMM1', 'AFMM2', 'KF2', 'KF3', 'SKF', 'MKF3', 'MKF4'}, ...
-    [0.003233 0.002926 0.000934 0.003524 0.000929 0.002709 0.000929]' ...
+    [0.002693 0.002685 0.000934 0.003524 0.000929 0.002709 0.000929]' ...
 );
 % TODO: Something wrong with AFMM observer
 
@@ -952,13 +940,13 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 end
 
 
-function dba = debug_array(obs)
-% For debugging and testing sequences
-    hold = zeros(obs.n_filt, 1);
-    hold(obs.f_hold) = obs.f_hold;
-    main = zeros(obs.n_filt, 1);
-    main(obs.f_main) = obs.f_main;
-    seq = cell2mat(obs.seq);
-    p_max = (obs.p_seq_g_Yk == max(obs.p_seq_g_Yk));
-    dba = [table(hold, main) array2table(seq) table(p_max)];
-end
+% function dba = debug_array(obs)
+% % For debugging and testing sequences
+%     hold = zeros(obs.n_filt, 1);
+%     hold(obs.f_hold) = obs.f_hold;
+%     main = zeros(obs.n_filt, 1);
+%     main(obs.f_main) = obs.f_main;
+%     seq = cell2mat(obs.seq);
+%     p_max = (obs.p_seq_g_Yk == max(obs.p_seq_g_Yk));
+%     dba = [table(hold, main) array2table(seq) table(p_max)];
+% end

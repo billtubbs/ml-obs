@@ -69,21 +69,28 @@ function obs = update_AFMM(obs, uk, yk)
     % Consistency checks - can be removed later
     assert(isequal(size(obs.f_hold), [1 obs.n_hold]))
     assert(isequal(size(obs.f_main), [1 obs.n_main]))
-    assert(isequal(size(obs.f_unused), [1 obs.n_filt]))
+    assert(isequal(size(obs.f_unused), [1 obs.n_filt-1]))
     comb = [obs.f_hold obs.f_main obs.f_unused];
     comb = sort(comb(~isnan(comb)));
     assert(isequal(comb, 1:obs.n_filt))
 
     % Right-shift all filters in holding group. This causes
     % the last nw values to 'roll-over' to the left of f_hold.
-    % e.g. circshift([1 2 3 4], 1) -> [3 1 2 3]
+    % e.g. circshift([1 2 3], 1) -> [3 1 2]
     obs.f_hold = circshift(obs.f_hold, nw);
+
+    % Check if holding group is not yet full
+    f_move = obs.f_hold(1:nw);
+    n_move = ~isnan(f_move);
 
     % Select filters to be moved out of holding group and
     % put into main group.
-    f_move = obs.f_hold(1:nw);
-    [obs.f_main, f_to_replace] = add_to_group_with_replacement(...
-        obs.f_main, f_move, obs.p_seq_g_Yk);
+    if n_move > 0
+        [obs.f_main, f_to_replace] = add_to_group_with_replacement(...
+            obs.f_main, f_move, obs.p_seq_g_Yk);
+    else
+        f_to_replace = [];
+    end
 
     % f_to_replace now contains all filter indices no longer in
     % either the main or holding group (i.e. those pruned due 
@@ -92,9 +99,10 @@ function obs = update_AFMM(obs, uk, yk)
     % the first few time steps while f_main and f_hold are not
     % full, f_to_replace may be empty [].
     if numel(f_to_replace) < nw
-        [obs.f_unused, ~, f_to_replace] = ...
-            take_from_2_groups(obs.f_unused, f_to_replace, nw);
+        [~, obs.f_unused, f_to_replace] = ...
+            take_from_2_groups(f_to_replace, obs.f_unused, nw);
     end
+    obs.f_hold(1:nw) = f_to_replace;
 
     % Split most probable filter and add new filter(s)
     % to start of holding group
