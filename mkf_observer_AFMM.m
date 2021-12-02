@@ -59,19 +59,12 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     nw = sum(~u_meas);  % Number of input disturbances
     assert(nw > 0, "ValueError: u_meas");
 
-    % Check there are enough filters in total to accommodate
-    % those in the holding group + at least one in main group
-    assert(n_min > 0)
-    assert(n_filt > 0)
-    assert((n_filt - nw*n_min) >= n_min, ...
-        "ValueError: n_filt is too low.")
-
     % Modified variances of shock signal over detection
-    % interval (see 'nu' on p.265 of Robertson et al. 1998)
+    % interval (see (16) on p.264 of Robertson et al. 1998)
     var_wp = sigma_wp.^2 ./ d;
 
-    % Process noise covariance matrices for each possible
-    % input disturbance
+    % Construct process noise covariance matrices for each 
+    % possible input disturbance
     Q = construct_Q(Q0, Bw, var_wp, u_meas);
 
     % Number of switching models
@@ -101,12 +94,20 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     T = repmat(p_gamma', nj, 1);
 
     % Initialize indicator sequences
-    seq = mat2cell(zeros(n_filt, f), ones(1, n_filt), f);
+    seq = mat2cell(nan(n_filt, f), ones(1, n_filt), f);
 
-    % Initial index to sequences in main filter group
-    % and in holding group
-    f_hold = 1:nw*n_min;
-    f_main = f_hold(end)+1:n_filt;
+    % Define filter groups ('main', 'holding' and 'unused')
+    assert(n_min > 0)
+    assert(n_filt > 0)
+    n_hold = nw*n_min;
+    n_main = n_filt - n_hold;
+    f_hold = nan(1, n_hold);
+    f_main = nan(1, n_main);
+    f_unused = 1:n_filt;
+
+    % Check there are enough filters in total to accommodate
+    % those in the holding group + at least one in main group
+    assert(n_main >= nw, "ValueError: n_filt is too low.")
 
     % System model doesn't change
     A = repmat({A}, 1, nj);
@@ -125,8 +126,11 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     obs.u_meas = u_meas;
     obs.f = f;
     obs.n_min = n_min;
+    obs.n_main = n_main;
+    obs.n_hold = n_hold;
     obs.f_main = f_main;
     obs.f_hold = f_hold;
+    obs.f_unused = f_unused;
     obs.P0 = P0;
     obs.Q0 = Q0;
     obs.epsilon = epsilon;

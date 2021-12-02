@@ -83,8 +83,8 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
         Q = cell(1, nj);
         for i = 1:nj
             var_x = diag(Q0);
-            % Modified variance of shock signal over detection
-            % interval (see Robertson et al. 1998)
+            % Modified variances of shock signal over detection
+            % interval (see (16) on p.264 of Robertson et al. 1998)
             var_x = var_x + Bw * sigma_wp(:, i).^2' ./ d;
             Q{i} = diag(var_x);
         end
@@ -117,8 +117,8 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
         for i = 1:nj
             ind = Z(i, :) + 1;
             var_x = diag(Q0);
-            % Modified variance of shock signal over detection
-            % interval (see Robertson et al. 1998)
+            % Modified variances of shock signal over detection
+            % interval (see (16) on p.264 of Robertson et al. 1998)
             idx = sub2ind(size(sigma_wp), 1:nw, ind);
             var_x = var_x + Bw * sigma_wp(idx).^2' ./ d;
             %var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2' ./ d;

@@ -32,7 +32,7 @@ function obs = update_AFMM(obs, uk, yk)
 %     6614–6619. https://doi.org/10.1016/S1474-6670(17)58744-3
 %
 
-    % Filter pruning algorithm
+    % Implementation of filter pruning algorithm
     %
     % - As described in Eriksson and Isaksson (1996):
     %
@@ -64,34 +64,50 @@ function obs = update_AFMM(obs, uk, yk)
     end
 
     % Number of disturbances
-    n_dist = size(obs.epsilon, 1);
+    nw = size(obs.epsilon, 1);
 
-    % Indices of least likely sequences in main group
-    [~, f_order] = sort(obs.p_seq_g_Yk(obs.f_main));
-    f_min = f_order(1:n_dist);
+    % Consistency checks - can be removed later
+    assert(isequal(size(obs.f_hold), [1 obs.n_hold]))
+    assert(isequal(size(obs.f_main), [1 obs.n_main]))
+    assert(isequal(size(obs.f_unused), [1 obs.n_filt]))
+    comb = [obs.f_hold obs.f_main obs.f_unused];
+    comb = sort(comb(~isnan(comb)));
+    assert(isequal(comb, 1:obs.n_filt))
 
-    % Replace least-likely filter(s) in main group
-    % with oldest filter(s) in holding group
-    f_old = n_dist*(obs.n_min-1)+1:n_dist*obs.n_min;
-    f_replace = obs.f_main(f_min);
-    obs.f_main(f_min) = obs.f_hold(f_old);
-    obs.f_hold(f_old) = f_replace;
+    % Right-shift all filters in holding group. This causes
+    % the last nw values to 'roll-over' to the left of f_hold.
+    % e.g. circshift([1 2 3 4], 1) -> [3 1 2 3]
+    obs.f_hold = circshift(obs.f_hold, nw);
 
-    % Shift observers in holding group
-    obs.f_hold = circshift(obs.f_hold, n_dist);
+    % Select filters to be moved out of holding group and
+    % put into main group.
+    f_move = obs.f_hold(1:nw);
+    [obs.f_main, f_to_replace] = add_to_group_with_replacement(...
+        obs.f_main, f_move, obs.p_seq_g_Yk);
+
+    % f_to_replace now contains all filter indices no longer in
+    % either the main or holding group (i.e. those pruned due 
+    % to their low likelihood). These are therefore now
+    % available for use for new sequences.  However, during the
+    % the first few time steps while f_main and f_hold are not
+    % full, f_to_replace may be empty [].
+    if numel(f_to_replace) < nw
+        [obs.f_unused, ~, f_to_replace] = ...
+            take_from_2_groups(obs.f_unused, f_to_replace, nw);
+    end
 
     % Split most probable filter and add new filter(s)
-    % to holding group
-    for i = 1:n_dist
-        label = obs.filters{f_replace(i)}.label;
-        obs.filters{f_replace(i)} = obs.filters{f_max};
-        obs.filters{f_replace(i)}.label = label;
-        obs.p_seq_g_Yk(f_replace(i)) = obs.p_seq_g_Yk(f_max);
-        obs.p_gamma_k(f_replace(i)) = obs.p_gamma_k(f_max);
-        obs.p_seq_g_Ykm1(f_replace(i)) = obs.p_seq_g_Ykm1(f_max);
-        obs.seq{f_replace(i)} = obs.seq{f_max};
+    % to start of holding group
+    for i = 1:nw
+        label = obs.filters{f_to_replace(i)}.label;
+        obs.filters{f_to_replace(i)} = obs.filters{f_max};
+        obs.filters{f_to_replace(i)}.label = label;
+        obs.p_seq_g_Yk(f_to_replace(i)) = obs.p_seq_g_Yk(f_max);
+        obs.p_gamma_k(f_to_replace(i)) = obs.p_gamma_k(f_max);
+        obs.p_seq_g_Ykm1(f_to_replace(i)) = obs.p_seq_g_Ykm1(f_max);
+        obs.seq{f_to_replace(i)} = obs.seq{f_max};
         % Set next sequence value to 1 (shock)
-        obs.seq{f_replace(i)}(:, obs.i_next(1)) = i;
+        obs.seq{f_to_replace(i)}(:, obs.i_next(1)) = i;
     end
 
     % TODO: Add online noise variance estimation with
@@ -102,3 +118,6 @@ function obs = update_AFMM(obs, uk, yk)
     obs = update_MKF(obs, uk, yk);
 
 end
+
+
+

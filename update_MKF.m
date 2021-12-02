@@ -51,9 +51,6 @@ function obs = update_MKF(obs, uk, yk, show_plots)
         % Get y_est(k/k-1) estimated in previous time step
         yk_est = obs.filters{f}.ykp1_est;
 
-        % Index of model used in previous sample time
-        ind_km1 = gamma_k(f) + 1;
-
         % Calculate covariance of the output estimation errors
         P = obs.filters{f}.P;
         C = obs.filters{f}.C;
@@ -90,12 +87,15 @@ function obs = update_MKF(obs, uk, yk, show_plots)
             set(gcf,'Position',[f*250-150 50 250 150])
         end
 
+        % Index of model used in previous sample time  TOOD: ******
+        ind_km1 = gamma_k(f) + 1;  % MATLAB indexing
+
         % Update model indicator value gamma(k) with the
         % current value from the filter's sequence
         gamma_k(f) = obs.seq{f}(:, obs.i(1));
 
-        % Model index
-        ind = gamma_k(f) + 1;
+        % Model index at current sample time
+        ind = gamma_k(f) + 1;  % MATLAB indexing
 
         % Compute Pr(gamma(k)) based on Markov transition
         % probability matrix
@@ -169,8 +169,8 @@ function obs = update_MKF(obs, uk, yk, show_plots)
     % TODO: Calculate multi-model state covariance estimate
 
     if show_plots 
-        %disp(obs.label);
-        %disp('stop')
+        disp(obs.label);
+        disp('stop')
     end
 
 end
