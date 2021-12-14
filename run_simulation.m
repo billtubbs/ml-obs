@@ -117,10 +117,9 @@ function sim_out = run_simulation(Ts, data, u_meas, observers)
                 % Set process noise covariance matrix Q based on
                 % actual shock occurence
                 gamma_k = data{i, 'gamma'};
-                obs.Q = obs.Q_values{gamma_k + 1};
 
                 % Update observer estimates
-                obs = update_KF(obs, uk_m, yk_m);
+                obs = update_SKF(obs, uk_m, yk_m, gamma_k);
                 
             elseif startsWith(obs.label, 'MKF') 
                 % Multi-model Kalman filters

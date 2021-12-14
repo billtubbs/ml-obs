@@ -7,6 +7,10 @@ Du = D(:, u_meas);
 nu = sum(u_meas);
 nw = sum(~u_meas);
 
+% Disturbance input (used by SKF observer)
+Bw = B(:, ~u_meas);
+nw = sum(~u_meas);
+
 % Check observability of system
 Qobs = obsv(A,C);
 unobs = length(A) - rank(Qobs);
@@ -72,7 +76,7 @@ Q0 = diag([Q1 0]);
 R = sigma_M^2;
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
-SKF.u_meas = u_meas;
+SKF.Bw = Bw;
 SKF.sigma_wp = sigma_wp;
 
 % Multiple model filter 1

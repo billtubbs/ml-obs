@@ -779,10 +779,22 @@ Gpss = ss(A,B,C,D,Ts);
 
 % Dimensions
 n = size(A, 1);
+nu = size(B, 2);
+ny = size(C, 1);
 
 % Designate measured input and output signals
 u_meas = [true; true; false; false];
 y_meas = [true; true];
+
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+
+% Disturbance input (used by SKF observer)
+Bw = B(:, ~u_meas);
+nw = sum(~u_meas);
 
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
@@ -796,7 +808,7 @@ Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 f = 10;  % sequence history length
 n_filt = 15;  % number of filters
-n_min = 3;  % minimum life of cloned filters
+n_min = 5;  % minimum life of cloned filters
 AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
@@ -805,12 +817,84 @@ label = 'AFMM2';
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
-f = 50;  % sequence history length
-n_filt = 50;  % number of filters
-n_min = 5;  % minimum life of cloned filters
+f = 10;  % sequence history length
+n_filt = 30;  % number of filters
+n_min = 10;  % minimum life of cloned filters
 AFMM2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
+% Check observer attributes
+assert(isequal(AFMM1.epsilon, epsilon))
+assert(isequal(AFMM1.sigma_wp, sigma_wp))
+assert(AFMM1.n_filt == 15)
+assert(AFMM1.n_min == 5)
+assert(isequal(AFMM1.n_hold, 5*2))
+assert(isequal(AFMM1.n_main, 5))
+assert(isequaln(AFMM1.f_hold, nan(1, 10)))
+assert(isequaln(AFMM1.f_main, [1 nan(1, 4)]))
+assert(isequal(AFMM1.f_unused, 2:AFMM1.n_filt))
+assert(isequaln(AFMM1.i, nan(1, 2)))
+assert(AFMM1.n == 4)
+assert(AFMM1.nu == 2)
+assert(AFMM1.ny == 2)
+assert(AFMM1.nj == 3)
+assert(isequal(AFMM1.A{1}, A) && isequal(AFMM1.A{2}, A))
+assert(isequal(AFMM1.B{1}, Bu) && isequal(AFMM1.B{2}, Bu))
+assert(isequal(AFMM1.C{1}, C) && isequal(AFMM1.C{2}, C))
+assert(isequal(AFMM1.D{1}, Du) && isequal(AFMM1.D{2}, Du))
+assert(AFMM1.Ts == Ts)
+assert(isequaln(AFMM1.u_meas, u_meas))
+assert(isequal(AFMM1.Q{1}, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 1)^2])))
+assert(isequal(AFMM1.Q{2}, diag([0.01 0.01 sigma_wp(1, 2)^2 sigma_wp(2, 1)^2])))
+assert(isequal(AFMM1.Q{3}, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 2)^2])))
+assert(isequal(AFMM1.R{1}, R) && isequal(AFMM1.R{2}, R))
+assert(numel(AFMM1.filters) == AFMM1.n_filt)
+assert(isequal(size(AFMM1.seq), [AFMM1.n_filt 1]))
+assert(isequal(size(cell2mat(AFMM1.seq)), [AFMM1.n_filt AFMM1.f]))
+assert(AFMM1.f == size(AFMM1.seq{1}, 2))
+assert(isequal(size(AFMM1.xkp1_est), [n 1]))
+assert(isequal(size(AFMM1.ykp1_est), [ny 1]))
+assert(isequal(round(AFMM1.p_gamma, 6), [0.980198; 0.009901; 0.009901]))
+
+% Check observer attributes
+assert(isequal(AFMM2.epsilon, epsilon))
+assert(isequal(AFMM2.sigma_wp, sigma_wp))
+assert(AFMM2.n_filt == 30)
+assert(AFMM2.n_min == 10)
+assert(isequal(AFMM2.n_hold, 10*2))
+assert(isequal(AFMM2.n_main, 10))
+assert(isequaln(AFMM2.f_hold, nan(1, 20)))
+assert(isequaln(AFMM2.f_main, [1 nan(1, 9)]))
+assert(isequal(AFMM2.f_unused, 2:AFMM2.n_filt))
+assert(isequaln(AFMM2.i, nan(1, 2)))
+assert(AFMM2.n == 4)
+assert(AFMM2.nu == 2)
+assert(AFMM2.ny == 2)
+assert(AFMM2.nj == 3)
+assert(isequal(AFMM2.A{1}, A) && isequal(AFMM2.A{2}, A))
+assert(isequal(AFMM2.B{1}, Bu) && isequal(AFMM2.B{2}, Bu))
+assert(isequal(AFMM2.C{1}, C) && isequal(AFMM2.C{2}, C))
+assert(isequal(AFMM2.D{1}, Du) && isequal(AFMM2.D{2}, Du))
+assert(AFMM2.Ts == Ts)
+assert(isequaln(AFMM2.u_meas, u_meas))
+assert(isequal(AFMM2.Q{1}, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 1)^2])))
+assert(isequal(AFMM2.Q{2}, diag([0.01 0.01 sigma_wp(1, 2)^2 sigma_wp(2, 1)^2])))
+assert(isequal(AFMM2.Q{3}, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 2)^2])))
+assert(isequal(AFMM2.R{1}, R) && isequal(AFMM2.R{2}, R))
+assert(numel(AFMM2.filters) == AFMM2.n_filt)
+assert(isequal(size(AFMM2.seq), [AFMM2.n_filt 1]))
+assert(isequal(size(cell2mat(AFMM2.seq)), [AFMM2.n_filt AFMM2.f]))
+assert(AFMM2.f == size(AFMM2.seq{1}, 2))
+assert(isequal(size(AFMM2.xkp1_est), [n 1]))
+assert(isequal(size(AFMM2.ykp1_est), [ny 1]))
+assert(isequal(round(AFMM2.p_gamma, 6), [0.980198; 0.009901; 0.009901]))
+
+% Check optional definition with an initial state estimate works
+x0 = [0.1; 0.5; -0.2; -0.4];
+AFMM_testx0 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label,x0);
+assert(isequal(AFMM_testx0.xkp1_est, x0))
+assert(isequal(AFMM_testx0.ykp1_est, C * x0))
 
 % TODO: Do a simulation test of the 2x2 observers.
 

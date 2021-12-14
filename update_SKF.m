@@ -20,8 +20,9 @@ function obs = update_SKF(obs, uk, yk, alpha_k)
     % shock occurence
     n_dist = size(alpha_k, 2);
     x_var = diag(obs.Q0);
-    x_var(~obs.u_meas) = obs.sigma_wp(sub2ind(size(obs.sigma_wp), ...
-        1:n_dist, alpha_k+1)).^2;
+    w_var = (obs.sigma_wp(sub2ind(size(obs.sigma_wp), 1:n_dist, ...
+        alpha_k+1)).^2)';
+    x_var = x_var + obs.Bw * w_var;
     obs.Q = diag(x_var);
 
     % Update observer estimates

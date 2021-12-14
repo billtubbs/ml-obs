@@ -18,12 +18,12 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
 %       estimates.
 %   epsilon : probability of a shock disturbance.
 %   sigma_wp : standard deviation of shock disturbances.
-%   Q0 : initial process noise covariance matrix (n, n) with 
+%   Q0 : Process noise covariance matrix (n, n) with 
 %        variances for each state on the diagonal. The  
-%        values Q(i, i) for i representing the unmeasured 
-%        input states (where u_meas = false), will
-%        be modified for each filter by multiplying by the
-%        appropriate variances in sigma_wp.
+%        values for states impacted by the unmeasured
+%        input disturbances should be set to zero as the
+%        appropriate variances will be added by the
+%        algorithm during observer updates.
 %   R : output measurement noise covariance matrix (ny, ny).
 %   f : fusion horizon (length of disturbance sequences).
 %   m : maximum number of disturbances over fusion horizon.

@@ -426,6 +426,10 @@ Du = D(:, u_meas);
 nu = sum(u_meas);
 nw = sum(~u_meas);
 
+% Disturbance input (used by SKF observer)
+Bw = B(:, ~u_meas);
+nw = sum(~u_meas);
+
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
 sigma_M = [0.1; 0.1];
@@ -454,20 +458,12 @@ KF3 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
 % Scheduled Kalman filter
 P0 = 1000*eye(n);
-Q0 = diag([0.01 0.01 nan nan]);
+Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
-SKF.u_meas = u_meas;
+SKF.Bw = Bw;
 SKF.sigma_wp = sigma_wp;
-
-% Previous method of setting Q in run_simulation:
-% a = alpha(i, :);
-% n_dist = size(a, 2);
-% x_var = diag(obs.Q0);
-% x_var(~u_meas) = obs.sigma_wp(sub2ind(size(obs.sigma_wp), ...
-%     1:n_dist, a+1)).^2;
-% obs.Q = diag(x_var);
 
 % Multiple model filter 1
 label = 'MKF1';
