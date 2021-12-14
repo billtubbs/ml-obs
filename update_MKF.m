@@ -117,7 +117,7 @@ function obs = update_MKF(obs, uk, yk, show_plots)
 
         end
 
-        % Update observer estimates and covariance matrices
+        % Update observer estimates, gain and covariance matrix
         obs.filters{f} = update_KF(obs.filters{f}, uk, yk);
         assert(~any(isnan(obs.filters{f}.xkp1_est)))
 

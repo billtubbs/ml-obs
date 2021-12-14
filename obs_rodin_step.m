@@ -72,6 +72,7 @@ Q0 = diag([Q1 0]);
 R = sigma_M^2;
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
+SKF.u_meas = u_meas;
 SKF.sigma_wp = sigma_wp;
 
 % Multiple model filter 1
@@ -106,7 +107,7 @@ Q0 = diag([Q1 0]);
 R = sigma_M^2;
 f = 100;  % sequence history length
 n_filt = 5;  % number of filters
-n_min = 2;  % minimum life of cloned filters
+n_min = 3;  % minimum life of cloned filters
 AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
@@ -117,6 +118,6 @@ Q0 = diag([Q1 0]);
 R = sigma_M^2;
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters
-n_min = 3;  % minimum life of cloned filters
+n_min = 4;  % minimum life of cloned filters
 AFMM2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);

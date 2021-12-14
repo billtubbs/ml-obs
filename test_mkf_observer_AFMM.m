@@ -32,11 +32,11 @@ obs_rodin_step
 assert(AFMM1.epsilon == 0.01)
 assert(isequal(AFMM1.sigma_wp, sigma_wp))
 assert(AFMM1.n_filt == 5)
-assert(AFMM1.n_min == 2)
-assert(isequal(AFMM1.n_hold, 2))
-assert(isequal(AFMM1.n_main, 3))
-assert(isequaln(AFMM1.f_hold, nan(1, 2)))
-assert(isequaln(AFMM1.f_main, [1 nan(1, 2)]))
+assert(AFMM1.n_min == 3)
+assert(isequal(AFMM1.n_hold, 3))
+assert(isequal(AFMM1.n_main, 2))
+assert(isequaln(AFMM1.f_hold, nan(1, 3)))
+assert(isequaln(AFMM1.f_main, [1 nan]))
 assert(isequal(AFMM1.f_unused, 2:AFMM1.n_filt))
 assert(isequaln(AFMM1.i, nan(1, 2)))
 assert(AFMM1.n == 2)
@@ -63,11 +63,11 @@ assert(isequal(AFMM1.p_gamma, [1-AFMM1.epsilon; AFMM1.epsilon]))
 assert(AFMM2.epsilon == 0.01)
 assert(isequal(AFMM2.sigma_wp, sigma_wp))
 assert(AFMM2.n_filt == 10)
-assert(AFMM2.n_min == 3)
-assert(isequal(AFMM2.n_hold, 3))
-assert(isequal(AFMM2.n_main, 7))
-assert(isequaln(AFMM2.f_hold, nan(1, 3)))
-assert(isequaln(AFMM2.f_main, [1 nan(1, 6)]))
+assert(AFMM2.n_min == 4)
+assert(isequal(AFMM2.n_hold, 4))
+assert(isequal(AFMM2.n_main, 6))
+assert(isequaln(AFMM2.f_hold, nan(1, 4)))
+assert(isequaln(AFMM2.f_main, [1 nan(1, 5)]))
 assert(isequal(AFMM2.f_unused, 2:AFMM2.n_filt))
 assert(isequaln(AFMM2.i, nan(1, 2)))
 assert(AFMM2.n == 2)
@@ -581,7 +581,7 @@ end
 
 MSE_test_values = containers.Map(...
     {'AFMM1', 'AFMM2', 'KF2', 'KF3', 'SKF', 'MKF3', 'MKF4'}, ...
-    [0.002693 0.002685 0.000934 0.003524 0.000929 0.002709 0.000929]' ...
+    [0.002677 0.002685 0.000934 0.003524 0.000929 0.002709 0.000929]' ...
 );
 % TODO: Something wrong with AFMM observer
 
@@ -866,20 +866,13 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 K_obs{i, 1} = obs.K';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'SKF'}  % Scheduled Kalman filters
+            case {'SKF'}
 
-                % Set process noise covariance matrix Q based on
-                % actual shock occurence
-                a = alpha(i, :);
-                n_dist = size(a, 2);
-                x_var = diag(obs.Q0);
-                u_meas = [1; 0];
-                x_var(~u_meas) = obs.sigma_wp(sub2ind(size(obs.sigma_wp), ...
-                1:n_dist, a+1)).^2;
-                obs.Q = diag(x_var);
+                % Get actual shock occurence indicators
+                alpha_k = alpha(i, :);
 
-                % Update observer gains and covariance matrix
-                obs = update_KF(obs, uk_m, yk_m);
+                % Update observer estimates
+                obs = update_SKF(obs, uk_m, yk_m, alpha_k);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K';

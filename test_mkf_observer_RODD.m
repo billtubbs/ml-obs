@@ -431,6 +431,20 @@ epsilon = [0.01; 0.01];
 sigma_M = [0.1; 0.1];
 sigma_wp = [0.01 1; 0.01 1];
 
+% Kalman filter 1 - tuned to sigma_wp(1)
+% Covariance matrices
+P0 = 1000*eye(n);
+Q = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
+R = diag(sigma_M.^2);
+KF1 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
+
+% Kalman filter 2 - tuned to sigma_wp(2)
+% Covariance matrices
+P0 = 1000*eye(n);
+Q = diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
+R = diag(sigma_M.^2);
+KF2 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF2');
+
 % Kalman filter 3 - manually tuned
 % Covariance matrices
 P0 = 1000*eye(n);
@@ -444,7 +458,16 @@ Q0 = diag([0.01 0.01 nan nan]);
 R = diag(sigma_M.^2);
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
+SKF.u_meas = u_meas;
 SKF.sigma_wp = sigma_wp;
+
+% Previous method of setting Q in run_simulation:
+% a = alpha(i, :);
+% n_dist = size(a, 2);
+% x_var = diag(obs.Q0);
+% x_var(~u_meas) = obs.sigma_wp(sub2ind(size(obs.sigma_wp), ...
+%     1:n_dist, a+1)).^2;
+% obs.Q = diag(x_var);
 
 % Multiple model filter 1
 label = 'MKF1';
@@ -772,19 +795,13 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 K_obs{i, 1} = obs.K(:)';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'SKF'}  % Scheduled Kalman filters
+            case {'SKF'}
 
-                % Set process noise covariance matrix Q based on
-                % actual shock occurence
-                a = alpha(i, :);
-                n_dist = size(a, 2);
-                x_var = diag(obs.Q0);
-                x_var(~u_meas) = obs.sigma_wp(sub2ind(size(obs.sigma_wp), ...
-                    1:n_dist, a+1)).^2;
-                obs.Q = diag(x_var);
+                % Get actual shock occurence indicators
+                alpha_k = alpha(i, :);
 
-                % Update observer gains and covariance matrix
-                obs = update_KF(obs, uk_m, yk_m);
+                % Update observer estimates
+                obs = update_SKF(obs, uk_m, yk_m, alpha_k);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K(:)';

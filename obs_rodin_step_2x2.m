@@ -4,8 +4,6 @@
 % Observer model without disturbance noise input
 Bu = B(:, u_meas);
 Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
 
 % Check observability of system
 Qobs = obsv(A,C);
@@ -73,16 +71,17 @@ KF3 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
 % Scheduled Kalman filter
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);
+Q0 = diag([Q1 Q2 nan nan]);
 R = diag(Radj*sigma_M.^2);
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
 SKF.Q0 = Q0;
+SKF.u_meas = u_meas;
 SKF.sigma_wp = sigma_wp;
 
 % Multiple model filter 1
 label = 'MKF1';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);
+Q0 = diag([Q1 Q2 adj adj]);  % TODO: Is this correct?
 R = diag(Radj*sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
@@ -93,7 +92,7 @@ MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model filter 2
 label = 'MKF2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);
+Q0 = diag([Q1 Q2 adj adj]);  % TODO: Is this correct?
 R = diag(Radj*sigma_M.^2);
 %R = diag([1; 2.3].*sigma_M.^2);
 f = 5;  % 10 fusion horizon
@@ -103,23 +102,23 @@ MKF2 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % General MKF equivalent to MKF2
-%MKF3 = mkf_observer({A,A},{B,B},{C,C},{D,D},Ts,repmat({P0},1,MKF2.n_filt),Q,R,MKF2.S,MKF2.p_seq,d,'MKF3');
+%MKF3 = mkf_filter({A,A},{B,B},{C,C},{D,D},Ts,repmat({P0},1,MKF2.n_filt),Q,R,MKF2.S,MKF2.p_seq,d,'MKF3');
 
 % Multiple model AFMM filter 1
 label = 'AFMM1';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);
+Q0 = diag([Q1 Q2 adj adj]);
 R = diag(Radj*sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters
-n_min = 3;  % minimum life of cloned filters
+n_min = 4;  % minimum life of cloned filters
 AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
 % Multiple model AFMM filter 2
 label = 'AFMM2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);
+Q0 = diag([Q1 Q2 adj adj]);
 R = diag(Radj*sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 30;  % number of filters

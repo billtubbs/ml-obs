@@ -42,7 +42,7 @@ function obs = update_MEKF(obs, yk, varargin)
         yk_est = obs.filters{f}.ykp1_est;
 
         % Index of model used in previous sample time
-        ind_km1 = gamma_k(f) + 1;
+        ind_km1 = gamma_k(f) + 1;  % MATLAB indexing
 
         % Calculate covariance of the output estimation errors
         P = obs.filters{f}.Pkp1;
@@ -68,8 +68,8 @@ function obs = update_MEKF(obs, yk, varargin)
         % current value from the filter's sequence
         gamma_k(f) = obs.seq{f}(:, obs.i(1));
 
-        % Model index
-        ind = gamma_k(f) + 1;
+        % Model index at current sample time
+        ind = gamma_k(f) + 1;  % MATLAB indexing
 
         % Compute Pr(gamma(k)) based on Markov transition
         % probability matrix
@@ -80,7 +80,8 @@ function obs = update_MEKF(obs, yk, varargin)
         % this update?
         if obs.i(2) == 1  % or should this be obs.i_next(2) == 1
 
-            % Select filter system model based on index value
+            % Select filter system model based on current
+            % model indicator value
             obs.filters{f}.state_fcn = obs.state_fcn{ind};
             obs.filters{f}.meas_fcn = obs.meas_fcn{ind};
             obs.filters{f}.dfdx = obs.dfdx{ind};
