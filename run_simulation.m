@@ -1,6 +1,5 @@
 function sim_out = run_simulation(Ts, data, u_meas, observers)
-% sim_out = run_simulation(Ts, input_data, state_fcn, meas_fcn, ...
-%     params, x0, u_meas, observers)
+% sim_out = run_simulation(Ts, data, u_meas, observers)
 % Runs a simulation of a set of pre-defined observers fed with
 % input data U and output data Y.
 %
@@ -114,8 +113,7 @@ function sim_out = run_simulation(Ts, data, u_meas, observers)
             elseif startsWith(obs.label, 'SKF')
                 % Scheduled Kalman filters
 
-                % Set process noise covariance matrix Q based on
-                % actual shock occurence
+                % Provide actual shock occurence
                 gamma_k = data{i, 'gamma'};
 
                 % Update observer estimates
