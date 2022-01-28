@@ -46,6 +46,7 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
     assert(all(abs(sum(T, 2) - 1) < 1e-15), "ValueError: T")
 
     % Initialize covariance matrix of estimation errors
+    % TODO: Why is this not labeled obs.P0?
     obs.P = P0;
 
     % Check all other system matrix dimensions have same 
