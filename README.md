@@ -137,6 +137,7 @@ See the following LiveScripts for more detailed examples of how to use the funct
 
 - [kalman_example_SISO.mlx](kalman_example_SISO.mlx) - Kalman filter simulation on a simple single-input, single-output system
 - [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model observer examples on a 2x2 multivariable system
+- [MMKF_example.m](MMKF_example.m) - Simulates a Kalman filter and two multi-model observers on a SISO system with a RODD input step disturbance.
 
 ## Help
 
