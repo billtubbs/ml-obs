@@ -4,6 +4,7 @@
 
 clear all
 
+
 %% 1. Generating randomly-occurring shocks
 % Generate a sample sequence of the random variable $w_{p,i} \left(k\right)$ 
 % described in Robertson et al. (1995).
@@ -42,7 +43,6 @@ sys_rodin_step
 
 A, B, C, D, Ts
 Gpss
-n, nu, ny
 
 
 %% 
@@ -73,7 +73,8 @@ legend('u(k)', 'wp(k)')
 % containing the parameters to simulate a standard Kalman filter:
 
 % Parameters
-P0 = eye(n);
+P0 = [ 0.085704    0.044364
+       0.044364    0.036832];  % steady-state values
 Q = diag([0.01^2 0.1^2]);
 R = 0.1^2;
 Bu = B(:,1);  % observer model without unmeasured inputs
@@ -190,10 +191,22 @@ legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
 % Calculate mean-squared error in state estimates
 mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
 
+
+%% Run Simulink model
+
+model = 'MMKF_example_sim';
+
 % Additional parameters for simulink model
-U = [t U];
-V = [t V];
+inputs.U = [t U];
+inputs.V = [t V];
 N = zeros(n,ny);
-P = lsim(HDd,Wp,t);
-P = [t P];
+inputs.Wp = [t Wp];
+
+sim_out = sim(model, 'ReturnWorkspaceOutputs', 'on');
+
+% Check Kalman filter estimates are equal
+assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KF1.Data), [], [1 2]) < 1e-6)
+
+% Check Kalman filter estimates are close to true system states
+assert(mean(abs(sim_out.X_hat_KF.Data - sim_out.X.Data), [1 2]) < 0.5)
 

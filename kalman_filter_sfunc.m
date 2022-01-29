@@ -26,34 +26,40 @@ block.NumOutputPorts = 2;
 block.SetPreCompInpPortInfoToDynamic;
 block.SetPreCompOutPortInfoToDynamic;
 
+% Get observer struct
+obs = block.DialogPrm(1).Data;
+
+% Determine system dimensions
+[n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
+
 % Input 1: u(k)
-block.InputPort(1).Dimensions        = 1;
-block.InputPort(1).DatatypeID  = 0;  % double
-block.InputPort(1).Complexity  = 'Real';
+block.InputPort(1).Dimensions = nu;
+block.InputPort(1).DatatypeID = 0;  % double
+block.InputPort(1).Complexity = 'Real';
 block.InputPort(1).DirectFeedthrough = false;
 block.InputPort(1).SamplingMode = 'Sample';
 
 % Input 2: y(k)
-block.InputPort(2).Dimensions        = 1;
-block.InputPort(2).DatatypeID  = 0;  % double
-block.InputPort(2).Complexity  = 'Real';
+block.InputPort(2).Dimensions = ny;
+block.InputPort(2).DatatypeID = 0;  % double
+block.InputPort(2).Complexity = 'Real';
 block.InputPort(2).DirectFeedthrough = false;
 block.InputPort(2).SamplingMode = 'Sample';
 
 % Output 1: x_est(k+1);
-block.OutputPort(1).Dimensions       = 2;
-block.OutputPort(1).DatatypeID  = 0; % double
-block.OutputPort(1).Complexity  = 'Real';
+block.OutputPort(1).Dimensions = n;
+block.OutputPort(1).DatatypeID = 0; % double
+block.OutputPort(1).Complexity = 'Real';
 block.OutputPort(1).SamplingMode = 'Sample';
 
 % Output 2: y_est(k+1)
-block.OutputPort(2).Dimensions       = 1;
-block.OutputPort(2).DatatypeID  = 0; % double
-block.OutputPort(2).Complexity  = 'Real';
+block.OutputPort(2).Dimensions = ny;
+block.OutputPort(2).DatatypeID = 0; % double
+block.OutputPort(2).Complexity = 'Real';
 block.OutputPort(2).SamplingMode = 'Sample';
 
 % Register parameters (number of parameters in the dialog box)
-block.NumDialogPrms     = 1;
+block.NumDialogPrms = 1;
 
 % Register sample times
 %  [0 offset]            : Continuous sample time
@@ -61,7 +67,7 @@ block.NumDialogPrms     = 1;
 %
 %  [-1, 0]               : Inherited sample time
 %  [-2, 0]               : Variable sample time
-block.SampleTimes = [-1 0];
+block.SampleTimes = [obs.Ts 0];
 
 % Specify the block simStateCompliance. The allowed values are:
 %    'UnknownSimState', < The default setting; warn and assume DefaultSimState
@@ -98,6 +104,9 @@ function DoPostPropSetup(block)
 %                      also register run-time methods here
 %   Required         : No
 %   C MEX counterpart: mdlSetWorkWidths
+
+% Get observer struct
+obs = block.DialogPrm(1).Data;
 
 block.NumDworks = 4;
 
@@ -141,17 +150,19 @@ function InitializeConditions(block)
 %   Required         : No
 %   C MEX counterpart: mdlInitializeConditions  
 
-x0 = [0; 0];
-y0 = 0;
-P0 = [ 0.0857 0.0444;
-       0.0444 0.0368];
-K0 = nan(2, 1);
+% Get observer struct
+obs = block.DialogPrm(1).Data;
+
+x0 = obs.xkp1_est;
+y0 = obs.ykp1_est;
+P0 = obs.P0;
+K = obs.K;
 
 % Initialize Dwork
 block.Dwork(1).Data = reshape(x0, 1, []);
 block.Dwork(2).Data = reshape(y0, 1, []);
 block.Dwork(3).Data = reshape(P0, 1, []);
-block.Dwork(4).Data = reshape(K0, 1, []);
+block.Dwork(4).Data = reshape(K, 1, []);
 
 %end InitializeConditions
 
@@ -193,14 +204,17 @@ function Update(block)
 % Get observer struct
 obs = block.DialogPrm(1).Data;
 
+% Determine system dimensions
+[n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
+
 % Inputs
 uk = block.InputPort(1).Data;
 yk = block.InputPort(2).Data;
 
 % Variables from memory
-xkp1_est = reshape(block.Dwork(1).Data, [2 1]);
-P = reshape(block.Dwork(3).Data, [2 2]);
-K = reshape(block.Dwork(4).Data, [2 1]);
+xkp1_est = reshape(block.Dwork(1).Data, [n 1]);
+P = reshape(block.Dwork(3).Data, [n n]);
+K = reshape(block.Dwork(4).Data, [n ny]);
 
 % Calculate Kalman filter updates
 [K, P] = kalman_update(P, obs.A, obs.C, obs.Q, obs.R);
@@ -209,7 +223,7 @@ K = reshape(block.Dwork(4).Data, [2 1]);
 xkp1_est = obs.A * xkp1_est + obs.B * uk + K * (yk - obs.C * xkp1_est);
 ykp1_est = obs.C * xkp1_est;
 
-% Save updated variables
+% Save updated variables as row vectors
 block.Dwork(1).Data = reshape(xkp1_est, 1, []);
 block.Dwork(2).Data = reshape(ykp1_est, 1, []);
 block.Dwork(3).Data = reshape(P, 1, []);
