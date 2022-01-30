@@ -5,7 +5,7 @@
 clear all
 
 
-%% 1. Generating randomly-occurring shocks
+%% Generate randomly-occurring shocks
 % Generate a sample sequence of the random variable $w_{p,i} \left(k\right)$ 
 % described in Robertson et al. (1995).
 
@@ -32,21 +32,19 @@ ylim([-0.1 1.1])
 xlabel('k')
 ylabel('alpha(k)')
 
-%% 2. First order SISO system with one input disturbance
+%% Load system model
 % 
 
-% Import system
+% First order SISO system with one input disturbance
 sys_rodin_step
 
 % The state-space representation of the augmented system from
-% above fileGp
-
+% above file:
 A, B, C, D, Ts
 Gpss
 
 
-%% 
-% Simulate system
+%% Simulate system
 
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
@@ -68,7 +66,7 @@ ylabel('u(k) and wp(k)')
 legend('u(k)', 'wp(k)')
 
 
-%% 3. Kalman filter simulation
+%% Kalman filter simulation
 % The function |kalman_filter| can be used to instantiate a struct variable 
 % containing the parameters to simulate a standard Kalman filter:
 
@@ -92,7 +90,6 @@ for i = 1:nT
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
-KF1 = obs;
 
 figure(3)
 subplot(2,1,1)
@@ -107,12 +104,11 @@ legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
 
 % Calculate mean-squared error in state estimates
 mse_KF = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
+assert(round(mse_KF, 4) == 0.0873)
 
 
-%% 4. Sub-optimal multi-model observer simulation
-% The function mkf_observer|_RODD| can be used to instantiate a struct variable 
-% containing parameters to simulate a sub-optimal multi-model observer as described 
-% by Robertson _et al._ (1995).
+%% Sub-optimal multi-model observer 1 simulation
+% Sub-optimal multi-model observer as described by Robertson _et al._ (1995).
 
 % Define multi-model filter
 P0 = eye(n);
@@ -135,7 +131,6 @@ for i = 1:nT
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
-MKF1 = obs;
 
 figure(4)
 subplot(2,1,1)
@@ -150,12 +145,11 @@ legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
 
 % Calculate mean-squared error in state estimates
 mse_MKF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
+assert(round(mse_MKF1, 4) == 0.1029)
 
 
-%% 5. Sub-optimal adaptive forgetting through multiple models (AFMM) observer simulation
-% The function mkf_observer|_AFMM| can be used to instantiate a struct variable 
-% containing parameters to simulate the AFMM sub-optimal multi-model observer 
-% as described by Eriksson and Isaksson (1996).
+%% Sub-optimal multi-model observer 2 simulation
+% Sub-optimal multi-model observer as described by Eriksson and Isaksson (1996).
 
 % Define multi-model filter
 P0 = eye(n);
@@ -178,7 +172,6 @@ for i = 1:nT
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
-MKF2 = obs;
 
 figure(4)
 subplot(2,1,1)
@@ -193,10 +186,12 @@ legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
 
 % Calculate mean-squared error in state estimates
 mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
+assert(round(mse_MKF2, 4) == 0.0614)
 
 
-%% Run Simulink model
+%% Simulate same observers in Simulink
 
+% See this Simulink model file:
 model = 'MMKF_example_sim';
 
 % Additional parameters for simulink model

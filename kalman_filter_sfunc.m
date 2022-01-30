@@ -111,7 +111,7 @@ obs = block.DialogPrm(1).Data;
 % Determine system dimensions
 [n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
 
-block.NumDworks = 4;
+block.NumDworks = 3;
 
 % Dynamic state estimates: xkp1_est
 block.Dwork(1).Name            = 'xkp1_est';
@@ -134,13 +134,6 @@ block.Dwork(3).DatatypeID      = 0;      % double
 block.Dwork(3).Complexity      = 'Real'; % real
 block.Dwork(3).UsedAsDiscState = true;
 
-% Dynamic gain matrix: K
-block.Dwork(4).Name            = 'K';
-block.Dwork(4).Dimensions      = n*ny;
-block.Dwork(4).DatatypeID      = 0;      % double
-block.Dwork(4).Complexity      = 'Real'; % real
-block.Dwork(4).UsedAsDiscState = true;
-
 %end PostPropagationSetup
 
 
@@ -162,10 +155,9 @@ P0 = obs.P0;
 K = obs.K;
 
 % Initialize Dwork
-block.Dwork(1).Data = reshape(x0, 1, []);
-block.Dwork(2).Data = reshape(y0, 1, []);
-block.Dwork(3).Data = reshape(P0, 1, []);
-block.Dwork(4).Data = reshape(K, 1, []);
+block.Dwork(1).Data = x0;
+block.Dwork(2).Data = y0;
+block.Dwork(3).Data = P0(:);
 
 %end InitializeConditions
 
@@ -215,9 +207,8 @@ uk = block.InputPort(1).Data;
 yk = block.InputPort(2).Data;
 
 % Variables from memory
-xkp1_est = reshape(block.Dwork(1).Data, [n 1]);
+xkp1_est = block.Dwork(1).Data;
 P = reshape(block.Dwork(3).Data, [n n]);
-K = reshape(block.Dwork(4).Data, [n ny]);
 
 % Calculate Kalman filter updates
 [K, P] = kalman_update(P, obs.A, obs.C, obs.Q, obs.R);
@@ -227,10 +218,9 @@ xkp1_est = obs.A * xkp1_est + obs.B * uk + K * (yk - obs.C * xkp1_est);
 ykp1_est = obs.C * xkp1_est;
 
 % Save updated variables as row vectors
-block.Dwork(1).Data = reshape(xkp1_est, 1, []);
-block.Dwork(2).Data = reshape(ykp1_est, 1, []);
-block.Dwork(3).Data = reshape(P, 1, []);
-block.Dwork(4).Data = reshape(K, 1, []);
+block.Dwork(1).Data = xkp1_est;
+block.Dwork(2).Data = ykp1_est;
+block.Dwork(3).Data = P(:);
 
 %end Update
 
@@ -252,5 +242,3 @@ function Terminate(block)
 %   C MEX counterpart: mdlTerminate
 
 %end Terminate
-
-
