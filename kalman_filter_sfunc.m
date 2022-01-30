@@ -108,32 +108,35 @@ function DoPostPropSetup(block)
 % Get observer struct
 obs = block.DialogPrm(1).Data;
 
+% Determine system dimensions
+[n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
+
 block.NumDworks = 4;
 
 % Dynamic state estimates: xkp1_est
 block.Dwork(1).Name            = 'xkp1_est';
-block.Dwork(1).Dimensions      = 2;
+block.Dwork(1).Dimensions      = n;
 block.Dwork(1).DatatypeID      = 0;      % double
 block.Dwork(1).Complexity      = 'Real'; % real
 block.Dwork(1).UsedAsDiscState = true;
 
 % Dynamic output estimates: ykp1_est
 block.Dwork(2).Name            = 'ykp1_est';
-block.Dwork(2).Dimensions      = 1;
+block.Dwork(2).Dimensions      = ny;
 block.Dwork(2).DatatypeID      = 0;      % double
 block.Dwork(2).Complexity      = 'Real'; % real
 block.Dwork(2).UsedAsDiscState = true;
 
 % Dynamic estimate covariance matrix: P
 block.Dwork(3).Name            = 'P';
-block.Dwork(3).Dimensions      = 4;
+block.Dwork(3).Dimensions      = n*n;
 block.Dwork(3).DatatypeID      = 0;      % double
 block.Dwork(3).Complexity      = 'Real'; % real
 block.Dwork(3).UsedAsDiscState = true;
 
 % Dynamic gain matrix: K
 block.Dwork(4).Name            = 'K';
-block.Dwork(4).Dimensions      = 2;
+block.Dwork(4).Dimensions      = n*ny;
 block.Dwork(4).DatatypeID      = 0;      % double
 block.Dwork(4).Complexity      = 'Real'; % real
 block.Dwork(4).UsedAsDiscState = true;

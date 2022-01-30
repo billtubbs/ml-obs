@@ -92,6 +92,7 @@ for i = 1:nT
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
+KF1 = obs;
 
 figure(3)
 subplot(2,1,1)
@@ -134,6 +135,7 @@ for i = 1:nT
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
+MKF1 = obs;
 
 figure(4)
 subplot(2,1,1)
@@ -176,6 +178,7 @@ for i = 1:nT
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
+MKF2 = obs;
 
 figure(4)
 subplot(2,1,1)
@@ -202,11 +205,13 @@ inputs.V = [t V];
 N = zeros(n,ny);
 inputs.Wp = [t Wp];
 
+fprintf("Running Simulink simulation...\n")
 sim_out = sim(model, 'ReturnWorkspaceOutputs', 'on');
 
-% Check Kalman filter estimates are equal
+% Check both Kalman filter state estimates are the same
 assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KF1.Data), [], [1 2]) < 1e-6)
 
 % Check Kalman filter estimates are close to true system states
 assert(mean(abs(sim_out.X_hat_KF.Data - sim_out.X.Data), [1 2]) < 0.5)
 
+disp("Simulations complete")
