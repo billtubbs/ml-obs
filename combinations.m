@@ -16,8 +16,8 @@ function S = combinations(n, m)
 %      0     1     1
 %      
 
-    C = nchoosek(1:n, m);
-    S = repmat({zeros(1, n)}, size(C, 1), 1);
+    C = int16(nchoosek(1:n, m));
+    S = repmat({int16(zeros(1, n))}, size(C, 1), 1);
     for i = 1:size(C, 1)
         S{i}(1, C(i,:)) = 1;
     end

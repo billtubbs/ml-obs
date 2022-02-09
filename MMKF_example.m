@@ -1,4 +1,4 @@
-%% Estimation of multi-model Kalman filter observer to estimate
+%% Demonstration multi-model Kalman filter observer to estimate
 % randomly-occurring deterministic disturbance (RODD).
 %
 

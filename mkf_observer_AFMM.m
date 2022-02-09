@@ -45,7 +45,7 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     n = check_dimensions(A, B, C, D);
 
     % Detection interval length in number of sample periods.
-    d = 1;  % TODO: Make this a variable parameter
+    d = 1;  % TODO: Make this a specified parameter.
 
     % Initial state estimates
     if nargin == 15
@@ -94,17 +94,18 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     T = repmat(p_gamma', nj, 1);
 
     % Initialize indicator sequences
-    seq = mat2cell(nan(n_filt, f), ones(1, n_filt), f);
+    seq = mat2cell(int16(zeros(n_filt, f)), int16(ones(1, n_filt)), f);
 
     % Define filter groups ('main', 'holding' and 'unused')
+    n_min = int16(n_min);
     assert(n_min > 0)
     assert(n_filt > 0)
     n_hold = nw*n_min;
     n_main = n_filt - n_hold;
-    f_hold = nan(1, n_hold);
-    f_main = nan(1, n_main);
+    f_hold = int16(zeros(1, n_hold));
+    f_main = int16(zeros(1, n_main));
     f_main(1) = 1;  % initialize with one active filter
-    f_unused = [2:n_filt];
+    f_unused = int16(2:n_filt);
 
     % Check there are enough filters in total to accommodate
     % those in the holding group + at least one in main group
@@ -128,7 +129,7 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
 
     % Add additional variables used by AFMM observer
     obs.u_meas = u_meas;
-    obs.f = f;
+    obs.f = int16(f);
     obs.n_min = n_min;
     obs.n_main = n_main;
     obs.n_hold = n_hold;

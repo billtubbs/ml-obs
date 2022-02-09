@@ -67,11 +67,11 @@ function obs = update_AFMM(obs, uk, yk)
     nw = size(obs.epsilon, 1);
 
     % Consistency checks - can be removed later
-    assert(isequal(size(obs.f_hold), [1 obs.n_hold]))
-    assert(isequal(size(obs.f_main), [1 obs.n_main]))
-    assert(isequal(size(obs.f_unused), [1 obs.n_filt-1]))
+    assert(isequal(size(obs.f_hold), int16([1 obs.n_hold])))
+    assert(isequal(size(obs.f_main), int16([1 obs.n_main])))
+    assert(isequal(size(obs.f_unused), int16([1 obs.n_filt-1])))
     comb = [obs.f_hold obs.f_main obs.f_unused];
-    comb = sort(comb(~isnan(comb)));
+    comb = sort(nonzeros(comb))';
     assert(isequal(comb, 1:obs.n_filt))
 
     % Right-shift all filters in holding group. This causes

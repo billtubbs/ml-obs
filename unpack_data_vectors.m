@@ -1,5 +1,5 @@
-function varargout = unpack_data_vectors(vdata)
-% varargout = unpack_data_vectors(vdata)
+function vars = unpack_data_vectors(vdata, numtype)
+% vars = unpack_data_vectors(vdata, numtype)
 % Unpack a set of variables using the data in vdata.
 % vdata is a struct created by the function 
 % make_data_vectors for storing numerical data as
@@ -27,8 +27,12 @@ function varargout = unpack_data_vectors(vdata)
 % 
 %     {[6]}    {1×2 double}    {[9]}
 % 
-    varargout = cell(1, nargout);
-    for i = 1:nargout
+    if nargin < 2
+        numtype = 'double';
+    end
+    n_vars = numel(vdata.vecs);
+    vars = cell(size(vdata.dims));
+    for i = 1:n_vars
         vec = vdata.vecs{i};
         type = vdata.types{i};
         dim = vdata.dims{i};
@@ -36,13 +40,8 @@ function varargout = unpack_data_vectors(vdata)
             vd.vecs = mat2cell(vec, 1, cellfun(@numel_recursive, dim));
             vd.types = type;
             vd.dims = dim;
-            args = cell(1, numel(vd.vecs));
-            [args{:}] = unpack_data_vectors(vd);
-            varargout{i} = args;
-        elseif isequal(type, 'double')
-            varargout{i} = reshape(vec, dim);
+            vars{i} = unpack_data_vectors(vd);
         else
-            error("TypeError: invalid type.")
-        end
+            vars{i} = reshape(vec, dim);
     end
 end

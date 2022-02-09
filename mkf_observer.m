@@ -66,7 +66,7 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
     % Sequence index and counter for prob. updates
     % obs.i(1) is the sequence index (1 <= i(1) <= obs.f)
     % obs.i(2) is the counter for prob. updates (1 <= i(2) <= obs.d)
-    obs.i = nan(1, 2);
+    obs.i = int16([0 0]);
     obs.i_next = int16([1 1]);
 
     % Initialize conditional probabilities: all equally likely

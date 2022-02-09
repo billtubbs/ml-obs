@@ -2,7 +2,7 @@ function [group, f_removed] = add_to_group_with_replacement(group, new, p)
 % [group, f_removed] = add_to_group_with_replacement(group, new, p)
 % Adds values in vector new to vector group according to the
 % following logic:
-%  1. First, replace any nan values in group with values
+%  1. First, replace any zero values in group with values
 %     from new. If all values in new were added to group,
 %     then finish, returning f_replaced = [].
 %  2. Rank all values in group and new combined, according
@@ -14,7 +14,7 @@ function [group, f_removed] = add_to_group_with_replacement(group, new, p)
 %  Arguments:
 %    group : vector
 %        Row vector containing indices of p (no duplicates)
-%        and/or nan values.
+%        and/or zero values.
 %    new : vector
 %        Row vector containing only indices of p (no duplicates).
 %    p : vector
@@ -45,9 +45,9 @@ function [group, f_removed] = add_to_group_with_replacement(group, new, p)
 %      2
 % 
 % Example 2:
-% >> group = [1 2 3 nan];
+% >> group = [1 2 3 0];
 % >> new = [4 5];
-% >> p = [0.4 0.1 0.25 0.05 0.2];  % 4 is lowest
+% >> p = [0.4 0.1 0.25 0.05 0.2];  % #4 is lowest
 % >> [group, f_removed] = add_to_group_with_replacement(group, new, p)
 % 
 % group =
@@ -60,10 +60,10 @@ function [group, f_removed] = add_to_group_with_replacement(group, new, p)
 %      4
 % 
     n_new = numel(new);
-    n_free = sum(isnan(group));
+    n_free = sum(group == 0);
     if n_free > 0
-        % First fill any empty spaces (nans) in group
-        free_spaces = find(isnan(group), n_new);
+        % First fill any empty spaces (zeros) in group
+        free_spaces = find(group == 0, n_new);
         group(free_spaces) = new(1:numel(free_spaces));
         new = new(n_free+1:end);
         n_new = numel(new);

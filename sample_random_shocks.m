@@ -1,9 +1,9 @@
 function [x, a] = sample_random_shocks(sz, p, sigma1, sigma2)
 % [x, a] = sample_random_shocks(s, p, sigma1, sigma2)
 %
-% Generate an array of values for one or more random
-% variables x(k,i) as defined in section 2.1 of MacGregor
-% et al. (1984).
+% Generate an array of random shock values for one or more
+% random variables x(k,i) as defined in section 2.1 of MacGregor
+% et al. (1984) and Robertson et al. (1995).
 %
 % Arguments:
 %   sz : array or scalar
@@ -62,6 +62,18 @@ function [x, a] = sample_random_shocks(sz, p, sigma1, sigma2)
 %    0   0
 %    1   0
 % 
+% References:
+%  -  MacGregor, J. F., Harris, T. J., & Wright, J. D. (1984). 
+%     Duality Between the Control of Processes Subject to Randomly 
+%     Occurring Deterministic Disturbances and ARIMA Stochastic  
+%     Disturbances. Technometrics, 26(4), 389-397.  
+%     https://doi.org/10.1080/00401706.1984.10487992
+%  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
+%     Detection and estimation of randomly occurring 
+%     deterministic disturbances. Proceedings of 1995 American
+%     Control Conference - ACC'95, 6, 4453-4457. 
+%     https://doi.org/10.1109/ACC.1995.532779
+%
 
     if isscalar(sz)
         sz = [sz 1];

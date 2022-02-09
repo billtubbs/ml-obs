@@ -87,7 +87,7 @@ function obs = update_MKF(obs, uk, yk, show_plots)
             set(gcf,'Position',[f*250-150 50 250 150])
         end
 
-        % Index of model used in previous sample time  TOOD: ******
+        % Index of model used in previous sample time  TODO: ******
         ind_km1 = gamma_k(f) + 1;  % MATLAB indexing
 
         % Update model indicator value gamma(k) with the

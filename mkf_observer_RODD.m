@@ -50,6 +50,8 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
         x0 = zeros(n,1);
     end
 
+    assert(f < 65536, "ValueError: f too large.")
+
     % Check size of process covariance default matrix
     assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
@@ -57,7 +59,7 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     Bu = B(:, u_meas);
     Bw = B(:, ~u_meas);
     Du = D(:, u_meas);
-    nw = sum(~u_meas);  % Number of input disturbances
+    nw = int16(sum(~u_meas));  % Number of input disturbances
     assert(nw > 0, "ValueError: u_meas");
 
     % Number of filters needed

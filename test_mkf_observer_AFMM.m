@@ -35,10 +35,10 @@ assert(AFMM1.n_filt == 5)
 assert(AFMM1.n_min == 3)
 assert(isequal(AFMM1.n_hold, 3))
 assert(isequal(AFMM1.n_main, 2))
-assert(isequaln(AFMM1.f_hold, nan(1, 3)))
-assert(isequaln(AFMM1.f_main, [1 nan]))
+assert(isequaln(AFMM1.f_hold, zeros(1, 3)))
+assert(isequaln(AFMM1.f_main, [1 0]))
 assert(isequal(AFMM1.f_unused, 2:AFMM1.n_filt))
-assert(isequaln(AFMM1.i, nan(1, 2)))
+assert(isequaln(AFMM1.i, [0 0]))
 assert(AFMM1.n == 2)
 assert(AFMM1.nu == 1)
 assert(AFMM1.ny == 1)
@@ -66,10 +66,10 @@ assert(AFMM2.n_filt == 10)
 assert(AFMM2.n_min == 4)
 assert(isequal(AFMM2.n_hold, 4))
 assert(isequal(AFMM2.n_main, 6))
-assert(isequaln(AFMM2.f_hold, nan(1, 4)))
-assert(isequaln(AFMM2.f_main, [1 nan(1, 5)]))
+assert(isequaln(AFMM2.f_hold, zeros(1, 4)))
+assert(isequaln(AFMM2.f_main, [1 zeros(1, 5)]))
 assert(isequal(AFMM2.f_unused, 2:AFMM2.n_filt))
-assert(isequaln(AFMM2.i, nan(1, 2)))
+assert(isequaln(AFMM2.i, [0 0]))
 assert(AFMM2.n == 2)
 assert(AFMM2.nu == 1)
 assert(AFMM2.ny == 1)
@@ -189,19 +189,19 @@ for i = 1:n_filt
     obs.seq{i}(8) = i;
 end
 seq0 = [
-    nan nan nan nan nan nan nan 1
-    nan nan nan nan nan nan nan 2
-    nan nan nan nan nan nan nan 3
-    nan nan nan nan nan nan nan 4
-    nan nan nan nan nan nan nan 5
+    0 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 2
+    0 0 0 0 0 0 0 3
+    0 0 0 0 0 0 0 4
+    0 0 0 0 0 0 0 5
 ];
-assert(isequaln(obs.i, nan(1, 2)))
+assert(isequaln(obs.i, [0 0]))
 assert(isequaln(obs.i_next, [1 1]))
 assert(isequaln(cell2mat(obs.seq), seq0))
 assert(isequal(obs.n_hold, 2))
 assert(isequal(obs.n_main, 3))
-assert(isequaln(obs.f_hold, [nan nan]))
-assert(isequaln(obs.f_main, [1 nan nan]))
+assert(isequaln(obs.f_hold, [0 0]))
+assert(isequaln(obs.f_main, [1 0 0]))
 assert(isequal(obs.f_unused, 2:obs.n_filt))
 %disp(obs.i)  % use for debugging
 %disp(debug_array(obs))
@@ -218,17 +218,17 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 nan nan nan nan nan nan 1
-    1 nan nan nan nan nan nan 1
-    0 nan nan nan nan nan nan 3
-    0 nan nan nan nan nan nan 4
-    0 nan nan nan nan nan nan 5
+    0 0 0 0 0 0 0 1
+    1 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 3
+    0 0 0 0 0 0 0 4
+    0 0 0 0 0 0 0 5
 ];
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [2 nan]))
-assert(isequaln(obs.f_main, [1 nan nan]))
+assert(isequaln(obs.f_hold, [2 0]))
+assert(isequaln(obs.f_main, [1 0 0]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
@@ -244,17 +244,17 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 nan nan nan nan nan 1
-    1 0 nan nan nan nan nan 1
-    0 1 nan nan nan nan nan 1
-    0 0 nan nan nan nan nan 4
-    0 0 nan nan nan nan nan 5
+    0 0 0 0 0 0 0 1
+    1 0 0 0 0 0 0 1
+    0 1 0 0 0 0 0 1
+    0 0 0 0 0 0 0 4
+    0 0 0 0 0 0 0 5
 ];
 assert(isequaln(obs.i, [2 1]))
 assert(isequaln(obs.i_next, [3 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [3 2]))
-assert(isequaln(obs.f_main, [1 nan nan]))
+assert(isequaln(obs.f_main, [1 0 0]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
@@ -270,17 +270,17 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 0 nan nan nan nan 1
-    1 0 0 nan nan nan nan 1
-    0 1 0 nan nan nan nan 1
-    0 0 1 nan nan nan nan 1  % all sequences are splits from #1
-    0 0 0 nan nan nan nan 5  % (this is not in use)
+    0 0 0 0 0 0 0 1
+    1 0 0 0 0 0 0 1
+    0 1 0 0 0 0 0 1
+    0 0 1 0 0 0 0 1  % all sequences are splits from #1
+    0 0 0 0 0 0 0 5  % (this is not in use)
 ];
 assert(isequaln(obs.i, [3 1]))
 assert(isequaln(obs.i_next, [4 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [4 3]))
-assert(isequaln(obs.f_main, [1 2 nan]))
+assert(isequaln(obs.f_main, [1 2 0]))
 %disp(obs.i)
 %disp(debug_array(obs))
 
@@ -296,18 +296,18 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 0 0 nan nan nan 1
-    1 0 0 0 nan nan nan 1
-    0 1 0 0 nan nan nan 1
-    0 0 1 0 nan nan nan 1
-    0 0 0 1 nan nan nan 1  % all sequences are splits from #1
+    0 0 0 0 0 0 0 1
+    1 0 0 0 0 0 0 1
+    0 1 0 0 0 0 0 1
+    0 0 1 0 0 0 0 1
+    0 0 0 1 0 0 0 1  % all sequences are splits from #1
 ];
 assert(isequaln(obs.i, [4 1]))
 assert(isequaln(obs.i_next, [5 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [5 4]))
 assert(isequaln(obs.f_main, [1 2 3]))
-assert(isequaln(obs.f_unused, nan(1, 4)))  % all filters now in use
+assert(isequaln(obs.f_unused, zeros(1, 4)))  % all filters now in use
 %disp(obs.i)
 %disp(debug_array(obs))
 
@@ -323,18 +323,18 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 0 0 0 nan nan 1
-    0 0 0 0 1 nan nan 1  % this seq. has now been replaced
-    0 1 0 0 0 nan nan 1
-    0 0 1 0 0 nan nan 1
-    0 0 0 1 0 nan nan 1
+    0 0 0 0 0 0 0 1
+    0 0 0 0 1 0 0 1  % this seq. has now been replaced
+    0 1 0 0 0 0 0 1
+    0 0 1 0 0 0 0 1
+    0 0 0 1 0 0 0 1
 ];
 assert(isequaln(obs.i, [5 1]))
 assert(isequaln(obs.i_next, [6 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [2 5]))
 assert(isequaln(obs.f_main, [1 4 3]))
-assert(isequaln(obs.f_unused, nan(1, 4)))
+assert(isequaln(obs.f_unused, zeros(1, 4)))
 %disp(obs.i)
 %disp(debug_array(obs))
 
@@ -350,11 +350,11 @@ uk = U_m(i,:)';
 yk = Y_m(i,:)';
 obs = update_AFMM(obs, uk, yk);
 seq = [
-    0 0 0 0 0 0 nan 1
-    0 0 0 0 1 0 nan 1
-    0 0 0 0 0 1 nan 1
-    0 0 1 0 0 0 nan 1
-    0 0 0 1 0 0 nan 1
+    0 0 0 0 0 0 0 1
+    0 0 0 0 1 0 0 1
+    0 0 0 0 0 1 0 1
+    0 0 1 0 0 0 0 1
+    0 0 0 1 0 0 0 1
 ];
 assert(isequaln(obs.i, [6 1]))
 assert(isequaln(obs.i_next, [7 1]))
@@ -830,10 +830,10 @@ assert(AFMM1.n_filt == 15)
 assert(AFMM1.n_min == 5)
 assert(isequal(AFMM1.n_hold, 5*2))
 assert(isequal(AFMM1.n_main, 5))
-assert(isequaln(AFMM1.f_hold, nan(1, 10)))
-assert(isequaln(AFMM1.f_main, [1 nan(1, 4)]))
+assert(isequaln(AFMM1.f_hold, zeros(1, 10)))
+assert(isequaln(AFMM1.f_main, [1 zeros(1, 4)]))
 assert(isequal(AFMM1.f_unused, 2:AFMM1.n_filt))
-assert(isequaln(AFMM1.i, nan(1, 2)))
+assert(isequaln(AFMM1.i, [0 0]))
 assert(AFMM1.n == 4)
 assert(AFMM1.nu == 2)
 assert(AFMM1.ny == 2)
@@ -863,10 +863,10 @@ assert(AFMM2.n_filt == 30)
 assert(AFMM2.n_min == 10)
 assert(isequal(AFMM2.n_hold, 10*2))
 assert(isequal(AFMM2.n_main, 10))
-assert(isequaln(AFMM2.f_hold, nan(1, 20)))
-assert(isequaln(AFMM2.f_main, [1 nan(1, 9)]))
+assert(isequaln(AFMM2.f_hold, zeros(1, 20)))
+assert(isequaln(AFMM2.f_main, [1 zeros(1, 9)]))
 assert(isequal(AFMM2.f_unused, 2:AFMM2.n_filt))
-assert(isequaln(AFMM2.i, nan(1, 2)))
+assert(isequaln(AFMM2.i, [0 0]))
 assert(AFMM2.n == 4)
 assert(AFMM2.nu == 2)
 assert(AFMM2.ny == 2)

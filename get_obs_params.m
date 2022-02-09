@@ -1,8 +1,8 @@
 function params = get_obs_params(obs)
-% T = get_obs_params(obs) returns a struct containing
+% params = get_obs_params(obs) returns a struct containing
 % selected parameters of the observer. Which params
-% are selected depends on the observer label.
-
+% are selected depends on the observer type.
+%
     if strcmp(obs.label, 'none')  % no observer
 
         params = struct();
@@ -68,6 +68,7 @@ function params = get_obs_params(obs)
         params.epsilon = obs.epsilon;
         params.sigma_wp = obs.sigma_wp;
         params.n_filt = obs.n_filt;
+        params.d = obs.d;
         params.f = obs.f;
         params.n_min = obs.n_min;
 
