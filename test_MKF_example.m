@@ -3,12 +3,9 @@
 %
 
 clear all
+show_plots = false;
 
-
-%% Generate randomly-occurring shocks
-% Generate a sample sequence of the random variable $w_{p,i} \left(k\right)$ 
-% described in Robertson et al. (1995).
-
+% Generate randomly-occurring shocks
 % Reset random number generator
 seed = 22;
 rng(seed)
@@ -22,33 +19,31 @@ sigma_w = [0.01; 1];
 
 [Wp, alpha] = sample_random_shocks(nT+1, epsilon, sigma_w(2), sigma_w(1));
 
-figure(1)
-subplot(3,1,[1 2])
-stairs(0:nT,Wp); grid on
-ylabel('wp(k)')
-subplot(3,1,3)
-stairs(0:nT, alpha); grid on
-ylim([-0.1 1.1])
-xlabel('k')
-ylabel('alpha(k)')
+if show_plots
+    figure(1)
+    subplot(3,1,[1 2])
+    stairs(0:nT,Wp); grid on
+    ylabel('wp(k)')
+    subplot(3,1,3)
+    stairs(0:nT, alpha); grid on
+    ylim([-0.1 1.1])
+    xlabel('k')
+    ylabel('alpha(k)')
+end
 
-%% Load system model
-% 
-
+% Load system model
 % First order SISO system with one input disturbance
 sys_rodin_step
 
 % The state-space representation of the augmented system from
 % above file:
-A, B, C, D, Ts
-Gpss
+% A, B, C, D, Ts;
+% Gpss;
 
 % Save simulation results here
 sim_results = struct();
 
-
-%% Simulate system in MATLAB
-
+% Simulate system in MATLAB
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
 U = zeros(nT+1,1);
@@ -57,22 +52,20 @@ U(t>=5) = 1;
 V = sigma_M*randn(nT+1, 1);
 Ym = Y + V;  % measurement
 
-figure(2)
-subplot(2,1,1)
-plot(t,Y,t,Ym); grid on
-ylabel('y(k) and y_m(k)')
-legend('y(k)', 'ym(k)')
-subplot(2,1,2)
-stairs(t, [U Wp]); grid on
-xlabel('k')
-ylabel('u(k) and wp(k)')
-legend('u(k)', 'wp(k)')
+if show_plots
+    figure(2)
+    subplot(2,1,1)
+    plot(t,Y,t,Ym); grid on
+    ylabel('y(k) and y_m(k)')
+    legend('y(k)', 'ym(k)')
+    subplot(2,1,2)
+    stairs(t, [U Wp]); grid on
+    xlabel('k')
+    ylabel('u(k) and wp(k)')
+    legend('u(k)', 'wp(k)')
+end
 
-
-%% Kalman filter simulation
-% The function |kalman_filter| can be used to instantiate a struct variable 
-% containing the parameters to simulate a standard Kalman filter:
-
+% Kalman filter simulation
 % Parameters
 P0 = [ 0.085704    0.044364
        0.044364    0.036832];  % steady-state values
@@ -94,19 +87,21 @@ for i = 1:nT
     Yk_est(i+1,:) = obs.ykp1_est';
 end
 
-figure(3)
-subplot(2,1,1)
-plot(t,[Y Yk_est]); grid on
-ylabel('y(k) and y_est(k)')
-legend('y(k)','y_est(k)')
-subplot(2,1,2)
-plot(t, [X Xk_est]); grid on
-xlabel('k')
-ylabel('xi(k) and xi_est(k)')
-legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
+if show_plots
+    figure(3)
+    subplot(2,1,1)
+    plot(t,[Y Yk_est]); grid on
+    ylabel('y(k) and y_est(k)')
+    legend('y(k)','y_est(k)')
+    subplot(2,1,2)
+    plot(t, [X Xk_est]); grid on
+    xlabel('k')
+    ylabel('xi(k) and xi_est(k)')
+    legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
+end
 
 % Calculate mean-squared error in state estimates
-mse_KF = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
+mse_KF = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 assert(round(mse_KF, 4) == 0.0873)
 
 % Save results
@@ -114,8 +109,7 @@ sim_results.KF1.Xk_est = Xk_est;
 sim_results.KF1.Yk_est = Yk_est;
 sim_results.KF1.mse = mse_KF;
 
-
-%% Sub-optimal multi-model observer 1 simulation
+% Sub-optimal multi-model observer 1 simulation
 % Sub-optimal multi-model observer as described by Robertson _et al._ (1995).
 
 % Define multi-model filter
@@ -140,19 +134,21 @@ for i = 1:nT
     Yk_est(i+1,:) = obs.ykp1_est';
 end
 
-figure(4)
-subplot(2,1,1)
-plot(t,[Y Yk_est]); grid on
-ylabel('y(k) and y_est(k)')
-legend('y(k)','y_est(k)')
-subplot(2,1,2)
-plot(t, [X Xk_est]); grid on
-xlabel('k')
-ylabel('xi(k) and xi_est(k)')
-legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
+if show_plots
+    figure(4)
+    subplot(2,1,1)
+    plot(t,[Y Yk_est]); grid on
+    ylabel('y(k) and y_est(k)')
+    legend('y(k)','y_est(k)')
+    subplot(2,1,2)
+    plot(t, [X Xk_est]); grid on
+    xlabel('k')
+    ylabel('xi(k) and xi_est(k)')
+    legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
+end
 
 % Calculate mean-squared error in state estimates
-mse_MKF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
+mse_MKF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 assert(round(mse_MKF1, 4) == 0.1029)
 
 % Save results
@@ -160,8 +156,7 @@ sim_results.MKF1.Xk_est = Xk_est;
 sim_results.MKF1.Yk_est = Yk_est;
 sim_results.MKF1.mse = mse_MKF1;
 
-
-%% Sub-optimal multi-model observer 2 simulation
+% Sub-optimal multi-model observer 2 simulation
 % Sub-optimal multi-model observer as described by Eriksson and Isaksson (1996).
 
 % Define multi-model filter
@@ -186,49 +181,24 @@ for i = 1:nT
     Yk_est(i+1,:) = obs.ykp1_est';
 end
 
-figure(5)
-subplot(2,1,1)
-plot(t,[Y Yk_est]); grid on
-ylabel('y(k) and y_est(k)')
-legend('y(k)','y_est(k)')
-subplot(2,1,2)
-plot(t, [X Xk_est]); grid on
-xlabel('k')
-ylabel('xi(k) and xi_est(k)')
-legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
+if show_plots
+    figure(5)
+    subplot(2,1,1)
+    plot(t,[Y Yk_est]); grid on
+    ylabel('y(k) and y_est(k)')
+    legend('y(k)','y_est(k)')
+    subplot(2,1,2)
+    plot(t, [X Xk_est]); grid on
+    xlabel('k')
+    ylabel('xi(k) and xi_est(k)')
+    legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
+end
 
 % Calculate mean-squared error in state estimates
-mse_AFMM1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
+mse_AFMM1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 assert(round(mse_AFMM1, 4) == 0.0614)
 
 % Save results
-sim_results.MKF1.Xk_est = Xk_est;
-sim_results.MKF1.Yk_est = Yk_est;
-sim_results.MKF1.mse = mse_AFMM1;
-
-
-%% Simulate same observers in Simulink
-
-% See this Simulink model file:
-model = 'MMKF_example_sim';
-
-% Additional parameters for simulink model
-inputs.U = [t U];
-inputs.V = [t V];
-N = zeros(n,ny);
-inputs.Wp = [t Wp];
-
-fprintf("Running Simulink simulation...\n")
-sim_out = sim(model, 'ReturnWorkspaceOutputs', 'on');
-
-% Check both Kalman filter state estimates are the same
-assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KF1.Data), [], [1 2]) < 1e-6)
-
-% Check Kalman filter estimates are close to true system states
-assert(mean(abs(sim_out.X_hat_KF.Data - sim_out.X.Data), [1 2]) < 0.5)
-
-% Check KF1 and MKF1 Simulink estimates are same as MATLAB estimates
-assert(max(abs(sim_out.X_hat_KF1.Data - sim_results.KF1.Xk_est), [], [1 2]) < 1e-8)
-assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results.MKF1.Xk_est), [], [1 2]) < 1e-8)
-
-disp("Simulations complete")
+sim_results.MKF2.Xk_est = Xk_est;
+sim_results.MKF2.Yk_est = Yk_est;
+sim_results.MKF2.mse = mse_AFMM1;

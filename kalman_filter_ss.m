@@ -27,6 +27,7 @@ function obs = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0)
     assert(isequal(size(R), [ny ny]))
     obs.label = label;
     obs.status = 1;
+    obs.type = "KFSS";
 
     % Model
     N = zeros(n, ny);

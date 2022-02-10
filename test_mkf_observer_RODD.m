@@ -26,6 +26,7 @@ sigma_W = [0; 0];
 obs_rodin_step
 
 % Check observer attributes
+assert(strcmp(MKF1.type, "MKF_RODD"))
 assert(MKF1.epsilon == epsilon)
 assert(isequal(MKF1.sigma_wp, sigma_wp))
 assert(MKF1.n_filt == 7)
@@ -461,6 +462,7 @@ P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
+SKF.type = 'SKF';
 SKF.Q0 = Q0;
 SKF.Bw = Bw;
 SKF.sigma_wp = sigma_wp;
@@ -782,16 +784,16 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 
         % Kalman update equations
         % Update observer gains and covariance matrix
-        switch obs.label
+        switch obs.type
 
-            case {'KF1', 'KF2', 'KF3'}
+            case 'KF'
                 obs = update_KF(obs, uk_m, yk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K(:)';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'SKF'}
+            case 'SKF'
 
                 % Get actual shock occurence indicators
                 alpha_k = alpha(i, :);
@@ -803,7 +805,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 K_obs{i, 1} = obs.K(:)';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'MKF1', 'MKF2', 'MKF3', 'MKF4'}
+            case {'MKF', 'MKF_RODD'}
                 obs = update_MKF(obs, uk_m, yk_m);
 
                 % Record filter gains and covariance matrices
@@ -816,7 +818,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
 
             otherwise
-                error("Value error: observer not recognized")
+                error('Observer type not valid')
 
         end
 

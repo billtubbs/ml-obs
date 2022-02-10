@@ -38,6 +38,7 @@ label = "LB1";
 poles = [0.9; 0.9];
 x0 = [0.1; 0.5];
 LB = luenberger_filter(A,B,C,D,Ts,poles,label,x0);
+assert(strcmp(LB.type, "LB"))
 assert(isequal(LB.xkp1_est, x0))
 assert(LB.ykp1_est == C * x0)
 assert(LB.label == label);

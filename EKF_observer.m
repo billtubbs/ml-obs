@@ -76,5 +76,6 @@ function obs = EKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts, ...
     obs.xk_est = nan(size(x0));
     obs.yk_est = nan(size(y0));
     obs.P = nan(size(P0));
+    obs.type = "EKF";
 
 end

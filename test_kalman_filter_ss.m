@@ -23,6 +23,7 @@ x0 = [0.1; 0.5];
 % Define steady-state Kalman filter using kalman_filter_ss function
 label = 'KFSS';
 KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0);
+assert(strcmp(KFSS.type, "KFSS"))
 assert(isequal(KFSS.A, A))
 assert(isequal(KFSS.B, B))
 assert(isequal(KFSS.C, C))

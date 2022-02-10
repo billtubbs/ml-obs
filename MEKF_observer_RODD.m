@@ -192,5 +192,6 @@ function obs = MEKF_observer_RODD(n,state_fcn,meas_fcn,params, ...
     obs.nj = nj;
     obs.p_gamma_k = nan(n_filt, 1);
     obs.p_seq_g_Ykm1 = nan(n_filt, 1);
+    obs.type = "MEKF_RODD";
 
 end

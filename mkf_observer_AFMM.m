@@ -142,6 +142,7 @@ function obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     obs.sigma_wp = sigma_wp;
     obs.p_gamma = p_gamma;
     obs.nj = nj;
+    obs.type = "MKF_AFMM";
 
 end
 
@@ -195,7 +196,6 @@ function Q = construct_Q(Q0, Bw, var_wp, u_meas)
 
     % Add variances for models 2 to nj to reflect one
     % of each shocks occuring.
-    idx = find(~u_meas);
     for i = 1:nw
         var_i = var_wp(:, 1);  % no shock
         var_i(i) = var_wp(i, 2);  % shock

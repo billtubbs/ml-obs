@@ -149,6 +149,7 @@ d = 1;
 % First, define with no initial state specified (should be set to zero)
 MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1');
 
+assert(strcmp(MKF1.type, "MKF"))
 assert(isequal(MKF1.A, A))
 assert(isequal(MKF1.B, B))
 assert(isequal(MKF1.C, C))
@@ -310,8 +311,6 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
         uk = U(i, :);
 
         % Update observers
-        x_est = nan(1, n*n_obs);
-        y_est = nan(1, ny*n_obs);
         for f = 1:n_obs
             obs = observers{f};
             if strcmp(obs.label, obs_mkf.label)
@@ -324,11 +323,13 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
                     MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
                 end
             else
-                switch obs.label
-                    case {'KF1', 'KF2'}
+                switch obs.type
+                    case 'KF'
                         obs = update_KF(obs, uk, yk);
-                    case {'MKF1', 'MKF2', 'MKF3'}
+                    case 'MKF'
                         obs = update_MKF(obs, uk, yk);
+                    otherwise
+                        error('Observer type not valid')
                 end
             end
             xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';

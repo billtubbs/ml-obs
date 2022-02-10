@@ -127,5 +127,6 @@ function obs = MEKF_observer(n,state_fcn,meas_fcn,params,u_meas,y_meas,dfdx,dhdx
     obs.ny = ny;
     obs.n_filt = n_filt;
     obs.f = f;
+    obs.type = "MEKF";
 
 end

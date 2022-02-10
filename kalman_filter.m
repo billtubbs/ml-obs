@@ -33,6 +33,7 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
     assert(isequal(size(R), [ny ny]), "ValueError: size(R)")
     obs.label = label;
     obs.status = 1;
+    obs.type = "KF";
     obs.K = nan(n, 1);
 
     % Initialize estimates

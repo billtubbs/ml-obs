@@ -103,5 +103,6 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
     obs.ny = ny;
     obs.n_filt = n_filt;
     obs.f = f;
+    obs.type = "MKF";
 
 end

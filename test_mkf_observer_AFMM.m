@@ -29,6 +29,7 @@ sigma_W = [0; 0];
 obs_rodin_step
 
 % Check observer attributes
+assert(strcmp(AFMM1.type, "MKF_AFMM"))
 assert(AFMM1.epsilon == 0.01)
 assert(isequal(AFMM1.sigma_wp, sigma_wp))
 assert(AFMM1.n_filt == 5)
@@ -941,16 +942,16 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 
         % Kalman update equations
         % Update observer gains and covariance matrix
-        switch obs.label
+        switch obs.type
 
-            case {'KF1', 'KF2', 'KF3'}
+            case 'KF'
                 obs = update_KF(obs, uk_m, yk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'SKF'}
+            case 'SKF'
 
                 % Get actual shock occurence indicators
                 alpha_k = alpha(i, :);
@@ -962,7 +963,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 K_obs{i, 1} = obs.K';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'MKF1', 'MKF2', 'MKF3', 'MKF4'}
+            case {'MKF', 'MKF_RODD'}
                 obs = update_MKF(obs, uk_m, yk_m);
 
                 % Record filter gains and covariance matrices
@@ -974,7 +975,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 % Record filter conditional probabilities
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
 
-            case {'AFMM1', 'AFMM2'}
+            case 'MKF_AFMM'
                 obs = update_AFMM(obs, uk_m, yk_m);
 
                 % Record filter gains and covariance matrices
@@ -991,7 +992,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 AFMM_f_hold(i, :) = obs.f_hold;
 
             otherwise
-                error("Value error: observer not recognized")
+                error('Observer type not valid')
 
         end
 

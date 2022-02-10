@@ -103,70 +103,71 @@ function sim_out = run_simulation(Ts, data, u_meas, observers)
         for j = 1:n_obs
             obs = observers{j};  % makes a copy
 
-            if startsWith(obs.label, 'KF') | ...
-                    startsWith(obs.label, 'LB')
-                % Kalman filter or Luenberger observer
+            switch obs.type, 
 
-                % Update observer estimates
-                obs = update_KF(obs, uk_m, yk_m);
+                case {'KF', 'LB'}
+                    % Kalman filter or Luenberger observer
 
-            elseif startsWith(obs.label, 'SKF')
-                % Scheduled Kalman filters
+                    % Update observer estimates
+                    obs = update_KF(obs, uk_m, yk_m);
 
-                % Provide actual shock occurence
-                gamma_k = data{i, 'gamma'};
+                    case 'SKF'
+                    % Scheduled Kalman filters
 
-                % Update observer estimates
-                obs = update_SKF(obs, uk_m, yk_m, gamma_k);
-                
-            elseif startsWith(obs.label, 'MKF') 
-                % Multi-model Kalman filters
+                    % Provide actual shock occurence
+                    gamma_k = data{i, 'gamma'};
 
-                % Update observer estimates
-                obs = update_MKF(obs, uk_m, yk_m, show_plots);
+                    % Update observer estimates
+                    obs = update_SKF(obs, uk_m, yk_m, gamma_k);
 
-                % Save simulation data for plotting later
-                f_mkf = find(obs_mkf == j);
-                MKF_i{f_mkf}(i) = obs.i(1);
-                for f = 1:obs.n_filt
-                    MKF_X_est{f_mkf}(i, n*(f-1)+1:n*f) = ...
-                        obs.filters{f}.xkp1_est';
-                    MKF_Y_est{f_mkf}(i, ny*(f-1)+1:ny*f) = ...
-                        obs.filters{f}.ykp1_est';
-                end
-                MKF_p_seq_g_Yk{f_mkf}(i, :) = obs.p_seq_g_Yk';
+                case {'MKF', 'MKF_RODD'}
+                    % Multi-model Kalman filters
 
-            elseif startsWith(obs.label, 'AFMM')
-                % Adaptive forgetting multi-model observers
+                    % Update observer estimates
+                    obs = update_MKF(obs, uk_m, yk_m, show_plots);
 
-                % Update observer estimates
-                obs = update_AFMM(obs, uk_m, yk_m);
+                    % Save simulation data for plotting later
+                    f_mkf = find(obs_mkf == j);
+                    MKF_i{f_mkf}(i) = obs.i(1);
+                    for f = 1:obs.n_filt
+                        MKF_X_est{f_mkf}(i, n*(f-1)+1:n*f) = ...
+                            obs.filters{f}.xkp1_est';
+                        MKF_Y_est{f_mkf}(i, ny*(f-1)+1:ny*f) = ...
+                            obs.filters{f}.ykp1_est';
+                    end
+                    MKF_p_seq_g_Yk{f_mkf}(i, :) = obs.p_seq_g_Yk';
 
-                % Save simulation data for plotting later
-                f_mkf = find(obs_mkf == j);
-                MKF_i{f_mkf}(i) = obs.i(1);
-                for f = 1:obs.n_filt
-                    MKF_X_est{f_mkf}(i, n*(f-1)+1:n*f) = ...
-                        obs.filters{f}.xkp1_est';
-                    MKF_Y_est{f_mkf}(i, ny*(f-1)+1:ny*f) = ...
-                        obs.filters{f}.ykp1_est';
-                end
-                MKF_p_seq_g_Yk{f_mkf}(i, :) = obs.p_seq_g_Yk';
+                case 'MKF_AFMM'
+                    % Adaptive forgetting multi-model observers
 
-            elseif startsWith(obs.label, 'EKF')
-                % Extended Kalman filters
+                    % Update observer estimates
+                    obs = update_AFMM(obs, uk_m, yk_m);
 
-                % Update observer estimates
-                obs = update_EKF(obs, yk_m, uk_m, Ts);
+                    % Save simulation data for plotting later
+                    f_mkf = find(obs_mkf == j);
+                    MKF_i{f_mkf}(i) = obs.i(1);
+                    for f = 1:obs.n_filt
+                        MKF_X_est{f_mkf}(i, n*(f-1)+1:n*f) = ...
+                            obs.filters{f}.xkp1_est';
+                        MKF_Y_est{f_mkf}(i, ny*(f-1)+1:ny*f) = ...
+                            obs.filters{f}.ykp1_est';
+                    end
+                    MKF_p_seq_g_Yk{f_mkf}(i, :) = obs.p_seq_g_Yk';
 
-            elseif startsWith(obs.label, 'MEKF')
-                % Extended multi-model Kalman filters
+                case 'EKF'
+                    % Extended Kalman filters
 
-                % Update observer estimates
-                obs = update_MEKF(obs, yk_m, uk_m, Ts);
+                    % Update observer estimates
+                    obs = update_EKF(obs, yk_m, uk_m, Ts);
 
-            else
-                error('Value error: observer type not recognized')
+                case 'MEKF'
+                    % Multi-model extended Kalman filters
+
+                    % Update observer estimates
+                    obs = update_MEKF(obs, yk_m, uk_m, Ts);
+
+                otherwise
+                    error('Value error: observer type not recognized')
 
             end
 

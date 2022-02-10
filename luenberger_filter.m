@@ -25,7 +25,6 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
     obs.D = D;
     obs.Ts = Ts;
     obs.poles = poles;
-    ny = size(C, 1);
 
     % Compute observer gain
     if ny == 1
@@ -35,6 +34,7 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
     end
     obs.label = label;
     obs.status = 1;
+    obs.type = "LB";
 
     % Initialize estimates
     obs.xkp1_est = x0;

@@ -26,6 +26,7 @@ x0 = [0.1; 0.5];
 % Define dynamic Kalman filter using kalman_filter function
 label = 'KF';
 KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0);
+assert(strcmp(KF.type, "KF"))
 assert(isequal(KF.A, A))
 assert(isequal(KF.B, B))
 assert(isequal(KF.C, C))

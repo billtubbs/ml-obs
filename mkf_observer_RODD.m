@@ -180,5 +180,6 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     obs.nj = nj;
     obs.p_gamma_k = nan(n_filt, 1);
     obs.p_seq_g_Ykm1 = nan(n_filt, 1);
+    obs.type = "MKF_RODD";
 
 end

@@ -78,6 +78,7 @@ P0 = 1000*eye(n);
 Q0 = diag([Q1 Q2 0 0]);
 R = diag(Radj*sigma_M.^2);
 SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
+SKF.type = 'SKF';
 SKF.Q0 = Q0;
 SKF.Bw = Bw;
 SKF.sigma_wp = sigma_wp;
