@@ -13,7 +13,7 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
 %   label : string name.
 %   x0 : intial state estimates (optional).
 %
-    [n, ~, ny] = check_dimensions(A, B, C, D);
+    [n, nu, ny] = check_dimensions(A, B, C, D);
     if nargin == 9
         % Default initial state estimate
         x0 = zeros(n, 1);
@@ -34,8 +34,17 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
     obs.label = label;
     obs.status = 1;
     obs.K = nan(n, 1);
-    obs.static_gain = false;
+
+    % Initialize estimates
     obs.xkp1_est = x0;
     obs.ykp1_est = C * obs.xkp1_est;
+
+    % Flag used buy update_KF function
+    obs.static_gain = false;
+
+    % Add other useful variables
+    obs.n = n;
+    obs.nu = nu;
+    obs.ny = ny;
 
 end

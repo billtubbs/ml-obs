@@ -1,8 +1,9 @@
 function obs = update_AFMM(obs, uk, yk)
-% obs = update_AFMM(obs) updates the multi-model Kalman
-% filter using the adaptive forgetting through multiple
-% models (AFMM) method and calculates the estimates of
-% the states and output at the next sample time.
+% obs = update_AFMM(obs, uk, yk) updates the multi-
+% model Kalman filter using the adaptive forgetting 
+% through multiple models (AFMM) algorithm and 
+% calculates the estimates of the states and output 
+% at the next sample time.
 %
 % Sequence pruning method as described in Eriksson and
 % Isaksson (1996):
@@ -67,9 +68,9 @@ function obs = update_AFMM(obs, uk, yk)
     nw = size(obs.epsilon, 1);
 
     % Consistency checks - can be removed later
-    assert(isequal(size(obs.f_hold), int16([1 obs.n_hold])))
-    assert(isequal(size(obs.f_main), int16([1 obs.n_main])))
-    assert(isequal(size(obs.f_unused), int16([1 obs.n_filt-1])))
+    assert(size(obs.f_hold, 2) == obs.n_hold)
+    assert(size(obs.f_main, 2) == obs.n_main)
+    assert(size(obs.f_unused, 2) == obs.n_filt-1)
     comb = [obs.f_hold obs.f_main obs.f_unused];
     comb = sort(nonzeros(comb))';
     assert(isequal(comb, 1:obs.n_filt))

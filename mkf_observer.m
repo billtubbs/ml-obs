@@ -96,7 +96,7 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
     obs.xkp1_est = x0;
     obs.ykp1_est = obs.C{1} * obs.xkp1_est;
 
-    % Save useful variables in struct
+    % Add other useful variables
     obs.nj = nj;
     obs.n = n;
     obs.nu = nu;

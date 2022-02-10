@@ -29,31 +29,28 @@ block.SetPreCompOutPortInfoToDynamic;
 % Get observer struct
 obs = block.DialogPrm(1).Data;
 
-% Determine system dimensions
-[n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
-
 % Input 1: u(k)
-block.InputPort(1).Dimensions = nu;
+block.InputPort(1).Dimensions = obs.nu;
 block.InputPort(1).DatatypeID = 0;  % double
 block.InputPort(1).Complexity = 'Real';
 block.InputPort(1).DirectFeedthrough = false;
 block.InputPort(1).SamplingMode = 'Sample';
 
 % Input 2: y(k)
-block.InputPort(2).Dimensions = ny;
+block.InputPort(2).Dimensions = obs.ny;
 block.InputPort(2).DatatypeID = 0;  % double
 block.InputPort(2).Complexity = 'Real';
 block.InputPort(2).DirectFeedthrough = false;
 block.InputPort(2).SamplingMode = 'Sample';
 
 % Output 1: x_est(k+1);
-block.OutputPort(1).Dimensions = n;
+block.OutputPort(1).Dimensions = obs.n;
 block.OutputPort(1).DatatypeID = 0; % double
 block.OutputPort(1).Complexity = 'Real';
 block.OutputPort(1).SamplingMode = 'Sample';
 
 % Output 2: y_est(k+1)
-block.OutputPort(2).Dimensions = ny;
+block.OutputPort(2).Dimensions = obs.ny;
 block.OutputPort(2).DatatypeID = 0; % double
 block.OutputPort(2).Complexity = 'Real';
 block.OutputPort(2).SamplingMode = 'Sample';
@@ -108,20 +105,35 @@ function DoPostPropSetup(block)
 % Get observer struct
 obs = block.DialogPrm(1).Data;
 
-% Determine variables and total memory size
-vars = {obs.xkp1_est, obs.ykp1_est, obs.i, obs.i_next, obs.p_seq_g_Yk, ...
-        obs.f_main, obs.f_hold, obs.f_unused, obs.seq};
-vdata = make_data_vectors(vars{:});
-n = size(vdata.vec, 1);
+% Get observer variables
+vars = get_obs_vars(obs);
+vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
+    vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
 
-block.NumDworks = 1;
+% Convert dynamic variables to vectors
+vdata = make_data_vectors(vars_double);
+vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
+vec_double = cell2mat(vdata.vecs);
+vec_int16 = cell2mat(vdata_int16.vecs);
+n_double = size(vec_double, 2);
+n_int16 = size(vec_int16, 2);
+
+% Set number of Dwork blocks
+block.NumDworks = 2;
 
 % All dynamic variable data
-block.Dwork(1).Name            = 'variables';
-block.Dwork(1).Dimensions      = n;
+block.Dwork(1).Name            = 'vars_double';
+block.Dwork(1).Dimensions      = n_double;
 block.Dwork(1).DatatypeID      = 0;      % double
 block.Dwork(1).Complexity      = 'Real'; % real
 block.Dwork(1).UsedAsDiscState = true;
+
+% All dynamic variable data
+block.Dwork(2).Name            = 'vars_int16';
+block.Dwork(2).Dimensions      = n_int16;
+block.Dwork(2).DatatypeID      = 4;      % int16
+block.Dwork(2).Complexity      = 'Real'; % real
+block.Dwork(2).UsedAsDiscState = true;
 
 %end PostPropagationSetup
 
@@ -138,15 +150,24 @@ function InitializeConditions(block)
 % Get observer struct
 obs = block.DialogPrm(1).Data;
 
-% Get all dynamic variables
-vars = {obs.P0, obs.Q0, obs.R, obs.epsilon, obs.sigma_wp, ...
-        obs.n_filt, obs.n_min};
+% Get observer variables
+vars = get_obs_vars(obs);
+vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
+    vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
 
-% Combine data into one row vector
-vdata = make_data_vectors(vars{:});
+% Convert dynamic variables to vectors
+vdata = make_data_vectors(vars_double);
+vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
+vec_double = cell2mat(vdata.vecs)';
+vec_int16 = cell2mat(vdata_int16.vecs)';
 
-% Initialize Dwork
-block.Dwork(1).Data = vdata.vec;
+% For debugging
+dlmwrite('test-double.csv', vec_double', 'delimiter', ',');
+dlmwrite('test-int16.csv', vec_int16', 'delimiter', ',');
+
+% Initialize Dwork memory vectors
+block.Dwork(1).Data = vec_double;
+block.Dwork(2).Data = vec_int16;
 
 %end InitializeConditions
 
@@ -169,18 +190,57 @@ function Outputs(block)
 %   Required         : Yes
 %   C MEX counterpart: mdlOutputs
 
+% Get observer struct
+obs = block.DialogPrm(1).Data;
 
-vdata.types = {'double', 'double', {'double', 'double'}, 'double', ...
-         'double', 'double', 'double'};
-vdata.dims = {[2 2], [2 2], {[1 1], [1 1]}, [1 1], [1 2], [1 1], [1 1]};
-vdata.data = block.Dwork(1).Data;
-[a, b, c] = unpack_data_vectors(vdata)
+% Get variables data from Dwork memory
+vec_double = block.Dwork(1).Data;
+vec_int16 = block.Dwork(2).Data;
+
+% Static data to unpack vectors
+vdata.types = {'double', 'double', 'double', ...
+    {'double', 'double', 'double', 'double', 'double'}, ...
+    {'double', 'double', 'double', 'double', 'double'}, ...
+    {'double', 'double', 'double', 'double', 'double'}};
+vdata.dims = {[2 1], [1 1], [5 1], {[2 1], [2 1], [2 1], [2 1], [2 1]}, ...
+    {[1 1], [1 1], [1 1], [1 1], [1 1]}, ...
+    {[2 2], [2 2], [2 2], [2 2], [2 2]}};
+vdata.n_els = {2, 1, 5, 10, 5, 20};
+vdata_int16.types = {'int16', 'int16', 'int16', 'int16', 'int16', {'int16'; 'int16'; 'int16'; 'int16'; 'int16'}};
+vdata_int16.dims = {[1 2], [1 2], [1 3], [1 2], [1 4], {[1 10]; [1 10]; [1 10]; [1 10]; [1 10]}};
+vdata_int16.n_els = {2, 2, 3, 2, 4, 50};
+
+% Add variables data
+vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
+vdata_int16.vecs = mat2cell(vec_int16', 1, cell2mat(vdata_int16.n_els));
+
+% Unpack data vectors - doubles
+vars_double = unpack_data_vectors(vdata);
+vars = struct();
+vars.xkp1_est = vars_double{1};
+vars.ykp1_est = vars_double{2};
+vars.p_seq_g_Yk = vars_double{3};
+vars.xkp1_est_f = vars_double{4};
+vars.ykp1_est_f = vars_double{5};
+vars.P_f = vars_double{6};
+
+% Unpack data vectors - integers
+vars_int16 = unpack_data_vectors(vdata_int16, 'int16');
+vars.int16.i = vars_int16{1};
+vars.int16.i_next = vars_int16{2};
+vars.int16.f_main = vars_int16{3};
+vars.int16.f_hold = vars_int16{4};
+vars.int16.f_unused = vars_int16{5};
+vars.int16.seq = vars_int16{6};
+
+% Set all dynamic variables
+obs = set_obs_vars(obs, vars);
 
 % Output y_est(k+1)
-block.OutputPort(1).Data = xkp1_est;
+block.OutputPort(1).Data = obs.xkp1_est;
 
 % Output y_est(k+1)
-block.OutputPort(2).Data = ykp1_est;
+block.OutputPort(2).Data = obs.ykp1_est;
 
 %end Outputs
 
@@ -195,30 +255,79 @@ function Update(block)
 % Get observer struct
 obs = block.DialogPrm(1).Data;
 
-% Determine system dimensions
-[n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
+% Get system dimensions
+n = obs.n;
+nu = obs.nu;
+ny = obs.ny;
 
 % Inputs
 uk = block.InputPort(1).Data;
 yk = block.InputPort(2).Data;
 
-% Variables from memory
-xkp1_est = reshape(block.Dwork(1).Data, [n 1]);
-P = reshape(block.Dwork(3).Data, [n n]);
-K = reshape(block.Dwork(4).Data, [n ny]);
+% Get variables data from Dwork memory
+vec_double = block.Dwork(1).Data;
+vec_int16 = block.Dwork(2).Data;
 
-% Calculate Kalman filter updates
-[K, P] = kalman_update(P, obs.A, obs.C, obs.Q, obs.R);
+% Static data to unpack vectors
+vdata.types = {'double', 'double', 'double', ...
+    {'double', 'double', 'double', 'double', 'double'}, ...
+    {'double', 'double', 'double', 'double', 'double'}, ...
+    {'double', 'double', 'double', 'double', 'double'}};
+vdata.dims = {[2 1], [1 1], [5 1], {[2 1], [2 1], [2 1], [2 1], [2 1]}, ...
+    {[1 1], [1 1], [1 1], [1 1], [1 1]}, ...
+    {[2 2], [2 2], [2 2], [2 2], [2 2]}};
+vdata.n_els = {2, 1, 5, 10, 5, 20};
+vdata_int16.types = {'int16', 'int16', 'int16', 'int16', 'int16', {'int16'; 'int16'; 'int16'; 'int16'; 'int16'}};
+vdata_int16.dims = {[1 2], [1 2], [1 3], [1 2], [1 4], {[1 10]; [1 10]; [1 10]; [1 10]; [1 10]}};
+vdata_int16.n_els = {2, 2, 3, 2, 4, 50};
 
-% Update state and output estimates for next timestep
-xkp1_est = obs.A * xkp1_est + obs.B * uk + K * (yk - obs.C * xkp1_est);
-ykp1_est = obs.C * xkp1_est;
+% Add variables data
+vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
+vdata_int16.vecs = mat2cell(vec_int16', 1, cell2mat(vdata_int16.n_els));
 
-% Save updated variables as row vectors
-block.Dwork(1).Data = reshape(xkp1_est, 1, []);
-block.Dwork(2).Data = reshape(ykp1_est, 1, []);
-block.Dwork(3).Data = reshape(P, 1, []);
-block.Dwork(4).Data = reshape(K, 1, []);
+% Unpack data vectors - doubles
+vars_double = unpack_data_vectors(vdata);
+vars = struct();
+vars.xkp1_est = vars_double{1};
+vars.ykp1_est = vars_double{2};
+vars.p_seq_g_Yk = vars_double{3};
+vars.xkp1_est_f = vars_double{4};
+vars.ykp1_est_f = vars_double{5};
+vars.P_f = vars_double{6};
+
+% Unpack data vectors - integers
+vars_int16 = unpack_data_vectors(vdata_int16, 'int16');
+vars.int16.i = vars_int16{1};
+vars.int16.i_next = vars_int16{2};
+vars.int16.f_main = vars_int16{3};
+vars.int16.f_hold = vars_int16{4};
+vars.int16.f_unused = vars_int16{5};
+vars.int16.seq = vars_int16{6};
+
+% Set all dynamic variables
+obs = set_obs_vars(obs, vars);
+
+% Update observer states
+obs = update_AFMM(obs, uk, yk);
+
+% Get observer variables
+vars = get_obs_vars(obs);
+vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
+    vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+
+% Convert dynamic variables to vectors
+vdata = make_data_vectors(vars_double);
+vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
+vec_double = cell2mat(vdata.vecs)';
+vec_int16 = cell2mat(vdata_int16.vecs)';
+
+% For debugging
+dlmwrite('test-double.csv', vec_double', 'delimiter', ',', '-append');
+dlmwrite('test-int16.csv', vec_int16', 'delimiter', ',', '-append');
+
+% Update Dwork memory vectors
+block.Dwork(1).Data = vec_double;
+block.Dwork(2).Data = vec_int16;
 
 %end Update
 

@@ -34,20 +34,24 @@ R = 0.5;
 N = zeros(n,ny);
 
 % Define Luenberger observer
+label = "LB1";
 poles = [0.9; 0.9];
 x0 = [0.1; 0.5];
-LB = luenberger_filter(A,B,C,D,Ts,poles,"LB1",x0);
+LB = luenberger_filter(A,B,C,D,Ts,poles,label,x0);
 assert(isequal(LB.xkp1_est, x0))
 assert(LB.ykp1_est == C * x0)
+assert(LB.label == label);
+assert(LB.status == 1);
+assert(LB.static_gain == true)
+assert(LB.n == n)
+assert(LB.nu == nu)
+assert(LB.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
-LB = luenberger_filter(A,B,C,D,Ts,poles,"LB1");
+LB = luenberger_filter(A,B,C,D,Ts,poles,label);
 assert(isequal(LB.xkp1_est, zeros(n, 1)))
 assert(LB.ykp1_est == 0)
-
 K_test = [0.16; 0];
-
-assert(LB.static_gain == true)
 assert(isequal(round(LB.K, 4), K_test))
 assert(isequal(LB.xkp1_est, zeros(2, 1)))
 assert(LB.ykp1_est == 0)
@@ -66,7 +70,7 @@ p = zeros(nT,1);
 p(t>=300) = 1; % step at time t=300
 
 u0 = 1;  % initial value of u
-x0 = inv(eye(length(A)) - A)*B*u0;  % steady-state value of x
+x0 = inv(eye(length(A)) - A) * B * u0;  % steady-state value of x
 
 % Intialize system (at k = 0)
 x = x0;
@@ -163,81 +167,3 @@ assert(isequal( ...
     round(sim_results{1:200, {'x1_est', 'x2_est'}}, 6), ...
     round(bench_sim_results{1:200, {'x1_est', 'x2_est'}}, 6) ...
 ))
-
-
-% % TODO: Add 2x2 system test
-% 
-% % Simulate 2x2 system
-% 
-% % Noise variances
-% sigma_p = 0.01;
-% sigma_M = 0.1;
-% 
-% % System model
-% A = [0.7 1;
-%      0 1];
-% B = [1 0;
-%      0 1];
-% C = [0.3 0];
-% D = zeros(1, 2);
-% Gpss = ss(A,B,C,D,Ts);
-% 
-% % Dimensions
-% n = size(A, 1);
-% nu = size(B, 2);
-% ny = size(C, 1);
-% 
-% %% Define and simulate Kalman filter
-% 
-% % Discrete time state space model
-% Q = sigma_p^2 * diag([1 1]);
-% R = sigma_M^2;
-% P0 = diag([1e-4 1e-4]);
-% KFSS = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KF1");
-% 
-% % Random inputs
-% U = (idinput(size(t)) + 1)/2;
-% P = sigma_p*randn(size(t));
-% U_sim = [U P];
-% 
-% % number of points to simulate
-% nT = 50;
-% t = Ts*(0:nT)';
-% 
-% % Random inputs
-% U = (idinput(size(t)) + 1)/2;
-% P = sigma_p*randn(size(t));
-% U_sim = [U P];
-% 
-% [Y, t, X] = lsim(Gpss, U_sim, t);
-% 
-% 
-% X_est = zeros(nT+1, n);
-% Y_est = zeros(nT+1, ny);
-% E_obs = zeros(nT+1, ny);
-% K_obs = zeros(nT+1, n);
-% trP_obs = zeros(nT+1, 1);
-% 
-% xk_est = zeros(n, 1);
-% 
-% for i=1:nT
-%     
-%     yk = Y(i,:)';
-%     if i > 1
-%         uk = U_sim(i-1, 1);
-%     else
-%         uk = 0;
-%     end
-%     
-%     % Kalman update equations
-%     % Update observer gains and covariance matrix
-%     KFSS = update_KF(KFSS, [uk; 0], yk);
-% 
-%     % Record observer estimates
-%     X_est(i, :) = KFSS.xkp1_est';
-%     Y_est(i, :) = KFSS.ykp1_est';
-%     E_obs(i, :) = yk' - KFSS.ykp1_est';
-%     K_obs(i, :) = KFSS.K';
-%     trP_obs(i, :) = trace(KFSS.P);
-% 
-% end

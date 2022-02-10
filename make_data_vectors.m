@@ -24,6 +24,7 @@ function vdata = make_data_vectors(vars, numtype)
     vecs = cell(1, n_vars);
     types = cell(1, n_vars);
     dims = cell(size(vars));
+    n_els = cell(1, n_vars);
     for i = 1:n_vars
         arg = vars{i};
         switch class(arg)
@@ -31,11 +32,13 @@ function vdata = make_data_vectors(vars, numtype)
                 vecs{i} = reshape(arg, 1, []);
                 types{i} = numtype;
                 dims{i} = size(arg);
+                n_els{i} = numel(arg);
             case 'cell'
                 vd = make_data_vectors(arg, numtype);
                 vecs{i} = cell2mat(vd.vecs);
                 types{i} = reshape(vd.types, size(arg));
                 dims{i} = reshape(vd.dims, size(arg));
+                n_els{i} = numel(vecs{i});
             otherwise
                 error("TypeError: invalid type.")
         end
@@ -43,4 +46,5 @@ function vdata = make_data_vectors(vars, numtype)
     vdata.vecs = vecs;
     vdata.types = types;
     vdata.dims = dims;
+    vdata.n_els = n_els;
 end

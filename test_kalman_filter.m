@@ -39,6 +39,9 @@ assert(isequal(KF.label, label))
 assert(KF.static_gain == false)
 assert(isequal(KF.xkp1_est, x0))
 assert(KF.ykp1_est == C * x0)
+assert(KF.n == n)
+assert(KF.nu == nu)
+assert(KF.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
 KF = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KF");

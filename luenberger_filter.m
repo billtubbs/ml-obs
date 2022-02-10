@@ -15,7 +15,7 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
 %     Transactions on Automatic Control, vol. 16, no. 6, pp. 596-602,
 %     December 1971, doi: 10.1109/TAC.1971.1099826.
 %
-    n = size(A,1);
+    [n, nu, ny] = check_dimensions(A, B, C, D);
     if nargin == 7
         x0 = zeros(n,1);
     end
@@ -26,15 +26,26 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
     obs.Ts = Ts;
     obs.poles = poles;
     ny = size(C, 1);
+
     % Compute observer gain
     if ny == 1
         obs.K = acker(A', C', poles)';
     else
         obs.K = place(A', C', poles)';
     end
-    obs.static_gain = true;
     obs.label = label;
     obs.status = 1;
+
+    % Initialize estimates
     obs.xkp1_est = x0;
     obs.ykp1_est = C * obs.xkp1_est;
+
+    % Flag used buy update_KF function
+    obs.static_gain = true;
+
+    % Add other useful variables
+    obs.n = n;
+    obs.nu = nu;
+    obs.ny = ny;
+
 end

@@ -43,8 +43,11 @@ sys_rodin_step
 A, B, C, D, Ts
 Gpss
 
+% Save simulation results here
+sim_results = struct();
 
-%% Simulate system
+
+%% Simulate system in MATLAB
 
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
@@ -106,6 +109,11 @@ legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
 mse_KF = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
 assert(round(mse_KF, 4) == 0.0873)
 
+% Save results
+sim_results.KF1.Xk_est = Xk_est;
+sim_results.KF1.Yk_est = Yk_est;
+sim_results.KF1.mse = mse_KF;
+
 
 %% Sub-optimal multi-model observer 1 simulation
 % Sub-optimal multi-model observer as described by Robertson _et al._ (1995).
@@ -147,6 +155,11 @@ legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
 mse_MKF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
 assert(round(mse_MKF1, 4) == 0.1029)
 
+% Save results
+sim_results.MKF1.Xk_est = Xk_est;
+sim_results.MKF1.Yk_est = Yk_est;
+sim_results.MKF1.mse = mse_MKF1;
+
 
 %% Sub-optimal multi-model observer 2 simulation
 % Sub-optimal multi-model observer as described by Eriksson and Isaksson (1996).
@@ -158,13 +171,13 @@ R = 0.1^2;
 f = 10;  % sequence history length
 n_filt = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
-MKF2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,'MKF2');
+AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,'AFMM1');
 
 % Simulate observer
 Xk_est = nan(nT+1,n);
 Yk_est = nan(nT+1,ny);
-obs = MKF2;
+obs = AFMM1;
 for i = 1:nT
     uk = U(i,:)';
     yk = Ym(i,:)';
@@ -173,7 +186,7 @@ for i = 1:nT
     Yk_est(i+1,:) = obs.ykp1_est';
 end
 
-figure(4)
+figure(5)
 subplot(2,1,1)
 plot(t,[Y Yk_est]); grid on
 ylabel('y(k) and y_est(k)')
@@ -185,8 +198,13 @@ ylabel('xi(k) and xi_est(k)')
 legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
 
 % Calculate mean-squared error in state estimates
-mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
-assert(round(mse_MKF2, 4) == 0.0614)
+mse_AFMM1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2])
+assert(round(mse_AFMM1, 4) == 0.0614)
+
+% Save results
+sim_results.MKF1.Xk_est = Xk_est;
+sim_results.MKF1.Yk_est = Yk_est;
+sim_results.MKF1.mse = mse_AFMM1;
 
 
 %% Simulate same observers in Simulink
@@ -208,5 +226,9 @@ assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KF1.Data), [], [1 2]) < 1e-
 
 % Check Kalman filter estimates are close to true system states
 assert(mean(abs(sim_out.X_hat_KF.Data - sim_out.X.Data), [1 2]) < 0.5)
+
+% Check KF1 and MKF1 Simulink estimates are same as MATLAB estimates
+assert(max(abs(sim_out.X_hat_KF1.Data - sim_results.KF1.Xk_est), [], [1 2]) < 1e-8)
+assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results.MKF1.Xk_est), [], [1 2]) < 1e-8)
 
 disp("Simulations complete")

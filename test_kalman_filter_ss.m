@@ -35,6 +35,9 @@ assert(KFSS.static_gain == true)
 assert(isequal(KFSS.xkp1_est, x0))
 assert(KFSS.ykp1_est == C * x0)
 assert(isa(KFSS.sys, 'ss'))
+assert(KFSS.n == n)
+assert(KFSS.nu == nu)
+assert(KFSS.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
 KFSS = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS");
