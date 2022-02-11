@@ -29,9 +29,10 @@ assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KF1.Data), [], [1 2]) < 1e-
 % Check Kalman filter estimates are close to true system states
 assert(mean(abs(sim_out.X_hat_KF.Data - sim_out.X.Data), [1 2]) < 0.5)
 
-% Check KF1 and MKF1 Simulink estimates are same as MATLAB estimates
+% Check all Simulink observer estimates are same as MATLAB estimates
 assert(max(abs(sim_out.X_hat_KF1.Data - sim_results.KF1.Xk_est), [], [1 2]) < 1e-8)
-assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results.MKF2.Xk_est), [], [1 2]) < 1e-8)
+assert(max(abs(sim_out.X_hat_MKF2.Data - sim_results.MKF2.Xk_est), [], [1 2]) < 1e-8)
+assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results.MKF1.Xk_est), [], [1 2]) < 1e-8)
 
 % TODO: add MKF_RODD observer to simulink model
 

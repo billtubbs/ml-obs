@@ -4,8 +4,8 @@ function [vec_double, vec_int16] = get_obs_vars_vecs(obs)
 vars = get_obs_vars(obs);
 
 switch obs.type
-    
-    case 'MKF_AFMM'
+
+    case {'MKF', 'MKF_RODD', 'MKF_AFMM'}
 
         vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
             vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};

@@ -144,8 +144,16 @@ obs = block.DialogPrm(1).Data;
 [vec_double, vec_int16] = get_obs_vars_vecs(obs);
 
 % For debugging
-dlmwrite('test-double.csv', vec_double', 'delimiter', ',');
-dlmwrite('test-int16.csv', vec_int16', 'delimiter', ',');
+switch obs.type
+
+    case {'MKF', 'MKF_RODD'}
+        dlmwrite('test-RODD-double.csv', vec_double, 'delimiter', ',');
+        dlmwrite('test-RODD-int16.csv', vec_int16, 'delimiter', ',');
+
+    case 'MKF_AFMM'
+        dlmwrite('test-AFMM-double.csv', vec_double, 'delimiter', ',');
+        dlmwrite('test-AFMM-int16.csv', vec_int16, 'delimiter', ',');
+end
 
 % Initialize Dwork memory vectors
 block.Dwork(1).Data = vec_double;
@@ -176,8 +184,8 @@ function Outputs(block)
 obs = block.DialogPrm(1).Data;
 
 switch obs.type
-    
-    case 'MKF_AFMM'
+
+    case {'MKF', 'MKF_RODD', 'MKF_AFMM'}
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
@@ -208,16 +216,36 @@ function Update(block)
 % Get observer struct
 obs = block.DialogPrm(1).Data;
 
-% Get system dimensions
-n = obs.n;
-nu = obs.nu;
-ny = obs.ny;
-
 % Inputs
 uk = block.InputPort(1).Data;
 yk = block.InputPort(2).Data;
 
+% Check size of input vectors
+assert(isequal(size(uk), [obs.nu 1]))
+assert(isequal(size(yk), [obs.ny 1]))
+
 switch obs.type
+
+    case {'MKF', 'MKF_RODD'}
+
+        % Get variables data from Dwork memory
+        vec_double = block.Dwork(1).Data;
+        vec_int16 = block.Dwork(2).Data;
+        obs = set_obs_vars_vecs(obs, vec_double, vec_int16);
+
+        % Update observer states
+        obs = update_MKF(obs, uk, yk);
+
+        % Make data vectors containing all variables
+        [vec_double, vec_int16] = get_obs_vars_vecs(obs);
+
+        % For debugging
+        dlmwrite('test-RODD-double.csv', vec_double, 'delimiter', ',', '-append');
+        dlmwrite('test-RODD-int16.csv', vec_int16, 'delimiter', ',', '-append');
+
+        % Update Dwork memory vectors
+        block.Dwork(1).Data = vec_double;
+        block.Dwork(2).Data = vec_int16;
 
     case 'MKF_AFMM'
 
@@ -226,24 +254,24 @@ switch obs.type
         vec_int16 = block.Dwork(2).Data;
         obs = set_obs_vars_vecs(obs, vec_double, vec_int16);
 
+        % Update observer states
+        obs = update_AFMM(obs, uk, yk);
+
+        % Make data vectors containing all variables
+        [vec_double, vec_int16] = get_obs_vars_vecs(obs);
+
+        % For debugging
+        dlmwrite('test-AFMM-double.csv', vec_double, 'delimiter', ',', '-append');
+        dlmwrite('test-AFMM-int16.csv', vec_int16, 'delimiter', ',', '-append');
+
+        % Update Dwork memory vectors
+        block.Dwork(1).Data = vec_double;
+        block.Dwork(2).Data = vec_int16;
+
     otherwise
         error('Value error: observer type not recognized')
 
 end
-
-% Update observer states
-obs = update_AFMM(obs, uk, yk);
-
-% Make data vectors containing all variables
-[vec_double, vec_int16] = get_obs_vars_vecs(obs);
-
-% For debugging
-dlmwrite('test-double.csv', vec_double', 'delimiter', ',', '-append');
-dlmwrite('test-int16.csv', vec_int16', 'delimiter', ',', '-append');
-
-% Update Dwork memory vectors
-block.Dwork(1).Data = vec_double;
-block.Dwork(2).Data = vec_int16;
 
 %end Update
 
