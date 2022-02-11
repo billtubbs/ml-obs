@@ -3,6 +3,7 @@
 %
 
 clear all
+%show_plots = true;
 show_plots = false;
 
 % Generate randomly-occurring shocks
@@ -24,6 +25,7 @@ if show_plots
     subplot(3,1,[1 2])
     stairs(0:nT,Wp); grid on
     ylabel('wp(k)')
+    title('Disturbance')
     subplot(3,1,3)
     stairs(0:nT, alpha); grid on
     ylim([-0.1 1.1])
@@ -58,21 +60,60 @@ if show_plots
     plot(t,Y,t,Ym); grid on
     ylabel('y(k) and y_m(k)')
     legend('y(k)', 'ym(k)')
+    title('Outputs')
     subplot(2,1,2)
     stairs(t, [U Wp]); grid on
     xlabel('k')
     ylabel('u(k) and wp(k)')
     legend('u(k)', 'wp(k)')
+    title('Inputs')
 end
 
-% Kalman filter simulation
+% Steady-state Kalman filter simulation
 % Parameters
-P0 = [ 0.085704    0.044364
-       0.044364    0.036832];  % steady-state values
 Q = diag([0.01^2 0.1^2]);
 R = 0.1^2;
 Bu = B(:,1);  % observer model without unmeasured inputs
 Du = D(:,1);
+KFSS = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,'KFSS');
+
+% Simulate observer
+Xk_est = nan(nT+1,n);
+Yk_est = nan(nT+1,ny);
+obs = KFSS;
+for i = 1:nT
+    uk = U(i,:)';
+    yk = Ym(i,:)';
+    obs = update_KF(obs, uk, yk);
+    Xk_est(i+1,:) = obs.xkp1_est';
+    Yk_est(i+1,:) = obs.ykp1_est';
+end
+
+if show_plots
+    figure(3)
+    subplot(2,1,1)
+    plot(t,[Y Yk_est]); grid on
+    ylabel('y(k) and y_est(k)')
+    legend('y(k)','y_est(k)')
+    title('Output')
+    subplot(2,1,2)
+    plot(t, [X Xk_est]); grid on
+    xlabel('k')
+    ylabel('xi(k) and xi_est(k)')
+    legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
+    title('States')
+end
+
+% Calculate mean-squared error in state estimates
+mse_KFSS = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
+
+% Save results
+sim_results.KFSS.Xk_est = Xk_est;
+sim_results.KFSS.Yk_est = Yk_est;
+sim_results.KFSS.mse = mse_KFSS;
+
+% Kalman filter with time-varying gain
+P0 = eye(n);
 KF1 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
 
 % Simulate observer
@@ -88,26 +129,27 @@ for i = 1:nT
 end
 
 if show_plots
-    figure(3)
+    figure(4)
     subplot(2,1,1)
     plot(t,[Y Yk_est]); grid on
     ylabel('y(k) and y_est(k)')
     legend('y(k)','y_est(k)')
+    title('Output')
     subplot(2,1,2)
     plot(t, [X Xk_est]); grid on
     xlabel('k')
     ylabel('xi(k) and xi_est(k)')
     legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
+    title('States')
 end
 
 % Calculate mean-squared error in state estimates
-mse_KF = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
-assert(round(mse_KF, 4) == 0.0873)
+mse_KF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 
 % Save results
 sim_results.KF1.Xk_est = Xk_est;
 sim_results.KF1.Yk_est = Yk_est;
-sim_results.KF1.mse = mse_KF;
+sim_results.KF1.mse = mse_KF1;
 
 % Sub-optimal multi-model observer 1 simulation
 % Sub-optimal multi-model observer as described by Robertson _et al._ (1995).
@@ -116,7 +158,7 @@ sim_results.KF1.mse = mse_KF;
 P0 = eye(n);
 Q0 = diag([0.01^2 0]);
 R = 0.1^2;
-f = 5;  % fusion horizon
+f = 8;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
 MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
@@ -135,21 +177,22 @@ for i = 1:nT
 end
 
 if show_plots
-    figure(4)
+    figure(5)
     subplot(2,1,1)
     plot(t,[Y Yk_est]); grid on
     ylabel('y(k) and y_est(k)')
     legend('y(k)','y_est(k)')
+    title('Output')
     subplot(2,1,2)
     plot(t, [X Xk_est]); grid on
     xlabel('k')
     ylabel('xi(k) and xi_est(k)')
     legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
+    title('States')
 end
 
 % Calculate mean-squared error in state estimates
 mse_MKF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
-assert(round(mse_MKF1, 4) == 0.1029)
 
 % Save results
 sim_results.MKF1.Xk_est = Xk_est;
@@ -182,23 +225,30 @@ for i = 1:nT
 end
 
 if show_plots
-    figure(5)
+    figure(6)
     subplot(2,1,1)
     plot(t,[Y Yk_est]); grid on
     ylabel('y(k) and y_est(k)')
     legend('y(k)','y_est(k)')
+    title('Output')
     subplot(2,1,2)
     plot(t, [X Xk_est]); grid on
     xlabel('k')
     ylabel('xi(k) and xi_est(k)')
     legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
+    title('States')
 end
 
 % Calculate mean-squared error in state estimates
 mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
-assert(round(mse_MKF2, 4) == 0.0614)
 
 % Save results
 sim_results.MKF2.Xk_est = Xk_est;
 sim_results.MKF2.Yk_est = Yk_est;
 sim_results.MKF2.mse = mse_MKF2;
+
+% Check MSE values
+assert(round(mse_KFSS, 4) == 0.0873)
+assert(round(mse_KF1, 4) == 0.0917)
+assert(round(mse_MKF1, 4) == 0.0981)
+assert(round(mse_MKF2, 4) == 0.0614)

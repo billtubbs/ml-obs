@@ -15,11 +15,9 @@ function n = numel_recursive(dims)
 % 
 %     10
 % 
-    if isa(dims, 'double')
-        n = prod(dims);
-    elseif iscell(dims)
+    if iscell(dims)
         n = sum(cellfun(@numel_recursive, dims));
-    else
-        error("TypeError: Invalid type");
+    elseif isnumeric(dims)
+        n = prod(dims);
     end
 end

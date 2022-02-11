@@ -149,7 +149,6 @@ obs = block.DialogPrm(1).Data;
 x0 = obs.xkp1_est;
 y0 = obs.ykp1_est;
 P0 = obs.P0;
-K = obs.K;
 
 % Initialize Dwork
 block.Dwork(1).Data = x0;
@@ -205,13 +204,14 @@ yk = block.InputPort(2).Data;
 
 % Variables from memory
 xkp1_est = block.Dwork(1).Data;
+ykp1_est = block.Dwork(2).Data;
 P = reshape(block.Dwork(3).Data, [obs.n obs.n]);
 
 % Calculate Kalman filter updates
 [K, P] = kalman_update(P, obs.A, obs.C, obs.Q, obs.R);
 
 % Update state and output estimates for next timestep
-xkp1_est = obs.A * xkp1_est + obs.B * uk + K * (yk - obs.C * xkp1_est);
+xkp1_est = obs.A * xkp1_est + obs.B * uk + K * (yk - ykp1_est);
 ykp1_est = obs.C * xkp1_est;
 
 % Save updated variables as row vectors

@@ -1,5 +1,5 @@
-function vars = unpack_data_vectors(vdata, numtype)
-% vars = unpack_data_vectors(vdata, numtype)
+function vars = unpack_data_vectors(vdata)
+% vars = unpack_data_vectors(vdata)
 % Unpack a set of variables using the data in vdata.
 % vdata is a struct created by the function 
 % make_data_vectors for storing numerical data as
@@ -27,9 +27,6 @@ function vars = unpack_data_vectors(vdata, numtype)
 % 
 %     {[6]}    {1×2 double}    {[9]}
 % 
-    if nargin < 2
-        numtype = 'double';
-    end
     n_vars = numel(vdata.vecs);
     vars = cell(size(vdata.dims));
     for i = 1:n_vars
@@ -43,5 +40,5 @@ function vars = unpack_data_vectors(vdata, numtype)
             vars{i} = unpack_data_vectors(vd);
         else
             vars{i} = reshape(vec, dim);
+        end
     end
-end

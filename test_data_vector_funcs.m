@@ -220,7 +220,7 @@ for i = 1:nT
 
     % Unpack vdata struct and copy values back to observer
     vars_double = unpack_data_vectors(vdata);
-    vars_int16 = unpack_data_vectors(vdata_int16, 'int16');
+    vars_int16 = unpack_data_vectors(vdata_int16);
     vars = struct();
     vars.xkp1_est = vars_double{1};
     vars.ykp1_est = vars_double{2};
@@ -313,7 +313,7 @@ for i = 1:nT
 
     % Unpack vdata struct and copy values back to observer
     vars_double = unpack_data_vectors(vdata);
-    vars_int16 = unpack_data_vectors(vdata_int16, 'int16');
+    vars_int16 = unpack_data_vectors(vdata_int16);
     vars = struct();
     vars.xkp1_est = vars_double{1};
     vars.ykp1_est = vars_double{2};
