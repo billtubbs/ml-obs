@@ -28,22 +28,27 @@ params = get_obs_params(SKF);
 assert(isequal(fieldnames(params), {'P0', 'R', 'Q0', 'sigma_wp'}'))
 
 params = get_obs_params(MKF1);
-assert(isequal(fieldnames(params), {'Q', 'R', 'f', 'd', 'n_filt', 'beta'}'))
-assert(isequal(params.Q, MKF1.Q))
+assert(isequal(fieldnames(params), {'P0', 'Q0', 'R', 'epsilon', 'sigma_wp', 'f', 'm', 'd', 'n_filt', 'beta'}'))
+assert(isequal(params.P0, MKF1.P0))
+assert(isequal(params.Q0, MKF1.Q0))
 assert(isequal(params.R, MKF1.R))
+assert(isequal(params.epsilon, MKF1.epsilon))
+assert(isequal(params.sigma_wp, MKF1.sigma_wp))
 assert(isequal(params.f, MKF1.f))
+assert(isequal(params.m, MKF1.m))
 assert(isequal(params.d, MKF1.d))
+assert(isequal(params.n_filt, MKF1.n_filt))
 assert(isequal(params.beta, MKF1.beta))
-
-% TODO: Rename the MKF1, MKF2 observers
-%params = get_obs_params(RODD);
-%assert(isequal(fieldnames(params), {'Q', 'R', 'f', 'd', 'n_filt', 'beta'}'))
 
 params = get_obs_params(AFMM1);
 assert(isequal(fieldnames(params), {'P0', 'Q0', 'R', 'epsilon', ...
     'sigma_wp', 'n_filt', 'd', 'f', 'n_min'}'))
-assert(isequal(params.Q0, AFMM1.Q0))
 assert(isequal(params.P0, AFMM1.P0))
-assert(isequal(params.f, AFMM1.f))
-assert(isequal(params.d, AFMM1.d))
+assert(isequal(params.Q0, AFMM1.Q0))
+assert(isequal(params.R, AFMM1.R))
+assert(isequal(params.epsilon, AFMM1.epsilon))
+assert(isequal(params.sigma_wp, AFMM1.sigma_wp))
 assert(isequal(params.n_filt, AFMM1.n_filt))
+assert(isequal(params.d, AFMM1.d))
+assert(isequal(params.f, AFMM1.f))
+assert(isequal(params.n_min, AFMM1.n_min))

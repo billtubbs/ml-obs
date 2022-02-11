@@ -166,13 +166,13 @@ R = 0.1^2;
 f = 10;  % sequence history length
 n_filt = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
-AFMM1 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,'AFMM1');
+MKF2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,'MKF2');
 
 % Simulate observer
 Xk_est = nan(nT+1,n);
 Yk_est = nan(nT+1,ny);
-obs = AFMM1;
+obs = MKF2;
 for i = 1:nT
     uk = U(i,:)';
     yk = Ym(i,:)';
@@ -195,10 +195,10 @@ if show_plots
 end
 
 % Calculate mean-squared error in state estimates
-mse_AFMM1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
-assert(round(mse_AFMM1, 4) == 0.0614)
+mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
+assert(round(mse_MKF2, 4) == 0.0614)
 
 % Save results
 sim_results.MKF2.Xk_est = Xk_est;
 sim_results.MKF2.Yk_est = Yk_est;
-sim_results.MKF2.mse = mse_AFMM1;
+sim_results.MKF2.mse = mse_MKF2;
