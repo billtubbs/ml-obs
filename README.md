@@ -45,6 +45,14 @@ Specialised multi-model observers:
 - [mkf_observer_RODD.m](mkf_observer_RODD.m) and [MEKF_observer_RODD.m](MEKF_observer_RODD.m) - multi-model observers for state estimation in the presence of *randomly-occurring deterministic disturbances* (RODDs) as described in Robertson et al. [[3]](#3).
 - [mkf_observer_AFMM.m](mkf_observer_AFMM.m) and [MEKF_observer_AFMM.m](MEKF_observer_AFMM.m) - multi-model observers for state estimation in the presence of *infreuently-occurring disturbances* with the adaptive forgetting through multiple models (AFMM) algorithm as described in Eriksson and Isaksson [[4]](#4).
 
+Simulink simulation tools
+- [kalman_filter_sfunc.m](kalman_filter_sfunc.m) - S-function for standard Kalman filter.
+- [kalman_filter_ss_sfunc.m](kalman_filter_ss_sfunc.m) - S-function for steady-state Kalman filter.
+- [mkf_observer_sfunc.m](mkf_observer_sfunc.m) - general-purpose S-function that works with all observer types.
+- [MKF_example_sim.slx](MKF_example_sim.slx) - Simulink model file containing S-function blocks.
+
+## Object hierarchy
+
 <p align="center">
     <img src="images/obj_struct_basic.png" alt="Diagram of objects and functions" width="75%">
 </p>
@@ -137,7 +145,7 @@ See the following LiveScripts for more detailed examples of how to use the funct
 
 - [kalman_example_SISO.mlx](kalman_example_SISO.mlx) - Kalman filter simulation on a simple single-input, single-output system
 - [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model observer examples on a 2x2 multivariable system
-- [MMKF_example.m](MMKF_example.m) - Simulates a Kalman filter and two multi-model observers on a SISO system with a RODD input step disturbance.
+- [MMKF_example.m](MMKF_example.m) - Simulates two Kalman filters and two multi-model observers on a SISO system with a RODD input step disturbance and compares the mean-squared estimation errors.
 
 ## Help
 
