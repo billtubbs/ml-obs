@@ -34,7 +34,7 @@ function obs = update_MKF(obs, uk, yk, show_plots)
                   mod(obs.i(2), obs.d) + 1];
 
     % Arrays to store model indicator sequence values
-    gamma_k = zeros(obs.n_filt, 1);
+    gamma_k = zeros(obs.n_filt, 1);  % TODO: This should be set here
     p_gamma_k = nan(obs.n_filt, 1);
 
     % Arrays to collect estimates from each filter
@@ -87,35 +87,36 @@ function obs = update_MKF(obs, uk, yk, show_plots)
             set(gcf,'Position',[f*250-150 50 250 150])
         end
 
-        % Index of model used in previous sample time  TODO: ******
-        ind_km1 = gamma_k(f) + 1;  % MATLAB indexing
+        % Index of model used in previous sample time
+        ind_km1 = obs.gamma_k(f) + 1;  % MATLAB indexing
 
         % Update model indicator value gamma(k) with the
         % current value from the filter's sequence
-        gamma_k(f) = obs.seq{f}(:, obs.i(1));
+        obs.gamma_k(f) = obs.seq{f}(:, obs.i(1));
 
         % Model index at current sample time
-        ind = gamma_k(f) + 1;  % MATLAB indexing
+        ind = obs.gamma_k(f) + 1;  % MATLAB indexing
 
         % Compute Pr(gamma(k)) based on Markov transition
         % probability matrix
-        p_gamma_k(f) = prob_gamma(gamma_k(f), obs.T(ind_km1, :)');
+        % TODO: Can this be computed prior to the for loop for efficiency?
+        p_gamma_k(f) = prob_gamma(obs.gamma_k(f), obs.T(ind_km1, :)');
 
         % Update filter covariances if at start of a detection
-        % interval, TODO: Is this the right time/place to do
-        % this update?
-        if obs.i(2) == 1  % or should this be obs.i_next(2) == 1
-
-            % Select filter system model based on current
-            % model indicator value
-            obs.filters{f}.A = obs.A{ind};
-            obs.filters{f}.B = obs.B{ind};
-            obs.filters{f}.C = obs.C{ind};
-            obs.filters{f}.D = obs.D{ind};
-            obs.filters{f}.Q = obs.Q{ind};
-            obs.filters{f}.R = obs.R{ind};
-
-        end
+        % interval.
+        % Note: Currently, this update must happen every sample 
+        % period so that S-functions do not have to memorize all
+        % the model parameters each timestep.
+        %if obs.i(2) == 1
+        % Select filter system model based on current
+        % model indicator value
+        obs.filters{f}.A = obs.A{ind};
+        obs.filters{f}.B = obs.B{ind};
+        obs.filters{f}.C = obs.C{ind};
+        obs.filters{f}.D = obs.D{ind};
+        obs.filters{f}.Q = obs.Q{ind};
+        obs.filters{f}.R = obs.R{ind};
+        %end
 
         % Update observer estimates, gain and covariance matrix
         obs.filters{f} = update_KF(obs.filters{f}, uk, yk);

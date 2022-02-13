@@ -123,8 +123,8 @@ KF1 = kalman_filter(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
 KF2 = kalman_filter(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
 
 % Observers with switching systems
-Q = {Q1, Q2};
-R = {R1, R2};
+Q = {Q1,Q2};
+R = {R1,R2};
 
 % Transition probabilities
 epsilon = 0.05;
@@ -171,11 +171,26 @@ assert(MKF1.nj == 2)
 assert(isequal(MKF1.T, T))
 assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
 assert(MKF1.ykp1_est == 0)
+assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 
-% Redefine this time with initial condition
+% Redefine this time with initial conditions
 MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
+gamma0 = 0;
+MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0,gamma0);
+assert(isequal(MKF1.xkp1_est, x0))
+assert(isequal(MKF1.ykp1_est, C{1} * x0))
+assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
+gamma0 = zeros(n_filt, 1);
+gamma0(end) = 1;
+MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0,gamma0);
+assert(isequal(MKF1.xkp1_est, x0))
+assert(isequal(MKF1.ykp1_est, C{1} * x0))
+assert(isequal(MKF1.gamma_k, gamma0))
+
+% With default values
+MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1');
 
 % Choose observers to include in simulation
 observers = {KF1, KF2, MKF1};

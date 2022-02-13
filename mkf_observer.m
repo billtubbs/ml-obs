@@ -1,5 +1,5 @@
-function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
-% obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
+function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
+% obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
 %
 % Creates a struct for simulating a multi-model Kalman filter
 % for state estimation of a Markov jump linear system.
@@ -19,7 +19,9 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
 %       process.
 %   d : detection interval length in number of sample periods.
 %   label : string name.
-%   x0 : intial state estimates (optional).
+%   x0 : intial state estimates (optional, default zeros)
+%   gamma0 : initial model indicator values (zero-based)
+%       (optional, default zeros).
 %
 
     % Number of switching systems
@@ -27,6 +29,9 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
 
     % System dimensions
     [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
+    if nargin < 14
+        gamma0 = 0;
+    end
     if nargin < 13
         x0 = zeros(n,1);
     end
@@ -42,6 +47,19 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
     obs.d = d;
     obs.label = label;
 
+    % Number of filters required
+    n_filt = size(seq, 1);
+
+    % Fusion horizon length
+    f = size(cell2mat(seq), 2);
+
+    % Assumption about initial model indicator
+    if isscalar(gamma0)
+        % In case single value specified
+        gamma0 = gamma0 * ones(n_filt, 1);
+    end
+    obs.gamma_k = gamma0;
+
     % Check transition probability matrix
     assert(all(abs(sum(T, 2) - 1) < 1e-15), "ValueError: T")
 
@@ -56,12 +74,6 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0)
         assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
             "ValueError: A, B, C, D")
     end
-
-    % Number of filters required
-    n_filt = size(seq, 1);
-
-    % Fusion horizon length
-    f = size(cell2mat(seq), 2);
 
     % Sequence index and counter for prob. updates
     % obs.i(1) is the sequence index (1 <= i(1) <= obs.f)

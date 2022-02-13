@@ -100,15 +100,16 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Static data to unpack vectors
             % TODO: Could this be stored in the block somewhere
             %       other than Dwork memory.
-            vdata.types = {'double', 'double', 'double', ...
+            vdata.types = {'double', 'double', 'double', 'double', ...
                 repmat({'double'}, 1, n_filt), ...
                 repmat({'double'}, 1, n_filt), ...
                 repmat({'double'}, 1, n_filt)};
-            vdata.dims = {[n 1], [ny 1], [n_filt 1],  ...
+            vdata.dims = {[n 1], [ny 1], [n_filt 1], [n_filt 1], ...
                 repmat({[n 1]}, 1, n_filt), ...
                 repmat({[ny 1]}, 1, n_filt), ...
                 repmat({[n n]}, 1, n_filt)};
-            vdata.n_els = {n, ny, n_filt, n_filt*n, n_filt*ny, n_filt*n*n};
+            vdata.n_els = {n, ny, n_filt, n_filt, n_filt*n, n_filt*ny, ...
+                n_filt*n*n};
             vdata_int16.types = {'int16', 'int16'};
             vdata_int16.dims = {[1 2], [1 2]};
             vdata_int16.n_els = {2, 2};
@@ -125,9 +126,10 @@ function obs = set_obs_vars_vecs(obs, varargin)
             vars.xkp1_est = vars_double{1};
             vars.ykp1_est = vars_double{2};
             vars.p_seq_g_Yk = vars_double{3};
-            vars.xkp1_est_f = vars_double{4};
-            vars.ykp1_est_f = vars_double{5};
-            vars.P_f = vars_double{6};
+            vars.gamma_k = vars_double{4};
+            vars.xkp1_est_f = vars_double{5};
+            vars.ykp1_est_f = vars_double{6};
+            vars.P_f = vars_double{7};
 
             % Unpack data vectors - integers
             vars_int16 = unpack_data_vectors(vdata_int16);
@@ -163,15 +165,16 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % 6. seq for each KF : cell(n_filt, 1)
 
             % Static data to unpack vectors
-            vdata.types = {'double', 'double', 'double', ...
+            vdata.types = {'double', 'double', 'double', 'double', ...
                 repmat({'double'}, 1, n_filt), ...
                 repmat({'double'}, 1, n_filt), ...
                 repmat({'double'}, 1, n_filt)};
-            vdata.dims = {[n 1], [ny 1], [n_filt 1],  ...
+            vdata.dims = {[n 1], [ny 1], [n_filt 1], [n_filt 1], ...
                 repmat({[n 1]}, 1, n_filt), ...
                 repmat({[ny 1]}, 1, n_filt), ...
                 repmat({[n n]}, 1, n_filt)};
-            vdata.n_els = {n, ny, n_filt, n_filt*n, n_filt*ny, n_filt*n*n};
+            vdata.n_els = {n, ny, n_filt, n_filt, n_filt*n, n_filt*ny, ...
+                n_filt*n*n};
             vdata_int16.types = {'int16', 'int16', 'int16', 'int16', 'int16', ...
                 repmat({'int16'}, n_filt, 1)};
             vdata_int16.dims = {[1 2], [1 2], [1 obs.n_main], [1 obs.n_hold], ...
@@ -189,9 +192,10 @@ function obs = set_obs_vars_vecs(obs, varargin)
             vars.xkp1_est = vars_double{1};
             vars.ykp1_est = vars_double{2};
             vars.p_seq_g_Yk = vars_double{3};
-            vars.xkp1_est_f = vars_double{4};
-            vars.ykp1_est_f = vars_double{5};
-            vars.P_f = vars_double{6};
+            vars.gamma_k = vars_double{4};
+            vars.xkp1_est_f = vars_double{5};
+            vars.ykp1_est_f = vars_double{6};
+            vars.P_f = vars_double{7};
 
             % Unpack data vectors - integers
             vars_int16 = unpack_data_vectors(vdata_int16);

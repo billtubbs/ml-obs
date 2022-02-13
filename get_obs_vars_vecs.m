@@ -43,7 +43,7 @@ switch obs.type
     case {'MKF', 'MKF_RODD', 'MKF_AFMM'}
 
         vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-            vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+            vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
 
         % Convert dynamic variables to vectors
         vdata = make_data_vectors(vars_double);

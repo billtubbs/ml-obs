@@ -69,6 +69,7 @@ function vars = get_obs_vars(obs)
             vars.xkp1_est = obs.xkp1_est;
             vars.ykp1_est = obs.ykp1_est;
             vars.p_seq_g_Yk = obs.p_seq_g_Yk;
+            vars.gamma_k = obs.gamma_k;
             vars.xkp1_est_f = cell(1, obs.n_filt);
             vars.ykp1_est_f = cell(1, obs.n_filt);
             vars.P_f = cell(1, obs.n_filt);

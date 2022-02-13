@@ -111,7 +111,7 @@ switch obs.type
 
         % Make data vectors containing all variables
         vec_double = get_obs_vars_vecs(obs);
-        
+
         % Set number of Dwork blocks
         block.NumDworks = 1;
 

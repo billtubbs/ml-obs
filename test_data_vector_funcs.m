@@ -121,7 +121,7 @@ t = Ts*(0:nT)';
 Wp = sample_random_shocks(nT+1, epsilon, sigma_w(2), sigma_w(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
-[Y,T,X] = lsim(Gpss,[U Wp],t,X0);
+Y = lsim(Gpss,[U Wp],t,X0);
 V = sigma_M*randn(nT+1, 1);
 Ym = Y + V;  % measurement
 
@@ -190,7 +190,7 @@ t = Ts*(0:nT)';
 Wp = sample_random_shocks(nT+1, epsilon, sigma_w(2), sigma_w(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
-[Y,T,X] = lsim(Gpss,[U Wp],t,X0);
+Y = lsim(Gpss,[U Wp],t,X0);
 V = sigma_M*randn(nT+1, 1);
 Ym = Y + V;  % measurement
 
@@ -204,7 +204,7 @@ obs2 = AFMM1;
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
 vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-    vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+    vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
 vdata = make_data_vectors(vars_double);
 vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
 
@@ -225,9 +225,10 @@ for i = 1:nT
     vars.xkp1_est = vars_double{1};
     vars.ykp1_est = vars_double{2};
     vars.p_seq_g_Yk = vars_double{3};
-    vars.xkp1_est_f = vars_double{4};
-    vars.ykp1_est_f = vars_double{5};
-    vars.P_f = vars_double{6};
+    vars.gamma_k = vars_double{4};
+    vars.xkp1_est_f = vars_double{5};
+    vars.ykp1_est_f = vars_double{6};
+    vars.P_f = vars_double{7};
     vars.int16.i = vars_int16{1};
     vars.int16.i_next = vars_int16{2};
     vars.int16.f_main = vars_int16{3};
@@ -252,7 +253,7 @@ for i = 1:nT
     % Convert dynamic variables to vdata struct
     vars = get_obs_vars(obs2);
     vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-        vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+        vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
     vdata = make_data_vectors(vars_double);
     vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
 
@@ -297,7 +298,7 @@ obs2 = MKF1;
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
 vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-    vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+    vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
 vdata = make_data_vectors(vars_double);
 vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
 
@@ -318,9 +319,10 @@ for i = 1:nT
     vars.xkp1_est = vars_double{1};
     vars.ykp1_est = vars_double{2};
     vars.p_seq_g_Yk = vars_double{3};
-    vars.xkp1_est_f = vars_double{4};
-    vars.ykp1_est_f = vars_double{5};
-    vars.P_f = vars_double{6};
+    vars.gamma_k = vars_double{4};
+    vars.xkp1_est_f = vars_double{5};
+    vars.ykp1_est_f = vars_double{6};
+    vars.P_f = vars_double{7};
     vars.int16.i = vars_int16{1};
     vars.int16.i_next = vars_int16{2};
     obs2_restored = set_obs_vars(MKF1, vars);  % makes a new copy
@@ -338,7 +340,7 @@ for i = 1:nT
     % Convert dynamic variables to vdata struct
     vars = get_obs_vars(obs2);
     vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-        vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+        vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
     vdata = make_data_vectors(vars_double);
     vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
 
