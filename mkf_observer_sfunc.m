@@ -294,6 +294,10 @@ switch obs.type
         % Update observer states
         switch obs.type
             case {'MKF', 'MKF_RODD'}
+                  % For debugging
+%                 if round(obs.filters{2}.P(2, 2), 4) == 1.3333
+%                     disp('stop')
+%                 end
                 obs = update_MKF(obs, uk, yk);
             case 'MKF_AFMM'
                 obs = update_AFMM(obs, uk, yk);

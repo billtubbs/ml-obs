@@ -158,7 +158,7 @@ sim_results.KF1.mse = mse_KF1;
 P0 = eye(n);
 Q0 = diag([0.01^2 0]);
 R = 0.1^2;
-f = 8;  % fusion horizon
+f = 5;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
 MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
@@ -168,10 +168,29 @@ MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 Xk_est = nan(nT+1,n);
 Yk_est = nan(nT+1,ny);
 obs = MKF1;
+% for debugging
+[vec_double, vec_int16] = get_obs_vars_vecs(obs);
+dlmwrite(sprintf('test-ml-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
+dlmwrite(sprintf('test-ml-%s-int16.csv', obs.label), vec_int16, 'delimiter', ',');    
 for i = 1:nT
     uk = U(i,:)';
     yk = Ym(i,:)';
+
+    % For debugging
+%     if round(obs.filters{2}.P(2, 2), 4) == 1.3333
+%         disp('stop')
+%     end
+    
     obs = update_MKF(obs, uk, yk);
+
+    % for debugging
+    [vec_double, vec_int16] = get_obs_vars_vecs(obs);
+
+    dlmwrite(sprintf('test-ml-%s-double.csv', obs.label), ...
+        vec_double, 'delimiter', ',', '-append');
+    dlmwrite(sprintf('test-ml-%s-int16.csv', obs.label), ...
+        vec_int16, 'delimiter', ',', '-append');
+
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
@@ -250,5 +269,5 @@ sim_results.MKF2.mse = mse_MKF2;
 % Check MSE values
 assert(round(mse_KFSS, 4) == 0.0873)
 assert(round(mse_KF1, 4) == 0.0917)
-assert(round(mse_MKF1, 4) == 0.0981)
+assert(round(mse_MKF1, 4) == 0.1029)
 assert(round(mse_MKF2, 4) == 0.0614)
