@@ -1,6 +1,6 @@
 % Test Simulink model and S-functions
 
-clear all
+%clear all - included in test_MKF_example.m below
 
 % First run simulations in MATLAB:
 test_MKF_example
@@ -17,11 +17,12 @@ model = 'MKF_example_sim';
 % Additional parameters for simulink model
 inputs.U = [t U];
 inputs.V = [t V];
-N = zeros(n,ny);
 inputs.Wp = [t Wp];
 
+nT = size(t, 1) - 1;
 fprintf("Running Simulink simulation...\n")
-sim_out = sim(model, 'ReturnWorkspaceOutputs', 'on');
+sim_out = sim(model, 'StopTime', string(nT*Ts), ...
+    'ReturnWorkspaceOutputs', 'on');
 
 % Check both Kalman filter state estimates are the same
 assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KFSS.Data), [], [1 2]) < 1e-6)

@@ -759,22 +759,22 @@ end
 % end
 
 
-%% Test initialization on 2x2 system
+%% Test AFMM observers on 2x2 system
 
 % Sample time
 Ts = 1;
 
 % Discrete time state space model
-A = [ 0.8890   0  1 -1;
-       0  0.9394  1  1;
-       0   0  1  0;
-       0   0  0  1];
-B = [ 1 -1  0  0;
-  1  1  0  0;
-  0  0  1  0;
-  0  0  0  1];
-C = [-0.07769  0   0  0;
-        0  0.09088 0  0];
+A = [ 0.8890       0     1 -0.2;
+           0  0.8890  -0.2    1;
+           0       0     1    0;
+           0       0     0    1];
+B = [    1 -0.2  0  0;  % TODO: increase the coupling, -0.5?
+      -0.2    1  0  0;
+         0    0  1  0;
+         0    0  0  1];
+C = [ 0.1110 0         0  0;
+             0  0.1110 0  0];
 D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 
@@ -802,6 +802,23 @@ epsilon = [0.01; 0.01];
 sigma_M = [0.1; 0.1];
 sigma_wp = [0.01 1; 0.01 1];
 
+% Kalman filter 3 - manually tuned
+% Covariance matrices
+P0 = 1000*eye(n);
+Q = diag([0.01 0.01 0.1^2 0.1^2]);
+R = diag(sigma_M.^2);
+KF3 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
+
+% Scheduled Kalman filter
+P0 = 1000*eye(n);
+Q0 = diag([0.01 0.01 0 0]);
+R = diag(sigma_M.^2);
+SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
+SKF.type = 'SKF';
+SKF.Q0 = Q0;
+SKF.Bw = Bw;
+SKF.sigma_wp = sigma_wp;
+
 % Multiple model AFMM filter 1
 label = 'AFMM1';
 P0 = 1000*eye(n);
@@ -824,7 +841,7 @@ n_min = 10;  % minimum life of cloned filters
 AFMM2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
-% Check observer attributes
+% Check observer initialization
 assert(isequal(AFMM1.epsilon, epsilon))
 assert(isequal(AFMM1.sigma_wp, sigma_wp))
 assert(AFMM1.n_filt == 15)
@@ -857,7 +874,7 @@ assert(isequal(size(AFMM1.xkp1_est), [n 1]))
 assert(isequal(size(AFMM1.ykp1_est), [ny 1]))
 assert(isequal(round(AFMM1.p_gamma, 6), [0.980198; 0.009901; 0.009901]))
 
-% Check observer attributes
+% Check observer initialization
 assert(isequal(AFMM2.epsilon, epsilon))
 assert(isequal(AFMM2.sigma_wp, sigma_wp))
 assert(AFMM2.n_filt == 30)
@@ -897,7 +914,133 @@ AFMM_testx0 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 assert(isequal(AFMM_testx0.xkp1_est, x0))
 assert(isequal(AFMM_testx0.ykp1_est, C * x0))
 
-% TODO: Do a simulation test of the 2x2 observers.
+% Simulation settings
+nT = 200;
+t = Ts*(0:nT)';
+
+% Choose time and amplitude of input disturbance
+t_shock = [5 10];
+du0 = [1; 1];
+% When you make the shock larger the MKF observers
+% do better
+%du0 = [2; 2];
+
+% Measured input
+%U = (idinput(size(t)) + 1)/2;
+U = zeros(nT+1, 2);
+U(t >= 1, 1) = -1;
+
+% Disturbance input
+% This is used by the SKF observer
+alpha = zeros(nT+1, 2);
+alpha(t == t_shock(1), 1) = 1;
+alpha(t == t_shock(2), 2) = 1;
+Wp = du0' .* alpha;
+
+U_sim = [U Wp];
+
+% Choose observers to test
+observers = {KF3, AFMM1, AFMM2, SKF};
+
+% Simulate system
+X = zeros(nT+1,n);
+Y = zeros(nT+1,ny);
+xk = zeros(n,1);
+
+for i = 1:nT+1
+
+    % Inputs
+    uk = U_sim(i,:)';
+
+    % Compute y(k)
+    yk = C*xk + D*uk;
+
+    % Store results
+    X(i, :) = xk';
+    Y(i, :) = yk';
+    
+    % Compute x(k+1)
+    xk = A*xk + B*uk;
+
+end
+
+% Check simulation output is correct
+[Y2, t, X2] = lsim(Gpss, U_sim, t);
+assert(isequal(X, X2))
+assert(isequal(Y, Y2))
+
+% Choose measurement noise for plant
+sigma_MP = [0; 0];  % Set to zero for testing
+Y_m = Y + sigma_MP'.*randn(nT+1, ny);
+
+% Simulate observers
+
+% Measured inputs (not including disturbances)
+U_m = U;
+
+n_obs = numel(observers);
+MSE = containers.Map();
+for i = 1:n_obs
+
+    obs = observers{i};
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs,alpha);
+
+    % Check observer errors are zero prior to
+    % input disturbance
+    assert(all(abs(sim_results.X_est(1:5,:) - X(1:5, :)) < 1e-10, [1 2]))
+    assert(all(abs(sim_results.Y_est(1:5,:) - Y(1:5, :)) < 1e-10, [1 2]))
+
+    % Check observer static errors are small
+    % after input disturbance
+    % TODO: Should these be closer?
+    if all(sigma_MP == 0)
+        assert(all(abs(sim_results.Y_est(end, :) - Y(end, :)) < 1e-3, [1 2]));
+        assert(all(abs(sim_results.X_est(end, 3:4) - du0) < 1e-3, [1 2]));
+    end
+
+    % Compute mean-squared error
+    Y_est = sim_results.Y_est;
+    MSE(obs.label) = mean((Y_est - Y).^2);
+    %fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
+
+    % Save updated observer
+    observers{i} = obs;
+
+end
+
+
+% % Display results of last simulation
+% 
+% X_est = sim_results.X_est;
+% E_obs = sim_results.E_obs;
+% K_obs = sim_results.K_obs;
+% trP_obs = sim_results.trP_obs;
+% 
+% table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
+% 
+% % Display gains and trace of covariance matrix
+% table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
+%     'VariableNames', {'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
+% 
+% % Show table of mean-squared errors
+% table(MSE.keys', cell2mat(MSE.values'), ...
+%     'VariableNames', {'Observer', 'MSE'})
+
+% Results on Nov 8 after reverting back the Bayesian updating
+MSE_test_values = containers.Map(...
+ {'KF3',               'AFMM1',              'AFMM2',              ...
+  'SKF'}, ...
+ {[0.000676 0.000936], [0.000728 0.001567], [0.000759 0.001521], ...
+  [0.000123 0.000132]} ...
+);
+
+for label = MSE.keys
+   assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
+end
+
+
+
+return
 
 
 function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...

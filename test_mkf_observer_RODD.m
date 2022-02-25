@@ -197,7 +197,7 @@ for i = 1:n_obs
 
     obs = observers{i};
     [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs, ...
-        alpha,u_meas);
+        alpha);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -393,7 +393,7 @@ for label = MSE.keys
 end
 
 
-%% Test initialization of MKF observers on 2x2 system
+%% Test MKF observers on 2x2 system
 
 % Sample time
 Ts = 1;
@@ -489,7 +489,7 @@ d = 2;  % 5 spacing parameter
 MKF2 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
-% Tests for MKF1
+% Check observer initialization
 assert(isequal(MKF1.epsilon, epsilon))
 assert(isequal(MKF1.sigma_wp, sigma_wp))
 assert(MKF1.n_filt == 7)
@@ -529,7 +529,7 @@ p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 assert(isequal(round(p_gamma, 6), [0.960977; 0.019512; 0.019512]))
 assert(isequal(round(MKF1.p_gamma, 6), [0.960977; 0.019512; 0.019512]))
 
-% Tests for MKF2
+% Check observer initialization
 assert(isequal(MKF2.epsilon, epsilon))
 assert(isequal(MKF2.sigma_wp, sigma_wp))
 assert(MKF2.n_filt == 56)
@@ -608,7 +608,6 @@ Wp = du0' .* alpha;
 U_sim = [U Wp];
 
 % Custom MKF test observer
-
 % Devise a custom multi-model filter with a shock indicator 
 % sequence that perfectly reflects the shock occurence in
 % this test simulation (t = t_shock)
@@ -689,7 +688,7 @@ for i = 1:n_obs
 
     obs = observers{i};
     [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs, ...
-        alpha,u_meas);
+        alpha);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -748,7 +747,7 @@ return
 
 
 function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
-    obs,alpha,u_meas)
+    obs,alpha)
 
     k = (0:nT)';
     t = Ts*k;
