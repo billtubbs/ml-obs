@@ -82,13 +82,13 @@ function obs = update_AFMM(obs, uk, yk)
 
     % Check if holding group is not yet full
     f_move = obs.f_hold(1:nw);
-    n_move = ~isnan(f_move);
+    i_move = f_move > 0;
 
     % Select filters to be moved out of holding group and
     % put into main group.
-    if n_move > 0
+    if sum(i_move) > 0
         [obs.f_main, f_to_replace] = add_to_group_with_replacement(...
-            obs.f_main, f_move, obs.p_seq_g_Yk);
+            obs.f_main, f_move(i_move), obs.p_seq_g_Yk);
     else
         f_to_replace = [];
     end

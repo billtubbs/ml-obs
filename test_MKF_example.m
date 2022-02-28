@@ -107,10 +107,9 @@ end
 % Calculate mean-squared error in state estimates
 mse_KFSS = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 
-% Save results
-sim_results.KFSS.Xk_est = Xk_est;
-sim_results.KFSS.Yk_est = Yk_est;
-sim_results.KFSS.mse = mse_KFSS;
+% Store results
+Xk_est_KFSS = Xk_est;
+Yk_est_KFSS = Yk_est;
 
 % Kalman filter with time-varying gain
 P0 = eye(n);
@@ -146,15 +145,14 @@ end
 % Calculate mean-squared error in state estimates
 mse_KF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 
-% Save results
-sim_results.KF1.Xk_est = Xk_est;
-sim_results.KF1.Yk_est = Yk_est;
-sim_results.KF1.mse = mse_KF1;
+% Store results
+Xk_est_KF1 = Xk_est;
+Yk_est_KF1 = Yk_est;
 
 % Sub-optimal multi-model observer 1 simulation
 % Sub-optimal multi-model observer as described by Robertson _et al._ (1995).
 
-% Define multi-model filter
+% Define multi-model filter 1
 P0 = eye(n);
 Q0 = diag([0.01^2 0]);
 R = 0.1^2;
@@ -213,15 +211,15 @@ end
 % Calculate mean-squared error in state estimates
 mse_MKF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 
-% Save results
-sim_results.MKF1.Xk_est = Xk_est;
-sim_results.MKF1.Yk_est = Yk_est;
-sim_results.MKF1.mse = mse_MKF1;
+% Store results
+Xk_est_MKF1 = Xk_est;
+Yk_est_MKF1 = Yk_est;
+
 
 % Sub-optimal multi-model observer 2 simulation
 % Sub-optimal multi-model observer as described by Eriksson and Isaksson (1996).
 
-% Define multi-model filter
+% Define multi-model filter 2
 P0 = eye(n);
 Q0 = diag([0.01^2 0]);
 R = 0.1^2;
@@ -261,13 +259,20 @@ end
 % Calculate mean-squared error in state estimates
 mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 
-% Save results
-sim_results.MKF2.Xk_est = Xk_est;
-sim_results.MKF2.Yk_est = Yk_est;
-sim_results.MKF2.mse = mse_MKF2;
-
 % Check MSE values
 assert(round(mse_KFSS, 4) == 0.0873)
 assert(round(mse_KF1, 4) == 0.0917)
 assert(round(mse_MKF1, 4) == 0.1029)
 assert(round(mse_MKF2, 4) == 0.0614)
+
+% Store results
+Xk_est_MKF2 = Xk_est;
+Yk_est_MKF2 = Yk_est;
+
+% Combine and save all results to csv file
+% These are used by test_MKF_example_sim.m
+sim_results = table(t, Xk_est_KFSS, Yk_est_KFSS, Xk_est_KF1, Yk_est_KF1, ...
+    Xk_est_MKF1, Yk_est_MKF1, Xk_est_MKF2, Yk_est_MKF2);
+filename = 'MKF_example.csv';
+results_dir = 'results';
+writetable(sim_results, fullfile(results_dir, filename));

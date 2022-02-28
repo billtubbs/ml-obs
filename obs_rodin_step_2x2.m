@@ -4,6 +4,8 @@
 % Observer model without disturbance noise input
 Bu = B(:, u_meas);
 Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
 
 % Disturbance input (used by SKF observer)
 Bw = B(:, ~u_meas);

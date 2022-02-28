@@ -20,7 +20,8 @@ function [group, f_removed] = add_to_group_with_replacement(group, new, p)
 %    p : vector
 %        Row vector of real values whos magnitude will be used to
 %        decide which values in group to replace (if any) with
-%        values in new.
+%        values in new. Length of p must be equal to total number
+%        of non-zero values in group and new.
 %
 %  Returns:
 %    group : vector

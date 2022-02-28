@@ -7,7 +7,7 @@ clear all
 
 group = [1 0 0];
 new = 4;
-p = [0.3 0.1 0.4 0.2];
+p = [0.9 0 0 0.1];
 [group, f_removed] = add_to_group_with_replacement(group, new, p);
 assert(isequaln(group, [1 4 0]))
 assert(isequal(f_removed, []))
@@ -21,7 +21,7 @@ assert(isequal(f_removed, []))
 
 group = [0 0];
 new = [4 5];
-p = [0.3 0.1 0.3 0.2 0.1];
+p = [0 0 0.5 0.5];
 [group, f_removed] = add_to_group_with_replacement(group, new, p);
 assert(isequaln(group, [4 5]))
 assert(isequal(f_removed, []))
