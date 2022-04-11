@@ -25,9 +25,6 @@ nw = sum(~u_meas);
 sigma_M = 0.1;
 sigma_W = [0; 0];
 
-% Load observers from file
-obs_rodin_step
-
 % Check observer attributes
 assert(strcmp(AFMM1.type, "MKF_AFMM"))
 assert(AFMM1.epsilon == 0.01)
@@ -468,17 +465,51 @@ du0 = 1;
 %U = (idinput(size(t)) + 1)/2;
 U = zeros(size(t));
 U(t >= 1) = -1;
-alpha = zeros(size(t));
-alpha(t == 9.5) = 1;  % this is used by the SKF observer
-%Wp = 1*alpha;
-Wp = zeros(size(t));  % Set RODD disturbance to 0 for this test
+% Disturbance input
+% This is used by the SKF observer
+alpha = zeros(nT+1, 1);
+alpha(t == t_shock(1), 1) = 1;
+Wp = du0' .* alpha;
+
+% Calculate the input disturbance
+P = zeros(size(U));
+P(t >= t_shock, 1) = du0;
+
+% Combined inputs for simulation
 U_sim = [U Wp];
 
-% Apply the input disturbance
-Wp = zeros(size(U_sim));
-Wp(t >= t_shock, 1) = du0;
+% Simulate system
+X = zeros(nT+1,n);
+Y = zeros(nT+1,ny);
+xk = zeros(n,1);
 
-% Custom MKF test observer
+for i = 1:nT+1
+
+    % Inputs
+    uk = U_sim(i, :)';
+
+    % Compute y(k)
+    yk = C*xk + D*uk;
+
+    % Store results
+    X(i, :) = xk';
+    Y(i, :) = yk';
+    
+    % Compute x(k+1)
+    xk = A*xk + B*uk;
+
+end
+
+% Check simulation output is correct
+[Y2, t, X2] = lsim(Gpss,U_sim,t);
+assert(isequal(X, X2))
+assert(isequal(Y, Y2))
+
+% Choose measurement noise for plant
+sigma_MP = 0;  % Set to zero for testing
+Y_m = Y + sigma_MP'.*randn(size(Y));
+
+% Define custom MKF test observers
 
 % Devise a custom multi-model filter with a shock indicator 
 % sequence that perfectly reflects the shock occurence in
@@ -495,57 +526,24 @@ Q2 = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
       diag([Q0(1,1) sigma_wp(1,2)^2])};
 R2 = {sigma_M^2, sigma_M^2};
 seq = {zeros(1, nT+1); zeros(1, nT+1)};
-seq{2}(t == 9.5) = 1;
+seq{2}(t == 10) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
 MKF3 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF3');
 
 seq = {zeros(1, nT+1)};
-seq{1}(t == 9.5) = 1;
+seq{1}(t == 10) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
 MKF4 = mkf_observer(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
 
-% Choose observers to test
-observers = {KF2, KF3, SKF, AFMM1, AFMM2, MKF3, MKF4};
-
-% Note: KF1 is too slow to pass static error test here
-
-% Simulate system
-X = zeros(nT+1,n);
-Y = zeros(nT+1,ny);
-xk = zeros(n,1);
-
-for i=1:nT+1
-
-    % Inputs
-    uk = U_sim(i,:)' + Wp(i,:)';
-
-    % Compute y(k)
-    yk = C*xk + D*uk;
-
-    % Store results
-    X(i, :) = xk';
-    Y(i, :) = yk';
-    
-    % Compute x(k+1)
-    xk = A*xk + B*uk;
-
-end
-
-% Check simulation output is correct
-[Y2, t, X2] = lsim(Gpss,U_sim + Wp,t);
-assert(isequal(X, X2))
-assert(isequal(Y, Y2))
-
-% Choose measurement noise for plant
-sigma_MP = 0;  % Set to zero for testing
-Y_m = Y + sigma_MP'.*randn(size(Y));
-
-
 % Simulate observers
+
+% Choose observers to test
+observers = {KF2, KF3, SKF, AFMM1};  % , AFMM2, MKF3, MKF4
+% Note: KF1 is too slow to pass static error test here
 
 % Measured inputs (not including disturbances)
 U_m = U;
@@ -565,11 +563,11 @@ for i = 1:n_obs
     % Check observer static errors are small
     % after input disturbance
     if all(sigma_MP == 0)
-        assert(abs(sim_results.Y_est(end, :) - Y(end, :)) < 2e-4);
-        assert(abs(sim_results.X_est(end, 2) - du0) < 3e-4);
+        assert(abs(sim_results.Y_est(end, :) - Y(end, :)) < 3e-4);
+        assert(abs(sim_results.X_est(end, 2) - du0) < 4e-4);
     end
     % TODO: Errors for AFMM1 were not as low as for RODD MKF observers
-    
+
     % Compute mean-squared error
     Y_est = sim_results.Y_est;
     MSE(obs.label) = mean((Y_est - Y).^2);
@@ -580,14 +578,18 @@ for i = 1:n_obs
 
 end
 
+% % Show table of mean-squared errors
+% table(MSE.keys', cell2mat(MSE.values'), ...
+%     'VariableNames', {'Observer', 'MSE'})
+
 MSE_test_values = containers.Map(...
     {'AFMM1', 'AFMM2', 'KF2', 'KF3', 'SKF', 'MKF3', 'MKF4'}, ...
-    [0.002677 0.002685 0.000934 0.003524 0.000929 0.002709 0.000929]' ...
+    [0.002679 0.002687 0.000934 0.003524 0.000929 0.002711 0.000929]' ...
 );
-% TODO: Something wrong with AFMM observer
 
 for label = MSE.keys
-   assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
+    %fprintf("%s: %f\n", label{1}, MSE(label{1}))
+    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
 end
 
 % % Display results of last simulation
@@ -597,7 +599,7 @@ end
 % K_obs = sim_results.K_obs;
 % trP_obs = sim_results.trP_obs;
 % 
-% table(t,alpha,U,Du,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
+% table(t,alpha,U,P,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
 % 
 % % Display gains and trace of covariance matrix
 % table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
@@ -610,11 +612,6 @@ end
 %     f_main = sim_results.AFMM_f_main
 %     [array2table(f_hold) array2table(f_main)]
 % end
-% 
-% % Show table of mean-squared errors
-% table(MSE.keys', cell2mat(MSE.values'), ...
-%     'VariableNames', {'Observer', 'MSE'})
-% 
 % 
 % % Plot of inputs and outputs
 % 
@@ -647,10 +644,10 @@ end
 % xlabel('t')
 % ylabel('$x_i(k)$ and $\hat{x}_i(k)$')
 % labels = repmat({''}, 1, n*2);
-% for i=1:n
+% for i = 1:n
 %     labels{i} = sprintf("$x_{%d}(k)$", i);
 % end
-% for i=1:n
+% for i = 1:n
 %     labels{i+n} = sprintf("$%s{x}_{%d}(k)$", '\hat', i);
 % end
 % legend(labels)
@@ -660,13 +657,13 @@ end
 % ax3 = subplot(4,1,3);
 % stairs(t,U,'Linewidth',2); hold on;
 % stairs(t,Wp,'Linewidth',2)
-% stairs(t,Du(:,1),'Linewidth',2)
-% max_min = [min(min([U Wp Du(:,1)])) max(max([U Wp Du(:,1)]))];
+% stairs(t,P,'Linewidth',2)
+% max_min = [min(min([U Wp P])) max(max([U Wp P]))];
 % bd = max([0.1 diff(max_min)*0.1]);
 % ylim(max_min + [-bd bd])
 % xlabel('t')
-% ylabel('$u(k)$, $w_p(k)$ and $d_u(k)$')
-% legend('$u(k)$', '$w_p(k)$', '$d_u(k)$')
+% ylabel('$u(k)$, $w_p(k)$ and $p(k)$')
+% legend('$u(k)$', '$w_p(k)$', '$p(k)$')
 % title('Actual process inputs')
 % grid on
 % 
@@ -686,7 +683,6 @@ end
 % 
 % 
 % % Plot of conditional filter probabilities
-% 
 % switch obs.label
 %     case {'MKF1', 'MKF2', 'AFMM1', 'AFMM2'}
 %         p_seq_g_Yk = sim_results.MKF_p_seq_g_Yk;
@@ -696,16 +692,15 @@ end
 %         figure(11); clf
 %         t = Ts*(0:nT)';
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Pr(\Gamma(k) \mid Y(k))$'};
-%         filename = sprintf('rod_mkf_observer_test_pyk_wfplot.png');
-%         filepath = fullfile(plot_dir, filename);
-%         show_waterfall_plot(t(2:end-1), p_seq_g_Yk(2:end-1, :), [0 1], ...
-%             ax_labels, [0 82], filepath);
+%         make_waterfall_plot(t(2:end-1), p_seq_g_Yk(2:end-1, :), [0 1], ...
+%             ax_labels, [0 82]);
+%         filename = sprintf('rod_mkf_observer_test_pyk_wfplot.pdf');
+%         save_fig_to_pdf(fullfile(plot_dir, filename));
 %         title('Conditional probabilities of y(k)')
 % end
 % 
 % 
 % % Plot of trace of filter covariance matrices
-% 
 % switch obs.label
 %     case {'MKF1', 'MKF2', 'AFMM1', 'AFMM2'}
 %         trP_obs = cell2mat(sim_results.trP_obs);
@@ -713,9 +708,9 @@ end
 %         figure(12); clf
 %         t = Ts*(0:nT)';
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
-%         filename = sprintf('rod_mkf_observer_test_trP_wfplot.png');
-%         filepath = fullfile(plot_dir, filename);
-%         show_waterfall_plot(t, trP_obs, [0 5], ax_labels, [0 82], filepath);
+%         make_waterfall_plot(t, trP_obs, [0 5], ax_labels, [0 82]);
+%         filename = sprintf('rod_mkf_observer_test_trP_wfplot.pdf');
+%         save_fig_to_pdf(fullfile(plot_dir, filename));
 %         title('Trace of covariance matrices')
 % 
 % end
@@ -729,33 +724,31 @@ end
 % 
 %         figure(13); clf
 %         t = Ts*(0:nT)';
-%         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
+%         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$K_1$'};
+%         make_waterfall_plot(t, K1_obs, [0 6], ax_labels, [0 82]);
 %         filename = sprintf('rod_mkf_observer_test_K_wfplot.png');
-%         filepath = fullfile(plot_dir, filename);
-%         show_waterfall_plot(t, K1_obs, [0 5], ax_labels, [0 82], filepath);
+%         save_fig_to_pdf(fullfile(plot_dir, filename));
 %         title('Filter correction gains (k1)')
-%         
 % end
 % 
 % % Plot of final sequence values
 % switch obs.label
 %     case {'AFMM1', 'AFMM2'}
-%         Z = cell2mat(obs.seq)';
+%         Z = double(cell2mat(obs.seq))';
 %         if size(Z, 1) > nT
 %             Z = Z(1:nT,:);
 %         else
-%             Z = [Z(1:obs.i,:); Z(obs.i+1:end,:)];
+%             Z = [Z(1:obs.i(1),:); Z(obs.i(1)+1:end,:)];
 %         end
 %         seq_len = size(Z, 1);
 %         t = Ts*(nT-seq_len+1:nT)';
 % 
 %         figure(14); clf
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$\gamma(k)$'};
-%         filename = sprintf('rod_afmm_filter_test.png');
-%         filepath = fullfile(plot_dir, filename);
 %         title('Final filter sequence values')
-%         show_waterfall_plot(t,Z,[0 1], ax_labels, [0 82], filepath);
-%         
+%         make_waterfall_plot(t,Z,[0 1], ax_labels, [0 82]);
+%         filename = sprintf('rod_afmm_filter_test.png');
+%         save_fig_to_pdf(fullfile(plot_dir, filename));
 % end
 
 
