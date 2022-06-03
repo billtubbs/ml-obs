@@ -161,7 +161,6 @@ sim_results = [table(t,U) ...
 
 %head(sim_results)
 
-
 % Verify results by comparing with outputs of Kalman_Filter.mlx
 
 %head(bench_sim_results)
@@ -186,17 +185,24 @@ bench_sim_results = readtable(fullfile(results_dir, filename));
 rng(0)
 
 % Noise variances
-sigma_p = 0.01;
-sigma_M = 0.1;
+sigma_p = 0;  % input disturbances
+sigma_M = 0.1;  % measurement noise
 
-% Discrete time state-space model
-A = [0.7 1;
-     0 1];
-B = [1 0;
-     0 1];
-C = [0.3 0];
-D = zeros(1, 2);
-Ts = 0.5;
+% Sample time
+Ts = 1;
+
+% Discrete time state space model
+A = [ 0.8890       0     1 -0.2;
+           0  0.8890  -0.2    1;
+           0       0     1    0;
+           0       0     0    1];
+B = [    1 -0.2  0  0;  % TODO: increase the coupling, -0.5?
+      -0.2    1  0  0;
+         0    0  1  0;
+         0    0  0  1];
+C = [ 0.1110 0         0  0;
+             0  0.1110 0  0];
+D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 
 % Dimensions
@@ -204,102 +210,158 @@ n = size(A, 1);
 nu = size(B, 2);
 ny = size(C, 1);
 
-% Define and simulate Kalman filters
-Q = sigma_p^2 * diag([1 1]);
-R = sigma_M^2;
-KFSS_test = kalman_filter_ss(A,B,C,D,Ts,Q,R,"KFSS");
-KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS");
-P0 = diag([1e-4 1e-4]);
-KF_test = kalman_filter(A,B,C,D,Ts,P0,Q,R,"KF");
-KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
+% Designate known inputs and measured outputs
+u_meas = [1 2];
+y_meas = [1 2];
+np = nu - numel(u_meas);
+nu = nu - np;
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+
+% Default initial condition
+x0 = zeros(n, 1);
+
+% Observer parameters
+Q = 0.01 .* eye(n);
+R = 0.1 .* eye(ny);
+P0 = 1e-4 .* eye(n);
+
+% Define Kalman filters
+KFSS_test = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,"KFSS",x0);
+KFSS = KalmanFilterSS(A,Bu,C,Du,Ts,Q,R,"KFSS",x0);
+KF_test = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,"KF",x0);
+KF = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,"KF",x0);
 n_obs = 4;
 
-% number of points to simulate
-nT = 50;
+% Number of timesteps to simulate
+nT = 100;
 t = Ts*(0:nT)';
 
 % Random inputs
-U = (idinput(size(t)) + 1)/2;
-P = sigma_p*randn(size(t));
+P = sigma_p^2 .* [zeros(5, np); randn([45 np]); zeros(nT+1-50, np)];
+U = [zeros(5, nu); idinput([45 nu]); [-0.1 0.25].*ones(nT+1-50, nu)];
+V = sigma_M^2 .* randn([nT+1 ny]);
+
+% Simulate system
 U_sim = [U P];
+[Y, t, X] = lsim(Gpss, U_sim, t, x0);
 
-[Y, t, X] = lsim(Gpss, U_sim, t);
+% Add measurement noise
+Y_m = Y + V;
 
-X_est = zeros(nT+1, n*n_obs);
-Y_est = zeros(nT+1, ny*n_obs);
+% Plot results
+
+% figure(2); clf
+% 
+% ax1 = subplot(311);
+% plot(t, Y_m(:, 1), 'o', t, Y_m(:, 2), 'o'); hold on
+% % Modify plot colors
+% cols = get(gca,'ColorOrder');
+% cols(ny+1:2*ny, :) = cols(1:ny, :);
+% set(gca,'ColorOrder', cols);
+% plot(t, Y(:, 1), t, Y(:, 2), 'Linewidth', 2)
+% legend({'$y_{m,1}(k)$', '$y_{m,2}(k)$', '$y_1(k)$', '$y_2(k)$'}, 'Interpreter', 'latex')
+% ylabel('$y_i(k)$', 'Interpreter', 'latex')
+% title('Outputs')
+% grid on
+% 
+% ax2 = subplot(312);
+% for i = 1:nu
+%     stairs(t, U(:, i), 'Linewidth', 2); hold on
+% end
+% ylim([-1.2 1.2])
+% legend({'$u_1(k)$', '$u_2(k)$'}, 'Interpreter', 'latex')
+% ylabel('$u_i(k)$', 'Interpreter', 'latex')
+% title('Known inputs')
+% grid on
+% 
+% ax3 = subplot(313);
+% for i = 1:np
+%     stairs(t, P(:, i), 'Linewidth', 2); hold on
+% end
+% legend({'$p_1(k)$', '$p_2(k)$'}, 'Interpreter', 'latex')
+% ylabel('$p_i(k)$', 'Interpreter', 'latex')
+% title('Unknown inputs')
+% grid on
+
+Xkp1_est = zeros(nT+1, n*n_obs);
+Ykp1_est = zeros(nT+1, ny*n_obs);
 E_obs = zeros(nT+1, ny*n_obs);
-K_obs = zeros(nT+1, n*n_obs);
 trP_obs = zeros(nT+1, n_obs);
 
-xk_est = zeros(n, 1);
+for i = 1:nT
 
-for i=1:nT
-
-    yk = Y(i,:)';
+    yk = Y_m(i, :)';
     if i > 1
-        uk = U_sim(i-1, 1);
+        uk = U(i-1, :)';
     else
-        uk = 0;
+        uk = zeros(nu, 1);
     end
 
-    % Kalman update equations
     % Update observer gains and covariance matrix
-    KFSS.update(yk, [uk; 0]);
-    KF.update(yk, [uk; 0]);
-    KFSS_test = update_KF(KFSS_test, [uk; 0], yk);
-    KF_test = update_KF(KF_test, [uk; 0], yk);
+    KFSS.update(yk, uk);
+    KF.update(yk, uk);
+    KFSS_test = update_KF(KFSS_test, uk, yk);
+    KF_test = update_KF(KF_test, uk, yk);
 
     % Record observer 1 estimates
-    X_est(i, 1:n) = KFSS.xkp1_est';
-    Y_est(i, 1:ny) = KFSS.ykp1_est';
+    Xkp1_est(i, 1:n) = KFSS.xkp1_est';
+    Ykp1_est(i, 1:ny) = KFSS.ykp1_est';
     E_obs(i, 1:ny) = yk' - KFSS.ykp1_est';
-    K_obs(i, 1:n) = KFSS.K';
     trP_obs(i, 1) = trace(KFSS.P);
 
     % Record observer 2 estimates
-    X_est(i, n+1:2*n) = KF.xkp1_est';
-    Y_est(i, ny+1:2*ny) = KF.ykp1_est';
+    Xkp1_est(i, n+1:2*n) = KF.xkp1_est';
+    Ykp1_est(i, ny+1:2*ny) = KF.ykp1_est';
     E_obs(i, ny+1:2*ny) = yk' - KF.ykp1_est';
-    K_obs(i, n+1:2*n) = KF.K';
     trP_obs(i, 2) = trace(KF.P);
 
     % Record observer 3 estimates
-    X_est(i, 2*n+1:3*n) = KFSS_test.xkp1_est';
-    Y_est(i, 2*ny+1:3*ny) = KFSS_test.ykp1_est';
+    Xkp1_est(i, 2*n+1:3*n) = KFSS_test.xkp1_est';
+    Ykp1_est(i, 2*ny+1:3*ny) = KFSS_test.ykp1_est';
     E_obs(i, 2*ny+1:3*ny) = yk' - KFSS_test.ykp1_est';
-    K_obs(i, 2*n+1:3*n) = KFSS_test.K';
     trP_obs(i, 3) = trace(KFSS_test.P);
 
     % Record observer 4 estimates
-    X_est(i, 3*n+1:4*n) = KF_test.xkp1_est';
-    Y_est(i, 3*ny+1:4*ny) = KF_test.ykp1_est';
+    Xkp1_est(i, 3*n+1:4*n) = KF_test.xkp1_est';
+    Ykp1_est(i, 3*ny+1:4*ny) = KF_test.ykp1_est';
     E_obs(i, 3*ny+1:4*ny) = yk' - KF_test.ykp1_est';
-    K_obs(i, 3*n+1:4*n) = KF_test.K';
     trP_obs(i, 4) = trace(KF_test.P);
 
 end
 
-% Save benchmark results
-% bench_sim_results = [table(t,U,P,Y) ...
-%     array2table(X, 'VariableNames', {'X_1', 'X_2'}) ...
-%     array2table(X_est(:, 5:8), 'VariableNames', {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4'}) ...
-%     array2table(Y_est(:, 3:4), 'VariableNames', {'Y_est_1', 'Y_est_2'}) ...
-%     array2table(K_obs(:, 5:8), 'VariableNames', {'K_obs_1', 'K_obs_2', 'K_obs_3', 'K_obs_4'}) ...
+% Save benchmark results - from observers 3, 4
+% bench_sim_results = [table(t,U,P,Y,V,Y_m) ...
+%     array2table(X, 'VariableNames', {'X_1', 'X_2', 'X_3', 'X_4'}) ...
+%     array2table(Xkp1_est(:, 2*n+1:4*n), 'VariableNames', {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4', 'X_est_5', 'X_est_6', 'X_est_7', 'X_est_8'}) ...
+%     array2table(Ykp1_est(:, 2*ny+1:4*ny), 'VariableNames', {'Y_est_1', 'Y_est_2', 'Y_est_3', 'Y_est_4'}) ...
 %     array2table(trP_obs(:, 3:4), 'VariableNames', {'trP_obs_1', 'trP_obs_2'})];
 % writetable(bench_sim_results, fullfile(results_dir, filename))
 
 % Combine results into table
-sim_results = [table(t,U,P,Y) ...
-    array2table(X, 'VariableNames', {'X_1', 'X_2'}) ...
-    array2table(X_est(:, 1:4), 'VariableNames', {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4'}) ...
-    array2table(Y_est(:, 1:2), 'VariableNames', {'Y_est_1', 'Y_est_2'}) ...
-    array2table(K_obs(:, 1:4), 'VariableNames', {'K_obs_1', 'K_obs_2', 'K_obs_3', 'K_obs_4'}) ...
+sim_results = [table(t,U,P,Y,V,Y_m) ...
+    array2table(X, 'VariableNames', {'X_1', 'X_2', 'X_3', 'X_4'}) ...
+    array2table(Xkp1_est(:, 1:2*n), 'VariableNames', {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4', 'X_est_5', 'X_est_6', 'X_est_7', 'X_est_8'}) ...
+    array2table(Ykp1_est(:, 1:2*ny), 'VariableNames', {'Y_est_1', 'Y_est_2', 'Y_est_3', 'Y_est_4'}) ...
     array2table(trP_obs(:, 1:2), 'VariableNames', {'trP_obs_1', 'trP_obs_2'})];
-%head(sim_results)
+%sim_results
+
+% Plot observer estimates
+% figure(3); clf
+% plot(t, Ykp1_est(:, 1), 'o', t, Ykp1_est(:, 2), 'o'); hold on
+% % Modify plot colors
+% cols = get(gca,'ColorOrder');
+% cols(ny+1:2*ny, :) = cols(1:ny, :);
+% set(gca,'ColorOrder', cols);
+% plot(t, Y(:, 1), t, Y(:, 2), 'Linewidth', 2)
+% xlim(t([1 end]))
+% legend({'$\hat{y}_1(k)$', '$\hat{y}_2(k)$', '$y_1(k)$', '$y_2(k)$'}, 'Interpreter', 'latex')
+% ylabel('$y_i(k)$', 'Interpreter', 'latex')
+% title('Outputs')
+% grid on
 
 % Verify results by comparing with saved benchmark results
 %head(bench_sim_results)
-
 assert(isequal( ...
     round(sim_results.Variables, 7), ...
     round(bench_sim_results.Variables, 7) ...

@@ -1,25 +1,40 @@
 % Kalman Filter class definition
 
 classdef KalmanFilter < matlab.mixin.Copyable
-% obs = KalmanFilterSS(A,B,C,D,Ts,Q,R,label,x0)
+% obs = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
 % Class for simulating a steady-state Kalman filter
 % (i.e. with static gain).
 %
 % Arguments:
-%   A, B, C, D : discrete-time system model matrices.
-%   Ts : sample period.
-%   Q : Process noise covariance matrix.
-%   R : Output measurement noise covariance matrix.
-%   label : string name.
-%   x0 : intial state estimates (optional).
+%   A, B, C, D : matrices
+%       Discrete-time system model matrices.
+%   Ts : double
+%       Sampling period.
+%   P0 : matrix, size (n, n)
+%       Initial value of covariance matrix of the state
+%       estimates.
+%   Q : matrix, size (n, n)
+%       Process noise covariance.
+%   R : matrix, size (ny, ny)
+%       Output measurement noise covariance.
+%   label : string (optional)
+%       Name.
+%   x0 : vector, size(n, 1), (optional)
+%       Intial state estimates.
 %
-    properties
+    properties (SetAccess = immutable)
         A {mustBeNumeric}
         B {mustBeNumeric}
         C {mustBeNumeric}
         D {mustBeNumeric}
         Ts {mustBeNumeric}
         P0 {mustBeNumeric}
+        n {mustBeInteger}
+        nu {mustBeInteger}
+        ny {mustBeInteger}
+        type
+    end
+    properties
         Q {mustBeNumeric}
         R {mustBeNumeric}
         label
@@ -28,11 +43,6 @@ classdef KalmanFilter < matlab.mixin.Copyable
         ykp1_est {mustBeNumeric}
         K {mustBeNumeric}
         P {mustBeNumeric}
-        n {mustBeInteger}
-        nu {mustBeInteger}
-        ny {mustBeInteger}
-        status {mustBeInteger}
-        type
     end
     methods
         function obj = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
@@ -59,7 +69,6 @@ classdef KalmanFilter < matlab.mixin.Copyable
             obj.x0 = x0;
             assert(isequal(size(x0), [n 1]))
             obj.label = label;
-            obj.status = 1;
             obj.type = "KF";
 
             % Gain will be calculated dynamically
