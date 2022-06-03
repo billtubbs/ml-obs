@@ -40,7 +40,7 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
     obs.xkp1_est = x0;
     obs.ykp1_est = C * obs.xkp1_est;
 
-    % Flag used buy update_KF function
+    % Flag used by update_KF function
     obs.static_gain = false;
 
     % Add other useful variables
