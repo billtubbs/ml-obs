@@ -1,7 +1,7 @@
 % Kalman Filter class definition
 
-classdef KalmanFilterSS < matlab.mixin.Copyable
-% obs = KalmanFilterSS(A,B,C,D,Ts,Q,R,label,x0)
+classdef LuenbergerFilter < matlab.mixin.Copyable
+% obs = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0)
 % Class for simulating a steady-state Kalman filter
 % (i.e. with static gain).
 %
@@ -10,14 +10,17 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
 %       Discrete-time system model matrices.
 %   Ts : double
 %       Sampling period.
-%   Q : matrix, size (n, n)
-%       Process noise covariance.
-%   R : matrix, size (ny, ny)
-%       Output measurement noise covariance.
+%   poles : vector
+%       Desired closed-loop poles of filter dynamics.
 %   label : string (optional)
 %       Name.
 %   x0 : vector, size(n, 1), (optional)
 %       Intial state estimates.
+%
+% References:
+%  -  D. Luenberger, "An introduction to observers," in IEEE 
+%     Transactions on Automatic Control, vol. 16, no. 6, 
+%     pp. 596-602, December 1971, doi: 10.1109/TAC.1971.1099826.
 %
     properties (SetAccess = immutable)
         A {mustBeNumeric}
@@ -33,46 +36,39 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
         type
     end
     properties
-        Q {mustBeNumeric}
-        R {mustBeNumeric}
+        poles {mustBeNumeric}
         label
         x0 {mustBeNumeric}
         xkp1_est {mustBeNumeric}
         ykp1_est {mustBeNumeric}
     end
     methods
-        function obj = KalmanFilterSS(A,B,C,D,Ts,Q,R,label,x0)
+        function obj = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0)
             obj.A = A;
             obj.B = B;
             obj.C = C;
             obj.D = D;
             [n, nu, ny] = check_dimensions(A, B, C, D);
             obj.Ts = Ts;
-            obj.Q = Q;
-            assert(isequal(size(Q), [n n]))
-            obj.R = R;
-            assert(isequal(size(R), [ny ny]))
-            if nargin < 8
-                label = "KFSS";
+            obj.poles = poles;
+            if nargin < 7
+                label = "LB";
             end
-            if nargin < 9
+            if nargin < 8
                 x0 = zeros(n, 1);
             end
             obj.label = label;
             obj.x0 = x0;
             assert(isequal(size(x0), [n 1]))
             obj.label = label;
-            obj.type = "KFSS";
+            obj.type = "LB";
 
-            % Model
-            N = zeros(n, ny);
-            G = eye(n);  % apply process noises to all states
-            H = zeros(ny, n);  % no direct transmission of noises
-            Gmodel = ss(A, [B G], C, [D H], Ts);
-
-            % Use MATLAB's Kalman filter function to compute the
-            % steady-state gain and covariance matrix
-            [~, obj.K, obj.P] = kalman(Gmodel, Q, R, N, 'delayed');
+            % Compute observer gain
+            if ny == 1
+                obj.K = acker(A', C', poles)';
+            else
+                obj.K = place(A', C', poles)';
+            end
 
             % Initialize estimates
             obj.xkp1_est = x0;

@@ -12,8 +12,8 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
 %
 % References:
 %  -  D. Luenberger, "An introduction to observers," in IEEE 
-%     Transactions on Automatic Control, vol. 16, no. 6, pp. 596-602,
-%     December 1971, doi: 10.1109/TAC.1971.1099826.
+%     Transactions on Automatic Control, vol. 16, no. 6, 
+%     pp. 596-602, December 1971, doi: 10.1109/TAC.1971.1099826.
 %
     [n, nu, ny] = check_dimensions(A, B, C, D);
     if nargin == 7
@@ -25,6 +25,9 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
     obs.D = D;
     obs.Ts = Ts;
     obs.poles = poles;
+    obs.label = label;
+    obs.status = 1;
+    obs.type = "LB";
 
     % Compute observer gain
     if ny == 1
@@ -32,9 +35,6 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
     else
         obs.K = place(A', C', poles)';
     end
-    obs.label = label;
-    obs.status = 1;
-    obs.type = "LB";
 
     % Initialize estimates
     obs.xkp1_est = x0;
