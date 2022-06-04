@@ -28,6 +28,7 @@ classdef LuenbergerFilter < matlab.mixin.Copyable
         C {mustBeNumeric}
         D {mustBeNumeric}
         Ts {mustBeNumeric}
+        poles {mustBeNumeric}
         K {mustBeNumeric}
         P {mustBeNumeric}
         n {mustBeInteger}
@@ -36,7 +37,6 @@ classdef LuenbergerFilter < matlab.mixin.Copyable
         type
     end
     properties
-        poles {mustBeNumeric}
         label
         x0 {mustBeNumeric}
         xkp1_est {mustBeNumeric}

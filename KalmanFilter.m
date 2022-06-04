@@ -23,26 +23,26 @@ classdef KalmanFilter < matlab.mixin.Copyable
 %       Intial state estimates.
 %
     properties (SetAccess = immutable)
-        A {mustBeNumeric}
-        B {mustBeNumeric}
-        C {mustBeNumeric}
-        D {mustBeNumeric}
         Ts {mustBeNumeric}
-        P0 {mustBeNumeric}
         n {mustBeInteger}
         nu {mustBeInteger}
         ny {mustBeInteger}
         type
     end
     properties
+        A {mustBeNumeric}
+        B {mustBeNumeric}
+        C {mustBeNumeric}
+        D {mustBeNumeric}
+        P0 {mustBeNumeric}
         Q {mustBeNumeric}
         R {mustBeNumeric}
+        K {mustBeNumeric}
+        P {mustBeNumeric}
         label
         x0 {mustBeNumeric}
         xkp1_est {mustBeNumeric}
         ykp1_est {mustBeNumeric}
-        K {mustBeNumeric}
-        P {mustBeNumeric}
     end
     methods
         function obj = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)

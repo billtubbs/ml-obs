@@ -25,6 +25,8 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
         C {mustBeNumeric}
         D {mustBeNumeric}
         Ts {mustBeNumeric}
+        Q {mustBeNumeric}
+        R {mustBeNumeric}
         K {mustBeNumeric}
         P {mustBeNumeric}
         n {mustBeInteger}
@@ -33,8 +35,6 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
         type
     end
     properties
-        Q {mustBeNumeric}
-        R {mustBeNumeric}
         label
         x0 {mustBeNumeric}
         xkp1_est {mustBeNumeric}

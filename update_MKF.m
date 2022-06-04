@@ -61,9 +61,6 @@ function obs = update_MKF(obs, uk, yk, show_plots)
             yk_cov = triu(yk_cov.',1) + tril(yk_cov);
         end
 
-        % Save for debugging purposes
-        obs.filters{f}.yk_cov = yk_cov;
-
         % Calculate normal probability density (multivariate)
         obs.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
 

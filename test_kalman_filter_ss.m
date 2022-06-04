@@ -2,14 +2,18 @@
 
 clear all
 
-% SISO system example from GEL-7029 in file Kalman_Filter.mlx
+results_dir = 'results';
 
+% SISO system example from GEL-7029 in file Kalman_Filter.mlx
 sys_test_siso
 
 % Check if benchmark simulation data file exists
-if ~isfile('results/Kalman_Filter_sim_benchmark.csv')
+filename = 'KF_sim_benchmark.csv';
+if ~isfile(fullfile(results_dir, filename))
     error("Run 'Kalman_Filter_benchmark.mlx' to generate benchmark data.")
 end
+bench_sim_results = readtable(fullfile('results', filename));
+
 
 
 %% Define and simulate steady-state Kalman filters
@@ -158,13 +162,6 @@ sim_results = [table(t,U) ...
     array2table(yNkalman2', 'VariableNames', {'y_est_KFSS'})];
 
 %head(sim_results)
-
-
-% Verify results by comparing with Kalman_Filter.mlx
-
-filename = 'Kalman_Filter_sim_benchmark.csv';
-bench_sim_results = readtable(fullfile('results', filename));
-
 %head(bench_sim_results)
 
 assert(isequal( ...
