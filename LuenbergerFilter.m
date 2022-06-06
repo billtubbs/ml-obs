@@ -51,17 +51,17 @@ classdef LuenbergerFilter < matlab.mixin.Copyable
             [n, nu, ny] = check_dimensions(A, B, C, D);
             obj.Ts = Ts;
             obj.poles = poles;
-            if nargin < 7
-                label = "LB";
-            end
+            obj.type = "LB";
             if nargin < 8
                 x0 = zeros(n, 1);
+            else
+                assert(isequal(size(x0), [n 1]))
+            end
+            obj.x0 = x0;
+            if nargin < 7
+                label = obj.type;
             end
             obj.label = label;
-            obj.x0 = x0;
-            assert(isequal(size(x0), [n 1]))
-            obj.label = label;
-            obj.type = "LB";
 
             % Compute observer gain
             if ny == 1

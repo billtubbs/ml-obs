@@ -16,7 +16,7 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
 %     pp. 596-602, December 1971, doi: 10.1109/TAC.1971.1099826.
 %
     [n, nu, ny] = check_dimensions(A, B, C, D);
-    if nargin == 7
+    if nargin < 8
         x0 = zeros(n,1);
     end
     obs.A = A;
@@ -25,6 +25,15 @@ function obs = luenberger_filter(A,B,C,D,Ts,poles,label,x0)
     obs.D = D;
     obs.Ts = Ts;
     obs.poles = poles;
+    if nargin < 8
+        x0 = zeros(n, 1);
+    else
+        assert(isequal(size(x0), [n 1]))    
+    end
+    obs.x0 = x0;
+    if nargin < 7
+        label = obs.type;
+    end
     obs.label = label;
     obs.status = 1;
     obs.type = "LB";

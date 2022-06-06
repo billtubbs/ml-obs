@@ -52,17 +52,17 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
             assert(isequal(size(Q), [n n]))
             obj.R = R;
             assert(isequal(size(R), [ny ny]))
-            if nargin < 8
-                label = "KFSS";
-            end
+            obj.type = "KFSS";
             if nargin < 9
                 x0 = zeros(n, 1);
+            else
+                assert(isequal(size(x0), [n 1]))
+            end
+            obj.x0 = x0;
+            if nargin < 8
+                label = obj.type;
             end
             obj.label = label;
-            obj.x0 = x0;
-            assert(isequal(size(x0), [n 1]))
-            obj.label = label;
-            obj.type = "KFSS";
 
             % Model
             N = zeros(n, ny);

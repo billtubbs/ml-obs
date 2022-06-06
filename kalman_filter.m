@@ -14,7 +14,7 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
 %   x0 : intial state estimates (optional).
 %
     [n, nu, ny] = check_dimensions(A, B, C, D);
-    if nargin == 9
+    if nargin < 10
         % Default initial state estimate
         x0 = zeros(n, 1);
     end
@@ -31,9 +31,18 @@ function obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
     assert(isequal(size(Q), [n n]), "ValueError: size(Q)")
     obs.R = R;
     assert(isequal(size(R), [ny ny]), "ValueError: size(R)")
+    obs.type = "KF";
+    if nargin < 10
+        x0 = zeros(n, 1);
+    else
+        assert(isequal(size(x0), [n 1]))    
+    end
+    obs.x0 = x0;
+    if nargin < 9
+        label = obs.type;
+    end
     obs.label = label;
     obs.status = 1;
-    obs.type = "KF";
     obs.K = nan(n, 1);
 
     % Initialize estimates

@@ -26,7 +26,7 @@ N = zeros(n,ny);
 x0 = [0.1; 0.5];
 
 % Define steady-state Kalman filter with KalmanFilterSS class
-label = 'KFSS';
+label = "KFSS";
 KFSS_old = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0);
 KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,label,x0);
 
@@ -551,3 +551,57 @@ assert(isequal( ...
     round(sim_results.Variables, 7), ...
     round(bench_sim_results.Variables, 7) ...
 ))
+
+
+%% Test copy methods
+
+sys_test_siso
+
+% Covariance matrices
+Q = diag([0.1; 0.1]);
+R = 0.5;
+N = zeros(n,ny);
+x0 = [0.1; 0.5];
+P0 = diag([1e-4 1e-4]);
+
+% Define steady-state Kalman
+KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS",x0);
+
+% Define dynamic Kalman filter
+KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
+
+% Test handle copy
+KFSS_hcopy = KFSS;
+assert(isequaln(KFSS_hcopy, KFSS))  % same values
+assert(KFSS_hcopy == KFSS)  % must be same object
+
+KFSS.x0 = [0.2; 0.5];
+assert(isequal(KFSS_hcopy.x0, [0.2; 0.5]))
+
+KF_hcopy = KF;
+assert(isequaln(KF_hcopy, KF))  % same values
+assert(KF_hcopy == KF)  % must be same object
+
+KF.label = "New name";
+assert(isequal(KF_hcopy.label, "New name"))
+
+% Redefine steady-state Kalman
+KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS",x0);
+
+% Redefine dynamic Kalman filter
+KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
+
+% Test true copy
+KFSS_copy = KFSS.copy();
+assert(isequaln(KFSS_copy, KFSS))  % same values
+assert(KFSS_copy ~= KFSS)  % must not be same object
+
+KFSS.x0 = [0.2; 0.5];
+assert(~isequal(KFSS_copy.x0, [0.2; 0.5]))
+
+KF_copy = KF.copy();
+assert(isequaln(KF_copy, KF))  % same values
+assert(KF_copy ~= KF)  % must not be same object
+
+KF.label = "New name";
+assert(~isequal(KF_copy.label, "New name"))
