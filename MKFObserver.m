@@ -31,19 +31,18 @@ classdef MKFObserver < matlab.mixin.Copyable
         ny {mustBeInteger}
         nj {mustBeInteger}
         d {mustBeInteger}
-        type
         f {mustBeInteger}
         n_filt {mustBeInteger}
     end
     properties
-        A % {mustBeUnderlyingType(A,"cell")}  % Introduced in R2020b
-        B % {mustBeUnderlyingType(B,"cell")}
-        C % {mustBeUnderlyingType(C,"cell")}
-        D % {mustBeUnderlyingType(D,"cell")}
-        P0 % {mustBeUnderlyingType(P0,"cell")}
-        Q % {mustBeUnderlyingType(Q,"cell")}
-        R % {mustBeUnderlyingType(R,"cell")}
-        seq % {mustBeUnderlyingType(seq,"cell")}
+        A  % {mustBeUnderlyingType(A,"cell")}  % Introduced in R2020b
+        B  % {mustBeUnderlyingType(B,"cell")}
+        C  % {mustBeUnderlyingType(C,"cell")}
+        D  % {mustBeUnderlyingType(D,"cell")}
+        P0  % {mustBeUnderlyingType(P0,"cell")}
+        Q  % {mustBeUnderlyingType(Q,"cell")}
+        R  % {mustBeUnderlyingType(R,"cell")}
+        seq  % {mustBeUnderlyingType(seq,"cell")}
         gamma0 {mustBeNumeric}
         T {mustBeNumeric}
         label
@@ -56,9 +55,10 @@ classdef MKFObserver < matlab.mixin.Copyable
         p_gammak_g_Ykm1 {mustBeNumeric}
         p_gamma_k {mustBeNumeric}
         p_seq_g_Ykm1 {mustBeNumeric}
-        filters
+        filters  % {mustBeUnderlyingType(filters,"KalmanFilter")}
         xkp1_est {mustBeNumeric}
         ykp1_est {mustBeNumeric}
+        type
     end
     methods
         function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
@@ -99,7 +99,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.gamma0 = gamma0;
 
             % Fusion horizon length
-            f = size(cell2mat(obj.seq), 2);
+            obj.f = size(cell2mat(obj.seq), 2);
 
             % Check transition probability matrix
             assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
@@ -120,7 +120,6 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.n = n;
             obj.nu = nu;
             obj.ny = ny;
-            obj.f = f;
             obj.type = "MKF";
 
         end
@@ -318,7 +317,7 @@ classdef MKFObserver < matlab.mixin.Copyable
                 bar(1:obj.n_filt, obj.p_yk_g_seq_Ykm1)
                 title('$p(y(k)|\Gamma(k),Y(k-1))$','Interpreter','Latex')
                 subplot(3,1,2)
-                bar(1:obj.n_filt, p_gamma_k)
+                bar(1:obj.n_filt, obj.p_gamma_k)
                 ylim([0, 1])
                 title('Shock probabilities $\gamma(k)$','Interpreter','Latex')
                 subplot(3,1,3)
@@ -338,9 +337,9 @@ classdef MKFObserver < matlab.mixin.Copyable
                 disp(obj.label);
                 disp('stop')
             end
-        end    
+        end
     end
-% TODO: Should do a deep copy
+% TODO: Should do a deep copy automatically (i.e. without this)
 % - https://www.mathworks.com/help/matlab/matlab_oop/custom-copy-behavior.html
 %     methods (Access = protected)
 %         function cp = copyElement(obj)
@@ -351,15 +350,3 @@ classdef MKFObserver < matlab.mixin.Copyable
 %         end
 %     end
 end
-
-% TODO: Don't really need this. Would make switching system inefficient
-%
-% function mustBeValidCellArray(a)
-%     % Check a is a cell array and that all its elements
-%     % are numerical and the same size
-%     if ~isa(a,'cell') || ~hasEqualSizedNumericalElements(a)
-%         eidType = 'MKFObserver:notValidCellArray';
-%         msgType = 'Value assigned must be a cell array containing numerical arrays of equal size.';
-%         throwAsCaller(MException(eidType,msgType))
-%     end
-% end

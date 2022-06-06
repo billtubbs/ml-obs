@@ -330,14 +330,14 @@ seq1 = {
     ones(1, nT+1);
  };
 
-% Define MKF observer 1
+% Define MKF observer
 seq = seq1;
 n_filt = numel(seq);
 P0j = repmat({P0}, n_filt, 1);
 d = 1;
 
 % Define multi-model observer with initial conditions
-MKF = MKFObserver(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0);
+MKF = MKFObserver(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF',x0);
 
 % Test handle copy
 MKF_hcopy = MKF;
@@ -348,13 +348,21 @@ MKF.x0 = 1.0;
 assert(isequal(MKF_hcopy.x0, 1.0))
 
 % Test true copy
-
 MKF_copy = MKF.copy();
 assert(isequaln(MKF_copy, MKF))  % same values
 assert(MKF_copy ~= MKF)  % must not be same object
+assert(isequaln(MKF_copy.filters{1}, MKF.filters{1}))
+assert(isequaln(MKF_copy.filters{2}, MKF.filters{2}))
+
+% Check deep copy was made
+assert(MKF_copy.filters{1} ~= MKF.filters{1})  % must not be same object
+assert(MKF_copy.filters{2} ~= MKF.filters{2})
 
 MKF.label = "New name";
 assert(~isequal(MKF_copy.label, "New name"))
+
+MKF.filters{1}.x0 = 99;
+assert(~isequal(MKF_copy.filters{1}.x0, 99))
 
 %END
 

@@ -46,7 +46,7 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     n = check_dimensions(A, B, C, D);
 
     % Initial state estimates
-    if nargin == 15
+    if nargin < 16
         x0 = zeros(n,1);
     end
 
@@ -175,8 +175,8 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     obs.m = m;
     obs.alpha = alpha;
     obs.beta = beta;
-    obs.p_gamma = p_gamma;
     obs.p_seq = p_seq;
+    obs.p_gamma = p_gamma;
     obs.nj = nj;
     obs.p_gamma_k = nan(n_filt, 1);
     obs.p_seq_g_Ykm1 = nan(n_filt, 1);
