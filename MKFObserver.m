@@ -25,40 +25,40 @@ classdef MKFObserver < matlab.mixin.Copyable
 %       (optional, default zeros).
 %
     properties (SetAccess = immutable)
-        Ts {mustBeNumeric}
-        n {mustBeInteger}
-        nu {mustBeInteger}
-        ny {mustBeInteger}
-        nj {mustBeInteger}
-        d {mustBeInteger}
-        f {mustBeInteger}
-        n_filt {mustBeInteger}
+        Ts (1, 1) double {mustBeNonnegative}
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nj (1, 1) double {mustBeInteger, mustBeNonnegative}
+        d (1, 1) double {mustBeInteger, mustBeNonnegative}
+        f (1, 1) double {mustBeInteger, mustBeNonnegative}
+        n_filt (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
-        A  % {mustBeUnderlyingType(A,"cell")}  % Introduced in R2020b
-        B  % {mustBeUnderlyingType(B,"cell")}
-        C  % {mustBeUnderlyingType(C,"cell")}
-        D  % {mustBeUnderlyingType(D,"cell")}
-        P0  % {mustBeUnderlyingType(P0,"cell")}
-        Q  % {mustBeUnderlyingType(Q,"cell")}
-        R  % {mustBeUnderlyingType(R,"cell")}
-        seq  % {mustBeUnderlyingType(seq,"cell")}
-        gamma0 {mustBeNumeric}
-        T {mustBeNumeric}
-        label
-        x0 {mustBeNumeric}
-        i {mustBeInteger}
-        i_next {mustBeInteger}
-        gamma_k {mustBeNumeric}
-        p_seq_g_Yk {mustBeNumeric}
-        p_yk_g_seq_Ykm1 {mustBeNumeric}
-        p_gammak_g_Ykm1 {mustBeNumeric}
-        p_gamma_k {mustBeNumeric}
-        p_seq_g_Ykm1 {mustBeNumeric}
-        filters  % {mustBeUnderlyingType(filters,"KalmanFilter")}
-        xkp1_est {mustBeNumeric}
-        ykp1_est {mustBeNumeric}
-        type
+        A cell
+        B cell
+        C cell
+        D cell
+        P0 cell
+        Q cell
+        R cell
+        seq cell
+        gamma0 double {mustBeInteger, mustBeNonnegative}
+        T double
+        label (1, 1) string
+        x0 (:, 1) double
+        i (1, 2) {mustBeInteger, mustBeNonnegative}
+        i_next (1, 2) {mustBeInteger, mustBeNonnegative}
+        gamma_k double
+        p_seq_g_Yk double
+        p_yk_g_seq_Ykm1 double
+        p_gammak_g_Ykm1 double
+        p_gamma_k double
+        p_seq_g_Ykm1 double
+        filters  cell
+        xkp1_est (:, 1) double
+        ykp1_est (:, 1) double
+        type (1, 1) string
     end
     methods
         function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
@@ -109,17 +109,17 @@ classdef MKFObserver < matlab.mixin.Copyable
             for j = 2:nj
                 [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: A, B, C, D")
+                    "ValueError: size of A, B, C, and D")
             end
 
             % Initialize all variables
             obj.reset()
 
             % Add other useful variables
-            obj.nj = nj;
             obj.n = n;
             obj.nu = nu;
             obj.ny = ny;
+            obj.nj = nj;
             obj.type = "MKF";
 
         end
@@ -138,7 +138,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.i_next = int16([1 1]);
 
             % Initialize conditional probabilities: all equally likely
-            obj.p_seq_g_Yk = ones(obj.n_filt, 1) ./ obj.n_filt;
+            obj.p_seq_g_Yk = ones(obj.n_filt, 1) ./ double(obj.n_filt);
 
             % Empty vectors to store values for filter calculations
             % p(y(k)|Gamma(k),Y(k-1))
@@ -159,9 +159,9 @@ classdef MKFObserver < matlab.mixin.Copyable
                 label_i = sprintf(fmt,obj.label,i);
                 % Index of system model
                 ind = obj.gamma_k(i) + 1;
-                obj.filters{i} = KalmanFilter(obj.A{ind},obj.B{ind},obj.C{ind} ...
-                    ,obj.D{ind},obj.Ts,obj.P0{i}, obj.Q{ind},obj.R{ind}, ...
-                    label_i,obj.x0);
+                obj.filters{i} = KalmanFilter(obj.A{ind},obj.B{ind}, ...
+                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0{i}, obj.Q{ind}, ...
+                    obj.R{ind},label_i,obj.x0);
             end
 
             % Initialize estimates
@@ -174,8 +174,6 @@ classdef MKFObserver < matlab.mixin.Copyable
         % updates the multi-model Kalman filter and calculates the
         % estimates of the states and output at the next sample
         % time.
-        %
-        % Modification to test lower rate of probability updates.
         %
         % Arguments:
         %   obs : struct containing the multi-model Kalman filter
@@ -250,7 +248,8 @@ classdef MKFObserver < matlab.mixin.Copyable
                     ylim([0 5])  % Specify max prob.
                     grid on
                     title(sprintf('Filter %d',f))
-                    legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$','Interpreter','Latex')
+                    legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$', ...
+                        'Interpreter','Latex')
                     set(gcf,'Position',[f*250-150 50 250 150])
                 end
 
@@ -266,8 +265,10 @@ classdef MKFObserver < matlab.mixin.Copyable
 
                 % Compute Pr(gamma(k)) based on Markov transition
                 % probability matrix
-                % TODO: Can this be computed prior to the for loop for efficiency?
-                obj.p_gamma_k(f) = prob_gamma(obj.gamma_k(f), obj.T(ind_km1, :)');
+                % TODO: Can this be computed prior to the for loop for 
+                % efficiency?
+                obj.p_gamma_k(f) = prob_gamma(obj.gamma_k(f), ...
+                    obj.T(ind_km1, :)');
 
                 % Update filter covariances if at start of a detection
                 % interval.

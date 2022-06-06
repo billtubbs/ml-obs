@@ -20,25 +20,25 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
 %       Intial state estimates.
 %
     properties (SetAccess = immutable)
-        A {mustBeNumeric}
-        B {mustBeNumeric}
-        C {mustBeNumeric}
-        D {mustBeNumeric}
-        Ts {mustBeNumeric}
-        Q {mustBeNumeric}
-        R {mustBeNumeric}
-        K {mustBeNumeric}
-        P {mustBeNumeric}
-        n {mustBeInteger}
-        nu {mustBeInteger}
-        ny {mustBeInteger}
-        type
+        A double
+        B double
+        C double
+        D double
+        Ts (1, 1) double {mustBeNonnegative}
+        Q double
+        R double
+        K double
+        P double
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
-        label
-        x0 {mustBeNumeric}
-        xkp1_est {mustBeNumeric}
-        ykp1_est {mustBeNumeric}
+        label (1, 1) string
+        x0 (:, 1) double
+        xkp1_est (:, 1) double
+        ykp1_est (:, 1) double
+        type (1, 1) string  % is this still needed? use classdef
     end
     methods
         function obj = KalmanFilterSS(A,B,C,D,Ts,Q,R,label,x0)

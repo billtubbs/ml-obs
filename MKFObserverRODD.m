@@ -45,16 +45,16 @@ classdef MKFObserverRODD < MKFObserver
 %
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
-        m {mustBeInteger}
+        m double {mustBeInteger, mustBeNonnegative}
     end
     properties
-        alpha {mustBeNumeric}
-        beta {mustBeNumeric}
-        p_seq {mustBeNumeric}
-        p_gamma {mustBeNumeric}
-        Q0  % {mustBeUnderlyingType(Q,"cell")}
-        epsilon {mustBeNumeric}
-        sigma_wp {mustBeNumeric}
+        alpha double
+        beta (1, 1) double
+        p_seq double
+        p_gamma double
+        Q0 {mustBeNumeric}
+        epsilon double
+        sigma_wp double
     end
     methods
         function obj = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
@@ -67,8 +67,6 @@ classdef MKFObserverRODD < MKFObserver
             if nargin < 16
                 x0 = zeros(n,1);
             end
-
-            assert(f < 65536, "ValueError: f too large.")
 
             % Check size of process covariance default matrix
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
@@ -189,13 +187,15 @@ classdef MKFObserverRODD < MKFObserver
             obj.Q0 = Q0;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
-            obj.m = m;
+            obj.m = int16(m);
             obj.alpha = alpha;
             obj.beta = beta;
             obj.p_seq = p_seq;
             obj.p_gamma = p_gamma;
             obj.type = "MKF_RODD";
+
         end
+        % TODO: Is MKFObserver reset method okay?
 %         function reset(obj)
 % 
 %             disp("Not yet implemented")

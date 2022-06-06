@@ -23,24 +23,24 @@ classdef LuenbergerFilter < matlab.mixin.Copyable
 %     pp. 596-602, December 1971, doi: 10.1109/TAC.1971.1099826.
 %
     properties (SetAccess = immutable)
-        A {mustBeNumeric}
-        B {mustBeNumeric}
-        C {mustBeNumeric}
-        D {mustBeNumeric}
-        Ts {mustBeNumeric}
+        A double
+        B double
+        C double
+        D double
+        Ts (1, 1) double {mustBeNonnegative}
         poles {mustBeNumeric}
         K {mustBeNumeric}
         P {mustBeNumeric}
-        n {mustBeInteger}
-        nu {mustBeInteger}
-        ny {mustBeInteger}
-        type
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
-        label
-        x0 {mustBeNumeric}
-        xkp1_est {mustBeNumeric}
-        ykp1_est {mustBeNumeric}
+        label (1, 1) string
+        x0 (:, 1) double
+        xkp1_est (:, 1) double
+        ykp1_est (:, 1) double
+        type (1, 1) string  % is this still needed? use classdef
     end
     methods
         function obj = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0)

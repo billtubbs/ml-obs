@@ -24,26 +24,26 @@ classdef KalmanFilter < matlab.mixin.Copyable
 %       Intial state estimates.
 %
     properties (SetAccess = immutable)
-        Ts {mustBeNumeric}
-        n {mustBeInteger}
-        nu {mustBeInteger}
-        ny {mustBeInteger}
-        type
+        Ts (1, 1) double {mustBeNonnegative}
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
-        A {mustBeNumeric}
-        B {mustBeNumeric}
-        C {mustBeNumeric}
-        D {mustBeNumeric}
-        P0 {mustBeNumeric}
-        Q {mustBeNumeric}
-        R {mustBeNumeric}
-        K {mustBeNumeric}
-        P {mustBeNumeric}
-        label
-        x0 {mustBeNumeric}
-        xkp1_est {mustBeNumeric}
-        ykp1_est {mustBeNumeric}
+        A double
+        B double
+        C double
+        D double
+        P0 double
+        Q double
+        R double
+        K double
+        P double
+        label (1, 1) string
+        x0 (:, 1) double
+        xkp1_est (:, 1) double
+        ykp1_est (:, 1) double
+        type (1, 1) string  % is this still needed? use classdef
     end
     methods
         function obj = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
@@ -54,7 +54,6 @@ classdef KalmanFilter < matlab.mixin.Copyable
             [n, nu, ny] = check_dimensions(A, B, C, D);
             obj.Ts = Ts;
             obj.P0 = P0;
-            obj.P = P0;
             assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
             obj.Q = Q;
             assert(isequal(size(Q), [n n]))
@@ -72,17 +71,30 @@ classdef KalmanFilter < matlab.mixin.Copyable
             end
             obj.label = label;
 
-            % Gain will be calculated dynamically
-            obj.K = nan(n, 1);
-
-            % Initialize estimates
-            obj.xkp1_est = x0;
-            obj.ykp1_est = C * obj.xkp1_est;
-
             % Add other useful variables
             obj.n = n;
             obj.nu = nu;
             obj.ny = ny;
+
+            % Initialize estimates
+            obj.reset()
+
+        end
+        function reset(obj)
+        % obj.reset()
+        % Initialize all variables to initial values specified
+        % when observer object was created.
+        %
+
+            % Initialize estimate covariance
+            obj.P = obj.P0;
+
+            % Initialize estimates
+            obj.xkp1_est = obj.x0;
+            obj.ykp1_est = obj.C * obj.xkp1_est;
+
+            % Gain will be calculated dynamically
+            obj.K = nan(obj.n, 1);
 
         end
         function update(obj, yk, uk)
