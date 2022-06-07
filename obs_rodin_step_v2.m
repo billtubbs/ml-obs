@@ -70,16 +70,6 @@ Q = diag([Q1 adj*0.1^2]);
 R = sigma_M^2;
 KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
-% Scheduled Kalman filter
-P0 = 1000*eye(n);
-Q0 = diag([Q1 0]);
-R = sigma_M^2;
-SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
-SKF.type = 'SKF';
-SKF.Q0 = Q0;
-SKF.Bw = Bw;
-SKF.sigma_wp = sigma_wp;
-
 % Multiple model filter 1
 label = 'MKF1';
 P0 = 1000*eye(n);

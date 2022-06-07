@@ -87,7 +87,7 @@ assert(isequal(round(MKF2.p_gamma, 4), [1-MKF2.epsilon; MKF2.epsilon]))
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
-MKF_testx0 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
@@ -112,6 +112,13 @@ U(t >= 1) = -1;
 alpha = zeros(nT+1, 1);
 alpha(t == t_shock) = 1;  % this is used by the SKF observer
 Wp = du0 .* alpha;
+
+% Multiple model scheduled Kalman filter
+P0 = 1000*eye(n);
+Qx2 = {diag([Q1 sigma_wp(1).^2]), diag([Q1 sigma_wp(2).^2])};
+R = sigma_M^2;
+seq = alpha';
+SKF = MKFObserverSched({A,A},{Bu,Bu},{C,C},{Du,Du},Ts,P0,Qx2,{R,R},seq,"SKF");
 
 U_sim = [U Wp];
 
@@ -147,10 +154,8 @@ T = repmat(p_gamma', 2, 1);
 d = 1;
 MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
 
-
 % Choose observers to test
 observers = {KF2, KF3, SKF, MKF1, MKF2, MKF3, MKF4};
-
 
 % Note: KF1 is too slow to pass static error test here
 
@@ -223,24 +228,24 @@ end
 
 % Display results of last simulation
 
-% X_est = sim_results.X_est;
-% E_obs = sim_results.E_obs;
-% K_obs = sim_results.K_obs;
-% trP_obs = sim_results.trP_obs;
-% 
-% table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
+X_est = sim_results.X_est;
+E_obs = sim_results.E_obs;
+K_obs = sim_results.K_obs;
+trP_obs = sim_results.trP_obs;
 
-% % Display gains and trace of covariance matrix
-% table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
-%     'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
+table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs);
 
-% % Show table of mean-squared errors
-% table(MSE.keys', cell2mat(MSE.values'), ...
-%     'VariableNames', {'Observer', 'MSE'})
+% Display gains and trace of covariance matrix
+table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
+    'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'});
+
+% Show table of mean-squared errors
+table(MSE.keys', cell2mat(MSE.values'), ...
+    'VariableNames', {'Observer', 'MSE'});
 
 
-% % Plot of inputs and outputs
-% 
+% Plot of inputs and outputs
+
 % obs_label = obs.label;
 % 
 % set(groot,'defaultAxesTickLabelInterpreter','latex');
@@ -307,10 +312,10 @@ end
 % linkaxes([ax1, ax2 ax3 ax4], 'x')
 % 
 % set(gcf,'Position',[100 200 560 600]);
-% 
-% 
-% % Plot of conditional filter probabilities
-% 
+
+
+% Plot of conditional filter probabilities
+
 % switch obs.label
 %     case {'MKF1', 'MKF2'}
 %         p_seq_g_Yk = sim_results.MKF_p_seq_g_Yk;
@@ -364,13 +369,13 @@ end
 
 % Earlier test results (with a shock of amplitude 1)
 % MSE_test_values = containers.Map(...
-%     {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  'SKF'}, ...
+%     {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  "SKF"}, ...
 %     [0.000934 0.003524 0.004914 0.005016 0.002709 0.000929 0.000929] ...
 % );
 
 % Results on Nov 8 before reverting back the Bayesian updating
 %MSE_test_values = containers.Map(...
-%  {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  'SKF'}, ...
+%  {'KF2',   'KF3',   'MKF1',  'MKF2',  'MKF3',  'MKF4',  "SKF"}, ...
 %  [0.000934 0.003524 0.009456 0.005016 0.002709 0.000929 0.000929] ...
 %);
 % Changes since previous results: 
@@ -454,16 +459,6 @@ P0 = 1000*eye(n);
 Q = diag([0.01 0.01 0.1^2 0.1^2]);
 R = diag(sigma_M.^2);
 KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
-
-% Scheduled Kalman filter
-P0 = 1000*eye(n);
-Q0 = diag([0.01 0.01 0 0]);
-R = diag(sigma_M.^2);
-SKF = kalman_filter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
-SKF.type = 'SKF';
-SKF.Q0 = Q0;
-SKF.Bw = Bw;
-SKF.sigma_wp = sigma_wp;
 
 % Multiple model filter 1
 label = 'MKF1';
@@ -579,7 +574,6 @@ MKF_testx0 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
 
-
 % Simulation settings
 nT = 200;
 t = Ts*(0:nT)';
@@ -637,10 +631,18 @@ seq{1}(t == t_shock(1)) = 1;
 seq{1}(t == t_shock(2)) = 2;
 MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0_init,Q2,R2,seq,T,d,'MKF4');
 
+% Define scheduled Kalman filter
+% Note: in the case of more than one random input variable, all
+% possible combinations of the switching systems need to be 
+% accounted for.
+% Here, we account for 3 possible combinations:
+% combs = [0 0; 1 0; 0 1];
+% (This is the same as the MKF filters for the RODD).
+% seq = sum(alpha .* 2.^(1:-1:0), 2)';
+SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
 observers = {KF3, SKF, MKF1, MKF2, MKF3, MKF4};
-
 
 % Note: KF1 is too slow to pass static error test here
 
@@ -712,22 +714,22 @@ for i = 1:n_obs
 end
 
 
-% % Display results of last simulation
-% 
-% X_est = sim_results.X_est;
-% E_obs = sim_results.E_obs;
-% K_obs = sim_results.K_obs;
-% trP_obs = sim_results.trP_obs;
-% 
-% table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
-% 
-% % Display gains and trace of covariance matrix
-% table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
-%     'VariableNames', {'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
-% 
-% % Show table of mean-squared errors
-% table(MSE.keys', cell2mat(MSE.values'), ...
-%     'VariableNames', {'Observer', 'MSE'})
+% Display results of last simulation
+
+X_est = sim_results.X_est;
+E_obs = sim_results.E_obs;
+K_obs = sim_results.K_obs;
+trP_obs = sim_results.trP_obs;
+
+table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs);
+
+% Display gains and trace of covariance matrix
+table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
+    'VariableNames', {'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'});
+
+% Show table of mean-squared errors
+table(MSE.keys', cell2mat(MSE.values'), ...
+    'VariableNames', {'Observer', 'MSE'});
 
 % Results on Nov 8 after reverting back the Bayesian updating
 MSE_test_values = containers.Map(...
@@ -783,26 +785,21 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
         % Update observer gains and covariance matrix
         switch obs.type
 
-            case 'KF'
+            case "KF"
                 obs.update(yk_m, uk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K(:)';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case 'SKF'
-
-                % Get actual shock occurence indicators
-                alpha_k = alpha(i, :);
-
-                % Update observer estimates
-                obs = update_SKF(obs, uk_m, yk_m, alpha_k);
+            case "SKF"
+                obs.update(yk_m, uk_m);
 
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K(:)';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'MKF', 'MKF_RODD'}
+            case {"MKF", "MKF_RODD"}
                 obs.update(yk_m, uk_m, false);
 
                 % Record filter gains and covariance matrices

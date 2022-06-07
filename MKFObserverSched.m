@@ -8,6 +8,9 @@ classdef MKFObserverSched < matlab.mixin.Copyable
 % observer because it has more than one possible system model,
 % it only uses one Kalman Filter (n_filt = 1).
 %
+% The scheduled KF is useful for use as a benchmark to compare
+% other multi-model observer algorithms with.
+%
 % Arguments:
 %	A, B, C, D : cell arrays
 %       discrete-time system matrices for each switching
@@ -23,8 +26,9 @@ classdef MKFObserverSched < matlab.mixin.Copyable
 %   R : cell array
 %       Output measurement noise covariance matrices for each
 %       switching system.
-%   seq : integer row vector, size (1, f)
-%       Model indicator sequence (one row).
+%   seq : row vector, size (1, f)
+%       Model indicator sequence. If there is only one random
+%       random input variable.
 %   d : detection interval length in number of sample periods.
 %   label : string (optional)
 %       Name.
@@ -49,6 +53,8 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         P0 double
         Q cell
         R cell
+        K double
+        P double
         seq (1, :) double
         label (1, 1) string
         x0 (:, 1) double
@@ -193,6 +199,10 @@ classdef MKFObserverSched < matlab.mixin.Copyable
 
             % Update observer estimates, gain and covariance matrix
             obj.filter.update(yk, uk);
+
+            % Copy gain and covariance matrix
+            obj.K = obj.filter.K;
+            obj.P = obj.filter.P;
 
             % Copy filter estimates
             obj.xkp1_est = obj.filter.xkp1_est;
