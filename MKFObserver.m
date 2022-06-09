@@ -9,8 +9,8 @@ classdef MKFObserver < matlab.mixin.Copyable
 %	A, B, C, D : cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : sample period.
-%   P0 : cell array of initial covariance matrices of the 
-%       state estimates for each filter.
+%   P0 : Initial covariance matrix of the state estimates
+%       (same for each filter).
 %   Q : cell array of process noise covariance matrices for
 %       each switching system.
 %   R : cell array of output measurement noise covariance
@@ -39,7 +39,7 @@ classdef MKFObserver < matlab.mixin.Copyable
         B cell
         C cell
         D cell
-        P0 cell
+        P0 double
         Q cell
         R cell
         seq cell
@@ -160,7 +160,7 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % Index of system model
                 ind = obj.gamma_k(i) + 1;
                 obj.filters{i} = KalmanFilter(obj.A{ind},obj.B{ind}, ...
-                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0{i}, obj.Q{ind}, ...
+                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0, obj.Q{ind}, ...
                     obj.R{ind},label_i,obj.x0);
             end
 

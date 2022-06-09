@@ -9,29 +9,6 @@ classdef MKFObserverRODD < MKFObserver
 % deterministic disturbances (RODDs) as described in 
 % Robertson et al. (1995, 1998).
 %
-% Arguments:
-%   A, B, C, D : matrices of the discrete time state-space
-%       system representing the augmented system (including
-%       disturbances and unmeasured inputs).
-%   Ts : sample period.
-%   u_meas : binary vector indicating measured inputs.
-%   P0 : Initial value of covariance matrix of the state
-%       estimates.
-%   epsilon : probability of a shock disturbance.
-%   sigma_wp : standard deviation of shock disturbances.
-%   Q0 : Process noise covariance matrix (n, n) with 
-%        variances for each state on the diagonal. The  
-%        values for states impacted by the unmeasured
-%        input disturbances should be set to zero as the
-%        appropriate variances will be added by the
-%        algorithm during observer updates.
-%   R : output measurement noise covariance matrix (ny, ny).
-%   f : fusion horizon (length of disturbance sequences).
-%   m : maximum number of disturbances over fusion horizon.
-%   d : detection interval length in number of sample periods.
-%   label : string name.
-%   x0 : intial state estimates (optional).
-%
 % References:
 %  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
 %     Detection and estimation of randomly occurring 
@@ -40,7 +17,7 @@ classdef MKFObserverRODD < MKFObserver
 %     https://doi.org/10.1109/ACC.1995.532779
 %  -  Robertson, D. G., & Lee, J. H. (1998). A method for the
 %     estimation of infrequent abrupt changes in nonlinear 
-%     systems. Automatica, 34(2), 261-270. 
+%     systems. Automatica, 34(2), 261-270.
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
     properties (SetAccess = immutable)
@@ -59,6 +36,29 @@ classdef MKFObserverRODD < MKFObserver
     methods
         function obj = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
+        % Arguments:
+        %   A, B, C, D : matrices of the discrete time state-space
+        %       system representing the augmented system (including
+        %       disturbances and unmeasured inputs).
+        %   Ts : sample period.
+        %   u_meas : binary vector indicating measured inputs.
+        %   P0 : Initial value of covariance matrix of the state
+        %       estimates.
+        %   epsilon : probability of a shock disturbance.
+        %   sigma_wp : standard deviation of shock disturbances.
+        %   Q0 : Process noise covariance matrix (n, n) with 
+        %        variances for each state on the diagonal. The  
+        %        values for states impacted by the unmeasured
+        %        input disturbances should be set to zero as the
+        %        appropriate variances will be added by the
+        %        algorithm during observer updates.
+        %   R : output measurement noise covariance matrix (ny, ny).
+        %   f : fusion horizon (length of disturbance sequences).
+        %   m : maximum number of disturbances over fusion horizon.
+        %   d : detection interval length in number of sample periods.
+        %   label : string name.
+        %   x0 : intial state estimates (optional).
+        %
 
             % Number of states
             n = check_dimensions(A, B, C, D);
@@ -176,14 +176,15 @@ classdef MKFObserverRODD < MKFObserver
             R = repmat({R}, 1, nj);
 
             % Initial covariance matrix is the same for all filters
-            P0_init = repmat({P0}, 1, n_filt);
+            %P0_init = repmat({P0}, 1, n_filt);
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0_init,Q,R,seq,T,d,...
-                label,x0);
+            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,...
+                x0);
 
             % Add additional variables used by RODD observer
             obj.u_meas = u_meas;
+            obj.P0 = P0;
             obj.Q0 = Q0;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
