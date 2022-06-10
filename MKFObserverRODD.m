@@ -1,11 +1,7 @@
 % Multi-model Kalman Filter class definition
-
-classdef MKFObserverRODD < MKFObserver
-% obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
-%     sigma_wp,Q0,R,f,m,d,label,x0)
 %
-% Class for simulating a multi-model observer for state 
-% estimation in the presence of randomly-occurring 
+% Object class for simulating a multi-model observer for 
+% state estimation in the presence of randomly-occurring 
 % deterministic disturbances (RODDs) as described in 
 % Robertson et al. (1995, 1998).
 %
@@ -20,6 +16,8 @@ classdef MKFObserverRODD < MKFObserver
 %     systems. Automatica, 34(2), 261-270.
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
+
+classdef MKFObserverRODD < MKFObserver
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         m double {mustBeInteger, mustBeNonnegative}
@@ -36,6 +34,9 @@ classdef MKFObserverRODD < MKFObserver
     methods
         function obj = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
+        % obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        %     sigma_wp,Q0,R,f,m,d,label,x0)
+        %
         % Arguments:
         %   A, B, C, D : matrices of the discrete time state-space
         %       system representing the augmented system (including
@@ -179,8 +180,7 @@ classdef MKFObserverRODD < MKFObserver
             %P0_init = repmat({P0}, 1, n_filt);
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,...
-                x0);
+            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,x0);
 
             % Add additional variables used by RODD observer
             obj.u_meas = u_meas;
@@ -193,7 +193,7 @@ classdef MKFObserverRODD < MKFObserver
             obj.beta = beta;
             obj.p_seq = p_seq;
             obj.p_gamma = p_gamma;
-            obj.type = "MKF_RODD";
+            obj.type = "MKF-SF";
 
         end
         % TODO: Is MKFObserver reset method okay?

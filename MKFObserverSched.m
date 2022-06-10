@@ -1,40 +1,19 @@
 % Multi-model Kalman Filter class definition
+%
+% Object class for simulating a multi-model Kalman filter for 
+% state estimation with prescribed schedule to determine which 
+% system is active at each time step. Although it is a multi-
+% model observer because it has more than one possible system 
+% model, it only uses one Kalman Filter (n_filt = 1).
+%
+% This scheduled KF is useful as a benchmark to compare other 
+% multi-model observers with.
+%
+
+% TODO: Could this be inherited from MKFObserver?
+%   or vice versa? SKF is an MKF without probability updates.
 
 classdef MKFObserverSched < matlab.mixin.Copyable
-% obs = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
-% Class for simulating a multi-model Kalman filter for state
-% estimation with prescribed schedule to determine which system
-% is active at each time step. Although it is a multi-model
-% observer because it has more than one possible system model,
-% it only uses one Kalman Filter (n_filt = 1).
-%
-% The scheduled KF is useful for use as a benchmark to compare
-% other multi-model observer algorithms with.
-%
-% Arguments:
-%	A, B, C, D : cell arrays
-%       discrete-time system matrices for each switching
-%       system modelled.
-%   Ts : double
-%       Sampling period.
-%   P0 : matrix, size (n, n)
-%       Initial value of covariance matrix of the state
-%       estimates.
-%   Q : cell array
-%       Process noise covariance matrices for each switching
-%       system.
-%   R : cell array
-%       Output measurement noise covariance matrices for each
-%       switching system.
-%   seq : row vector, size (1, f)
-%       Model indicator sequence. If there is only one random
-%       random input variable.
-%   d : detection interval length in number of sample periods.
-%   label : string (optional)
-%       Name.
-%   x0 : vector, size(n, 1), (optional)
-%       Intial state estimates.
-%
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         n (1, 1) double {mustBeInteger, mustBeNonnegative}
@@ -68,6 +47,32 @@ classdef MKFObserverSched < matlab.mixin.Copyable
     end
     methods
         function obj = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
+        % obs = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
+        %
+        % Arguments:
+        %	A, B, C, D : cell arrays
+        %       discrete-time system matrices for each switching
+        %       system modelled.
+        %   Ts : double
+        %       Sampling period.
+        %   P0 : matrix, size (n, n)
+        %       Initial value of covariance matrix of the state
+        %       estimates.
+        %   Q : cell array
+        %       Process noise covariance matrices for each switching
+        %       system.
+        %   R : cell array
+        %       Output measurement noise covariance matrices for each
+        %       switching system.
+        %   seq : row vector, size (1, f)
+        %       Model indicator sequence. If there is only one random
+        %       random input variable.
+        %   d : detection interval length in number of sample periods.
+        %   label : string (optional)
+        %       Name.
+        %   x0 : vector, size(n, 1), (optional)
+        %       Intial state estimates.
+        %
 
             % System dimensions
             [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});

@@ -76,7 +76,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case {'MKF', 'MKF_RODD'}
+        case {'MKF', 'MKF-SF', 'MKF_RODD'}
 
             assert(nargin == 3)
             vec_double = varargin{1};
@@ -139,7 +139,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case 'MKF_AFMM'
+        case {'MKF-SP', 'MKF_AFMM'}
 
             assert(nargin == 3)
             vec_double = varargin{1};

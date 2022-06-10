@@ -1,29 +1,10 @@
 % Multi-model Kalman Filter class definition
-
-classdef MKFObserver < matlab.mixin.Copyable
-% obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
+%
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system.
 %
-% Arguments:
-%	A, B, C, D : cell arrays containing discrete-time system
-%       matrices for each switching system modelled.
-%   Ts : sample period.
-%   P0 : Initial covariance matrix of the state estimates
-%       (same for each filter).
-%   Q : cell array of process noise covariance matrices for
-%       each switching system.
-%   R : cell array of output measurement noise covariance
-%       matrices for each switching system.
-%   seq : model indicator sequences for each filter (in rows).
-%   T : transition probabity matrix of the Markov switching
-%       process.
-%   d : detection interval length in number of sample periods.
-%   label : string name.
-%   x0 : intial state estimates (optional, default zeros)
-%   gamma0 : initial model indicator value (zero-based)
-%       (optional, default zeros).
-%
+
+classdef MKFObserver < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         n (1, 1) double {mustBeInteger, mustBeNonnegative}
@@ -62,6 +43,26 @@ classdef MKFObserver < matlab.mixin.Copyable
     end
     methods
         function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
+        % obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
+        %
+        % Arguments:
+        %	A, B, C, D : cell arrays containing discrete-time system
+        %       matrices for each switching system modelled.
+        %   Ts : sample period.
+        %   P0 : Initial covariance matrix of the state estimates
+        %       (same for each filter).
+        %   Q : cell array of process noise covariance matrices for
+        %       each switching system.
+        %   R : cell array of output measurement noise covariance
+        %       matrices for each switching system.
+        %   seq : model indicator sequences for each filter (in rows).
+        %   T : transition probabity matrix of the Markov switching
+        %       process.
+        %   d : detection interval length in number of sample periods.
+        %   label : string name.
+        %   x0 : intial state estimates (optional, default zeros)
+        %   gamma0 : initial model indicator value (zero-based)
+        %       (optional, default zeros).
 
             % Number of switching systems
             nj = numel(A);

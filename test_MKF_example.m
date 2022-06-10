@@ -159,7 +159,7 @@ R = 0.1^2;
 f = 5;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF1 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,'MKF1');
 
 % Simulate observer
@@ -179,7 +179,7 @@ for i = 1:nT
 %         disp('stop')
 %     end
     
-    obs = update_MKF(obs, uk, yk);
+    obs.update(yk, uk);
 
     % for debugging
     [vec_double, vec_int16] = get_obs_vars_vecs(obs);

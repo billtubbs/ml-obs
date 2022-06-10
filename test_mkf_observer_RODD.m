@@ -23,7 +23,7 @@ sigma_M = 0.1;
 sigma_W = [0; 0];
 
 % Load observers from file
-obs_rodin_step
+obs_rodin_step_old
 
 % Check observer attributes
 assert(strcmp(MKF1.type, "MKF_RODD"))
