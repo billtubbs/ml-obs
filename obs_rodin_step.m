@@ -101,6 +101,8 @@ n_filt = 5;  % number of filters
 n_min = 3;  % minimum life of cloned filters
 MKF_SP1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
+MKF_SP21 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label);
 
 % Multiple model observer with sequence pruning #2
 label = 'MMKF-SP1';
@@ -111,6 +113,8 @@ f = 100;  % sequence history length
 n_filt = 10;  % number of filters
 n_min = 4;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label);
+MKF_SP22 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
 observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, ...

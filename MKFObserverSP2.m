@@ -34,7 +34,7 @@
 %    https://doi.org/10.1080/00207178508933420
 %
 
-classdef MKFObserverSP < MKFObserver
+classdef MKFObserverSP2 < MKFObserver
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         n_min double {mustBeInteger, mustBeNonnegative}
@@ -49,10 +49,9 @@ classdef MKFObserverSP < MKFObserver
         n_hold
         f_main
         f_hold
-        f_unused
     end
     methods
-        function obj = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon, ...
             sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
         % obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
         %     Q0,R,n_filt,f,n_min,label,x0)
@@ -113,7 +112,7 @@ classdef MKFObserverSP < MKFObserver
             var_wp = sigma_wp.^2 ./ d;
 
             % Construct process noise covariance matrices for each 
-            % possible input disturbance
+            % possible input disturbance (returns a cell array)
             Q = construct_Q(Q0, Bw, var_wp, u_meas);
 
             % Number of switching models
@@ -157,12 +156,13 @@ classdef MKFObserverSP < MKFObserver
             assert(n_main >= nw, "ValueError: n_filt is too low.")
 
             % Filter indices
-            f_hold = int16(zeros(1, n_hold));
-            f_main = int16(zeros(1, n_main));
-            f_main(1) = 1;  % initialize with one active filter
-            f_unused = int16(2:n_filt);
+            f_main = int16(1:n_main);  
+            f_hold = int16(n_main+1:n_main+n_hold);
 
-            % System model doesn't change
+            % TODO: Remove this
+            assert(isequal(sort(unique([f_main f_hold])), 1:(n_main+n_hold)))
+
+            % System model doesn't change over time
             A = repmat({A}, 1, nj);
             Bu = repmat({Bu}, 1, nj);
             C = repmat({C}, 1, nj);
@@ -178,6 +178,12 @@ classdef MKFObserverSP < MKFObserver
             % Sequence pruning algorithm initialization
             % Assign all probability to first filter
             obj.p_seq_g_Yk = [1; zeros(obj.n_filt-1, 1)];
+            
+            % Set estimate covariances to high values for the
+            % rest of the filters
+            for i = 2:obj.n_filt
+                obj.filters{i}.P = 1e10*eye(obj.n);
+            end
 
             % Add additional variables used by AFMM observer
             obj.u_meas = u_meas;
@@ -186,7 +192,6 @@ classdef MKFObserverSP < MKFObserver
             obj.n_hold = n_hold;
             obj.f_main = f_main;
             obj.f_hold = f_hold;
-            obj.f_unused = f_unused;
             obj.P0 = P0;
             obj.Q0 = Q0;
             obj.epsilon = epsilon;
@@ -246,55 +251,44 @@ classdef MKFObserverSP < MKFObserver
             % Consistency checks - can be removed later
             assert(size(obj.f_hold, 2) == obj.n_hold)
             assert(size(obj.f_main, 2) == obj.n_main)
-            assert(size(obj.f_unused, 2) == obj.n_filt-1)
-            comb = [obj.f_hold obj.f_main obj.f_unused];
-            comb = sort(nonzeros(comb))';
-            assert(isequal(comb, 1:obj.n_filt))
+            assert(isequal(sort(unique([obj.f_main obj.f_hold])), 1:obj.n_filt))
 
             % Right-shift all filters in holding group. This causes
             % the last nw values to 'roll-over' to the left of f_hold.
             % e.g. circshift([1 2 3], 1) -> [3 1 2]
             obj.f_hold = circshift(obj.f_hold, nw);
 
-            % Check if holding group is not yet full
+            % Filters to be moved out of holding group
             f_move = obj.f_hold(1:nw);
-            i_move = f_move > 0;
 
-            % Select filters to be moved out of holding group and
-            % put into main group.
-            if sum(i_move) > 0
-                [obj.f_main, f_to_replace] = add_to_group_with_replacement(...
-                    obj.f_main, f_move(i_move), obj.p_seq_g_Yk);
-            else
-                f_to_replace = [];
-            end
+            % Rank sequences in main group according to 
+            % conditional probabilities
+            [~, i_rank] = sort(obj.p_seq_g_Yk(obj.f_main));
 
-            % f_to_replace now contains all filter indices no longer in
-            % either the main or holding group (i.e. those pruned due 
-            % to their low likelihood). These are therefore now
-            % available for use for new sequences.  However, during the
-            % the first few time steps while f_main and f_hold are not
-            % full, f_to_replace may be empty []. In which case, a filter
-            % from the unused group is replaced.
-            if numel(f_to_replace) < nw
-                [~, obj.f_unused, f_to_replace] = ...
-                    take_from_2_groups(f_to_replace, obj.f_unused, nw);
-            end
-            obj.f_hold(1:nw) = f_to_replace;
+            % Select those with lowest probability for pruning
+            f_to_prune = obj.f_main(i_rank(1:nw));
 
-            % Clone filter for most probable hypothesis and
-            % new filter(s) to start of holding group
+            % Replace pruned sequences with those from holding
+            % group
+            obj.f_main(i_rank(1:nw)) = f_move;
+
+            % Make clone(s) of most probable sequence and fitler
+            % put new filter(s) at start of holding group
+            % TODO: this should not loop to nw but to no. of combinations
             for i = 1:nw
-                label = obj.filters{f_to_replace(i)}.label;
-                obj.filters{f_to_replace(i)} = obj.filters{f_max}.copy();
-                obj.filters{f_to_replace(i)}.label = label; % keep label
-                obj.p_seq_g_Yk(f_to_replace(i)) = obj.p_seq_g_Yk(f_max);
-                obj.p_gamma_k(f_to_replace(i)) = obj.p_gamma_k(f_max);
-                obj.p_seq_g_Ykm1(f_to_replace(i)) = obj.p_seq_g_Ykm1(f_max);
-                obj.seq{f_to_replace(i)} = obj.seq{f_max};
+                label = obj.filters{f_to_prune(i)}.label;
+                obj.filters{f_to_prune(i)} = obj.filters{f_max}.copy();
+                obj.filters{f_to_prune(i)}.label = label; % keep label
+                obj.p_seq_g_Yk(f_to_prune(i)) = obj.p_seq_g_Yk(f_max);
+                obj.p_gamma_k(f_to_prune(i)) = obj.p_gamma_k(f_max);
+                obj.p_seq_g_Ykm1(f_to_prune(i)) = obj.p_seq_g_Ykm1(f_max);
+                obj.seq{f_to_prune(i)} = obj.seq{f_max};
                 % Set next sequence value to 1 (shock)
-                obj.seq{f_to_replace(i)}(:, obj.i_next(1)) = i;
+                % TODO: this should not be i but indicator value [1, 2, 3, ...]
+                obj.seq{f_to_prune(i)}(:, obj.i_next(1)) = i;
             end
+
+            obj.f_hold(1:nw) = f_to_prune;
 
             % TODO: Add online noise variance estimation with
             % forgetting factor as described in Anderson (1995)
