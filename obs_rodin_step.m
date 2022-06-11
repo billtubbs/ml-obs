@@ -64,7 +64,7 @@ R = sigma_M^2;
 KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
 % Multiple model filter 1
-label = 'MKF-SF1';
+label = 'MKF_SF1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
@@ -75,7 +75,7 @@ MKF_SF1 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
-label = 'MKF-SF2';
+label = 'MKF_SF2';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
@@ -92,7 +92,7 @@ MKF3 = MKFObserver({A,A},{B,B},{C,C},{D,D},Ts,P0,{Q1,Q2},{R,R},MKF_SF2.seq,MKF_S
 % TODO: Allow P0 to be replaced with repmat({P0},1,MKF2.n_filt)
 
 % Multiple model observer with sequence pruning #1
-label = 'MMKF-SP1';
+label = 'MMKF_SP1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
@@ -102,10 +102,10 @@ n_min = 3;  % minimum life of cloned filters
 MKF_SP1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 MKF_SP21 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label);
+    Q0,R,n_filt,f,n_min,'MMKF_SP21');
 
 % Multiple model observer with sequence pruning #2
-label = 'MMKF-SP1';
+label = 'MMKF_SP2';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
@@ -115,7 +115,7 @@ n_min = 4;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 MKF_SP22 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label);
+    Q0,R,n_filt,f,n_min,'MMKF_SP22');
 
 observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, ...
-    MKF_SF1, MKF_SF2, MKF3, MKF_SP1, MKF_SP2};
+    MKF_SF1, MKF_SF2, MKF3, MKF_SP1, MKF_SP2, MKF_SP21, MKF_SP22};
