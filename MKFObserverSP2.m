@@ -199,6 +199,7 @@ classdef MKFObserverSP2 < MKFObserver
             obj.p_gamma = p_gamma;
             obj.type = "MKF-SP";
         end
+
         function update(obj, yk, uk)
         % obs.update(yk, uk)
         % updates the multi-model Kalman filter and calculates the

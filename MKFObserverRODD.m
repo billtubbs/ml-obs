@@ -80,6 +80,9 @@ classdef MKFObserverRODD < MKFObserver
             assert(nw > 0, "ValueError: u_meas");
 
             % Number of filters needed
+            % TODO: arg f here is not actually the fusion horizon 
+            % (which is f*d).  Should maybe use f/d her and assert no
+            % remainder.
             n_filt = n_filters(m, f, nw);
 
             % Generate indicator sequences
