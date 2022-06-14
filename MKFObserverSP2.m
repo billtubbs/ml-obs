@@ -275,21 +275,18 @@ classdef MKFObserverSP2 < MKFObserver
 
             % Make clone(s) of most probable sequence and fitler
             % put new filter(s) at start of holding group
-            % TODO: this should not loop to nw but to no. of combinations
+            obj.f_hold(1:nw) = f_to_prune;
             for i = 1:nw
                 label = obj.filters{f_to_prune(i)}.label;
                 obj.filters{f_to_prune(i)} = obj.filters{f_max}.copy();
-                obj.filters{f_to_prune(i)}.label = label; % keep label
+                obj.filters{f_to_prune(i)}.label = label;  % keep label
                 obj.p_seq_g_Yk(f_to_prune(i)) = obj.p_seq_g_Yk(f_max);
                 obj.p_gamma_k(f_to_prune(i)) = obj.p_gamma_k(f_max);
                 obj.p_seq_g_Ykm1(f_to_prune(i)) = obj.p_seq_g_Ykm1(f_max);
                 obj.seq{f_to_prune(i)} = obj.seq{f_max};
-                % Set next sequence value to 1 (shock)
-                % TODO: this should not be i but indicator value [1, 2, 3, ...]
+                % Set next sequence value to index of the random input
                 obj.seq{f_to_prune(i)}(:, obj.i_next(1)) = i;
             end
-
-            obj.f_hold(1:nw) = f_to_prune;
 
             % TODO: Add online noise variance estimation with
             % forgetting factor as described in Anderson (1995)

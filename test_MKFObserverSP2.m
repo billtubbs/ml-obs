@@ -161,7 +161,7 @@ for i = 1:(nT+1)
 end
 
 
-%% Test sequence updates
+%% Test sequence updates on SISO linear system
 
 % Load system and disturbance model from file
 sys_rodin_step
@@ -1258,7 +1258,7 @@ end
 % end
 
 
-%% Test AFMM observers on 2x2 system
+%% Test initialization on 2x2 system
 
 % Sample time
 Ts = 1;
@@ -1301,14 +1301,7 @@ epsilon = [0.01; 0.01];
 sigma_M = [0.1; 0.1];
 sigma_wp = [0.01 1; 0.01 1];
 
-% Kalman filter 3 - manually tuned
-% Covariance matrices
-P0 = 1000*eye(n);
-Q = diag([0.01 0.01 0.1^2 0.1^2]);
-R = diag(sigma_M.^2);
-KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
-
-% Multiple model AFMM filter 1
+% Multiple model observer with sequence pruning 1
 label = "MKF_SP1";
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
@@ -1319,7 +1312,7 @@ n_min = 5;  % minimum life of cloned filters
 MKF_SP21 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
-% Multiple model AFMM filter 2
+% Multiple model observer with sequence pruning 2
 label = "MKF_SP2";
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
@@ -1400,6 +1393,631 @@ MKF_SP_testx0 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal(MKF_SP_testx0.ykp1_est, C * x0))
+
+
+%% Test sequence on 2x2 system
+
+% Load system and disturbance model from file
+sys_rodin_step_2x2sym
+
+% Load observers from file
+obs_rodin_step_2x2
+
+x0 = [0; 0; 0; 0];
+f = 8;
+n_filt = 10;  % number of filters
+n_min = 3;  % minimum life of cloned filters
+obs = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label,x0);
+assert(isequal(obs.xkp1_est, x0))
+assert(isequal(obs.ykp1_est, [0; 0]))
+assert(obs.d == 1)
+
+
+% % Sample time
+% Ts = 1;
+% 
+% % Discrete time state space model
+% A = [ 0.8890       0     1 -0.2;
+%            0  0.8890  -0.2    1;
+%            0       0     1    0;
+%            0       0     0    1];
+% B = [    1 -0.2  0  0;  % TODO: increase the coupling, -0.5?
+%       -0.2    1  0  0;
+%          0    0  1  0;
+%          0    0  0  1];
+% C = [ 0.1110 0         0  0;
+%              0  0.1110 0  0];
+% D = zeros(2, 4);
+% Gpss = ss(A,B,C,D,Ts);
+% 
+% % Dimensions
+% n = size(A, 1);
+% nu = size(B, 2);
+% ny = size(C, 1);
+% 
+% % Designate measured input and output signals
+% u_meas = [true; true; false; false];
+% y_meas = [true; true];
+% 
+% % Observer model without disturbance noise input
+% Bu = B(:, u_meas);
+% Du = D(:, u_meas);
+% nu = sum(u_meas);
+% nw = sum(~u_meas);
+% 
+% % Disturbance input (used by SKF observer)
+% Bw = B(:, ~u_meas);
+% nw = sum(~u_meas);
+% 
+% % RODD random variable parameters
+% epsilon = [0.01; 0.01];
+% sigma_M = [0.1; 0.1];
+% sigma_wp = [0.01 1; 0.01 1];
+
+
+% % Generate test simulation data
+% nT = 10;
+% t = Ts*(0:nT)';
+% U_m = zeros(nT+1, sum(u_meas));
+% % Add a random shock
+% Wp = zeros(nT+1, sum(~u_meas));
+% Wp(5, 1) = 1;
+% Wp(8, 1) = 1;
+% % Compute outputs (n0 measurement noise)
+% [Y_m, t] = lsim(Gpss, [U_m Wp], t);
+% [t U_m Wp Y_m]
+
+% Test simuation data
+sim_data = [ ...
+         0         0         0         0         0         0         0;
+    1.0000         0         0         0         0         0         0;
+    2.0000         0         0         0         0         0         0;
+    3.0000         0         0         0         0         0         0;
+    4.0000         0         0    1.0000         0         0         0;
+    5.0000         0         0         0         0         0         0;
+    6.0000         0         0         0         0    0.1110   -0.0222;
+    7.0000         0         0    1.0000         0    0.2097   -0.0419;
+    8.0000         0         0         0         0    0.2974   -0.0595;
+    9.0000         0         0         0         0    0.4864   -0.0973;
+   10.0000         0         0         0         0    0.6544   -0.1309
+];
+nT = size(sim_data, 1);
+t = sim_data(:, 1);
+U_m = sim_data(:, 2:3);
+Wp = sim_data(:, 4:5);
+Y_m = sim_data(:, 6:7);
+
+% Define custom MKF test observers
+
+% Devise a custom multi-model filter with a shock indicator 
+% sequence that perfectly reflects the shock occurence in
+% this test simulation (t = t_shock)
+% Multiple model filter 1
+A2 = repmat({A}, 1, 2);
+Bu2 = repmat({Bu}, 1, 2);
+C2 = repmat({C}, 1, 2);
+Du2 = repmat({Du}, 1, 2);
+P0 = 1000*eye(n);
+Q0 = diag([q1 q1 0 0]);
+%P0_init = repmat({P0}, 1, n);
+Q2 = {diag([Q0(1,1) Q0(2,2) sigma_wp(:,1)'.^2]), ...
+      diag([Q0(1,1) Q0(2,2) sigma_wp(:,2)'.^2])};
+R2 = {diag(sigma_M.^2), diag(sigma_M.^2)};
+seq = {zeros(1, nT+1); zeros(1, nT+1)};
+seq{2}(t == 10) = 1;
+p_gamma = [1-epsilon epsilon]';
+T = repmat(p_gamma', 2, 1);
+d = 1;
+MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF3');
+
+% Scheduled Kalman filter
+% P0 = 1000*eye(n);
+% Q0 = diag([Q1 Q2 0 0]);
+% R = diag(Radj*sigma_M.^2);
+% SKF = KalmanFilter(A,Bu,C,Du,Ts,P0,Q0,R,'SKF');
+% SKF.type = 'SKF';
+% SKF.Q0 = Q0;
+% SKF.Bw = Bw;
+% SKF.sigma_wp = sigma_wp;
+
+% Define scheduled Kalman filter
+% Note: in the case of more than one random input variable, all
+% possible combinations of the switching systems need to be 
+% accounted for.
+% Here, we account for 3 possible combinations:
+% combs = [0 0; 1 0; 0 1];
+% (This is the same as the MKF filters for the RODD).
+% seq = sum(alpha .* 2.^(1:-1:0), 2)';
+SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
+
+% Set marker values on each sequence - for testing only
+% these values at the end of the sequences are not used
+% by the observer.
+for i = 1:n_filt
+    obs.seq{i}(8) = i;
+end
+seq0 = [
+   0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   2
+   0   0   0   0   0   0   0   3
+   0   0   0   0   0   0   0   4
+   0   0   0   0   0   0   0   5
+   0   0   0   0   0   0   0   6
+   0   0   0   0   0   0   0   7
+   0   0   0   0   0   0   0   8
+   0   0   0   0   0   0   0   9
+   0   0   0   0   0   0   0  10
+];
+%%disp(obs.i)  % use for debugging
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [0 0]))
+assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(cell2mat(obs.seq), seq0))
+assert(isequal(obs.n_hold, 6))
+assert(isequal(obs.n_main, 4))
+assert(isequaln(obs.f_hold, [5 6 7 8 9 10]))
+assert(isequaln(obs.f_main, [1 2 3 4]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 0 0]'))
+assert(isequal(obs.p_gamma_k, [0 0 0 0 0 0 0 0 0 0]'))
+assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0 0 0 0 0 0]'))
+assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0 0 0 0 0 0]'))
+assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 9)]'))
+
+% Check initialization of filters
+assert(isequal(obs.filters{1}.P, obs.P0))
+assert(isequal(obs.filters{2}.P, 1e10*eye(4)))
+assert(isequal(obs.filters{3}.P, 1e10*eye(4)))
+assert(isequal(obs.filters{4}.P, 1e10*eye(4)))
+assert(isequal(obs.filters{5}.P, 1e10*eye(4)))
+
+% Check estimates
+assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
+assert(isequal(obs.ykp1_est, [0; 0]))
+
+% Update at k = 0
+i = 1;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   1
+   1   0   0   0   0   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   4
+   0   0   0   0   0   0   0   5
+   0   0   0   0   0   0   0   6
+   0   0   0   0   0   0   0   7
+   0   0   0   0   0   0   0   8
+   0   0   0   0   0   0   0   9
+   0   0   0   0   0   0   0  10
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [1 1]))
+assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [2 3 5 6 7 8]))
+assert(isequaln(obs.f_main, [1 9 10 4]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 1 2 0 0 0 0 0 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [0.0129 0.0129 0.0129 0 0 0 0 0 0 0]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9802 0.0099 0.0099 0 0 0 0 0 0 0]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9802 0.0099 0.0099 0 0 0 0 0 0 0]'))
+
+% Check estimates
+assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
+assert(isequal(obs.ykp1_est, [0; 0]))
+assert(isequal(obs.ykp1_est - yk, [0; 0]))
+
+% Update at k = 1
+i = 2;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   1
+   1   0   0   0   0   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   4
+   0   0   0   0   0   0   0   5
+   0   0   0   0   0   0   0   6
+   0   0   0   0   0   0   0   7
+   0   0   0   0   0   0   0   8
+   0   1   0   0   0   0   0   1
+   0   2   0   0   0   0   0   1
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [2 1]))
+assert(isequaln(obs.i_next, [3 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [9 10 2 3 5 6]))
+assert(isequaln(obs.f_main, [1 7 8 4]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 1 2]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [0.0134 0.0134 0.0134 0 0 0 0 0 0.0134 0.0134]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9608 0.0097 0.0097 0 0 0 0 0 0.0097 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9612 0.0097 0.0097 0 0 0 0 0 0.0097 0.0097]'))
+
+% Check estimates
+assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
+assert(isequal(obs.ykp1_est, [0; 0]))
+assert(isequal(obs.ykp1_est - yk, [0; 0]))
+
+% Update at k = 2
+i = 3;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   1
+   1   0   0   0   0   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   4
+   0   0   0   0   0   0   0   5
+   0   0   0   0   0   0   0   6
+   0   0   1   0   0   0   0   1
+   0   0   2   0   0   0   0   1
+   0   1   0   0   0   0   0   1
+   0   2   0   0   0   0   0   1
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [3 1]))
+assert(isequaln(obs.i_next, [4 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [7 8 9 10 2 3]))
+assert(isequaln(obs.f_main, [1 5 6 4]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 1 2 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [2.9604 2.6604 2.6604 2.9564 2.9564 2.9564 2.9604 2.9604 2.9604 2.9604]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9421 0.0095 0.0095 0 0 0 0.0095 0.0095 0.0095 0.0095]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9447 0.0086 0.0086 0 0 0 0.0095 0.0095 0.0095 0.0095]'))
+
+% Check estimates
+assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
+assert(isequal(obs.ykp1_est, [0; 0]))
+assert(isequal(obs.ykp1_est - yk, [0; 0]))
+
+% Update at k = 3
+i = 4;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   1
+   1   0   0   0   0   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   4
+   0   0   0   1   0   0   0   1
+   0   0   0   2   0   0   0   1
+   0   0   1   0   0   0   0   1
+   0   0   2   0   0   0   0   1
+   0   1   0   0   0   0   0   1
+   0   2   0   0   0   0   0   1
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [4 1]))
+assert(isequaln(obs.i_next, [5 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [5 6 7 8 9 10]))
+assert(isequaln(obs.f_main, [1 2 3 4]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 0 0 0 1 2 0 0 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [5.3037 4.9399 4.9399 5.3019 5.3037 5.3037 5.3037 5.3037 4.4399 4.4399]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.926 0.0084 0.0084 0 0.0094 0.0094 0.0094 0.0094 0.0094 0.0094]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9309 0.0079 0.0079 0 0.0094 0.0094 0.0094 0.0094 0.0079 0.0079]'))
+
+% Check estimates
+assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
+assert(isequal(obs.ykp1_est, [0; 0]))
+assert(isequal(obs.ykp1_est - yk, [0; 0]))
+
+% Update at k = 4
+i = 5;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   1
+   0   0   0   0   2   0   0   1  % these seq.s have now been replaced
+   2   0   0   0   0   0   0   1  %
+   0   0   0   0   1   0   0   1
+   0   0   0   1   0   0   0   1
+   0   0   0   2   0   0   0   1
+   0   0   1   0   0   0   0   1
+   0   0   2   0   0   0   0   1
+   0   1   0   0   0   0   0   1
+   0   2   0   0   0   0   0   1
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [5 1]))
+assert(isequaln(obs.i_next, [6 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [4 2 5 6 7 8]))
+assert(isequaln(obs.f_main, [1 10 3 9]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 2 0 1 0 0 0 0 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.0099 0.9802 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [7.0443 7.0443 6.7215 7.0443 7.0443 7.0443 5.6272 5.6272 5.9658 5.9658]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9125 0.0092 0.0077 0.0092 0.0092 0.0092 0.0092 0.0092 0.0077 0.0077]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9268 0.0094 0.0075 0.0094 0.0094 0.0094 0.0075 0.0075 0.0066 0.0066]'))
+
+% Check estimates
+assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
+assert(isequal(obs.ykp1_est, [0; 0]))
+assert(isequal(obs.ykp1_est - yk, [0; 0]))
+
+% Update at k = 5
+i = 6;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   1
+   0   0   0   0   2   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   1   0   0   1
+   0   0   0   1   0   0   0   1
+   0   0   0   2   0   0   0   1
+   0   0   1   0   0   0   0   1
+   0   0   2   0   0   0   0   1
+   0   0   0   0   0   2   0   1
+   0   0   0   0   0   1   0   1
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [6 1]))
+assert(isequaln(obs.i_next, [7 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [10 9 4 2 5 6]))
+assert(isequaln(obs.f_main, [1 7 3 8]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 2 1]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [8.3546 8.3546 8.0866 8.3546 6.4601 6.4601 6.5830 6.5830 8.3546 8.3546]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9085 0.0092 0.0073 0.0092 0.0092 0.0092 0.0073 0.0073 0.0092 0.0092]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9289 0.0094 0.0073 0.0094 0.0073 0.0073 0.0059 0.0059 0.0094 0.0094]'))
+
+% Check estimates
+assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
+assert(isequal(obs.ykp1_est, [0; 0]))
+assert(isequal(obs.ykp1_est - yk, [0; 0]))
+
+% Update at k = 6  *** First non-zero measurement ***
+i = 7;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   1
+   0   0   0   0   2   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   1   0   0   1
+   0   0   0   1   0   0   0   1
+   0   0   0   2   0   0   0   1
+   0   0   0   0   0   0   2   1
+   0   0   0   0   0   0   1   1
+   0   0   0   0   0   2   0   1
+   0   0   0   0   0   1   0   1
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [7 1]))
+assert(isequaln(obs.i_next, [8 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [8 7 10 9 4 2]))
+assert(isequaln(obs.f_main, [1 6 3 5]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 2 1 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [6.4234 4.9679 6.2889 5.7034 5.6712 4.9222 6.4234 6.4234 6.4234 6.4234]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9105 0.0092 0.0071 0.0092 0.0071 0.0071 0.0092 0.0092 0.0092 0.0092]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9279 0.0072 0.0071 0.0083 0.0064 0.0056 0.0094 0.0094 0.0094 0.0094]'))
+
+% Check estimates
+assert(isequal(round(obs.xkp1_est, 4), [0.4829; -0.0994; 0.1130; -0.0017]))
+assert(isequal(round(obs.ykp1_est, 4), [0.0536; -0.0110]))
+assert(isequal(round(obs.ykp1_est - yk, 4), [-0.0574; 0.0112]))
+
+% Update at k = 7
+i = 8;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   0
+   0   0   0   0   2   0   0   0
+   2   0   0   0   0   0   0   0
+   0   0   0   0   1   0   0   0
+   0   0   0   0   0   0   0   2
+   0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   2   0
+   0   0   0   0   0   0   1   0
+   0   0   0   0   0   2   0   0
+   0   0   0   0   0   1   0   0
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [8 1]))
+assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [6 5 8 7 10 9]))
+assert(isequaln(obs.f_main, [1 4 3 2]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 0 0 0 2 1 0 0 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [4.4809 3.5632 4.4484 6.3667 4.4809 4.4809 4.4809 4.4809 3.509 4.803]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9095 0.0071 0.007 0.0082 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.9211 0.0057 0.007 0.0117 0.0093 0.0093 0.0093 0.0093 0.0073 0.01]'))
+
+% Check estimates
+assert(isequal(round(obs.xkp1_est, 4), [1.1284; -0.2311; 0.2404; -0.0031]))
+assert(isequal(round(obs.ykp1_est, 4), [0.1253; -0.0256]))
+assert(isequal(round(obs.ykp1_est - yk, 4), [-0.0844; 0.0163]))  % same as old version (0.0486)
+
+% Update at k = 8
+i = 9;
+uk = U_m(i,:)';
+yk = Y_m(i,:)';
+obs.update(yk, uk);
+seq = [
+   0   0   0   0   0   0   0   0
+   1   0   0   0   0   0   0   0
+   2   0   0   0   0   0   0   0
+   0   0   0   0   1   0   0   0
+   0   0   0   0   0   0   0   2
+   0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   2   0
+   0   0   0   0   0   0   1   0
+   0   0   0   0   0   2   0   0
+   0   0   0   0   0   1   0   0  % New additions have looped back to 1st position
+];
+%disp(obs.i)
+%disp(debug_array(obs))
+assert(isequaln(obs.i, [1 1]))
+assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(cell2mat(obs.seq), seq))
+assert(isequaln(obs.f_hold, [2 3 6 5 8 7]))
+assert(isequaln(obs.f_main, [1 4 9 10]))
+
+% Check probabilities
+assert(isequal(obs.gamma_k, [0 1 2 0 0 0 0 0 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
+    [3.677 3.677 3.677 7.9723 3.677 3.677 2.896 4.4379 2.9727 6.9293]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
+    [0.9028 0.0091 0.0091 0.0115 0.0091 0.0091 0.0091 0.0091 0.0071 0.0098]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), ...
+    [0.8969 0.0091 0.0091 0.0248 0.0091 0.0091 0.0071 0.0109 0.0057 0.0183]'))
+
+% Check estimates
+assert(isequal(round(obs.xkp1_est, 4), [1.8414; -0.3752; 0.3694; -0.0038]))
+assert(isequal(round(obs.ykp1_est, 4), [0.2044; -0.0416]))
+assert(isequal(round(obs.ykp1_est - yk, 4), [-0.0930; 0.0179]))  % Same as old version (0.0797)
+
+
+%% Full simulation on 2x2 system
+
+% Sample time
+Ts = 1;
+
+% Discrete time state space model
+A = [ 0.8890       0     1 -0.2;
+           0  0.8890  -0.2    1;
+           0       0     1    0;
+           0       0     0    1];
+B = [    1 -0.2  0  0;  % TODO: increase the coupling, -0.5?
+      -0.2    1  0  0;
+         0    0  1  0;
+         0    0  0  1];
+C = [ 0.1110 0         0  0;
+             0  0.1110 0  0];
+D = zeros(2, 4);
+Gpss = ss(A,B,C,D,Ts);
+
+% Dimensions
+n = size(A, 1);
+nu = size(B, 2);
+ny = size(C, 1);
+
+% Designate measured input and output signals
+u_meas = [true; true; false; false];
+y_meas = [true; true];
+
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+
+% Disturbance input (used by SKF observer)
+Bw = B(:, ~u_meas);
+nw = sum(~u_meas);
+
+% RODD random variable parameters
+epsilon = [0.01; 0.01];
+sigma_M = [0.1; 0.1];
+sigma_wp = [0.01 1; 0.01 1];
+
+% Kalman filter 3 - manually tuned
+% Covariance matrices
+P0 = 1000*eye(n);
+Q = diag([0.01 0.01 0.1^2 0.1^2]);
+R = diag(sigma_M.^2);
+KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
+
+% Multiple model observer with sequence pruning 1
+label = "MKF_SP1";
+P0 = 1000*eye(n);
+Q0 = diag([0.01 0.01 0 0]);
+R = diag(sigma_M.^2);
+f = 10;  % sequence history length
+n_filt = 15;  % number of filters
+n_min = 5;  % minimum life of cloned filters
+MKF_SP21 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label);
+
+% Multiple model observer with sequence pruning 2
+label = "MKF_SP2";
+P0 = 1000*eye(n);
+Q0 = diag([0.01 0.01 0 0]);
+R = diag(sigma_M.^2);
+f = 10;  % sequence history length
+n_filt = 30;  % number of filters
+n_min = 10;  % minimum life of cloned filters
+MKF_SP22 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label);
 
 % Simulation settings
 nT = 200;
