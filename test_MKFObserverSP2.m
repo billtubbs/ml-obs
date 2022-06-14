@@ -223,6 +223,7 @@ seq0 = [
     0 0 0 0 0 0 0 5
 ];
 %%disp(obs.i)  % use for debugging
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [0 0]))
 assert(isequaln(obs.i_next, [1 1]))
@@ -257,25 +258,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 2
     1 0 0 0 0 0 0 1
-    0 0 0 0 0 0 0 3
     0 0 0 0 0 0 0 4
     0 0 0 0 0 0 0 5
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [2 4]))
-assert(isequaln(obs.f_main, [1 5 3]))
+assert(isequaln(obs.f_hold, [5 3]))
+assert(isequaln(obs.f_main, [1 2 4]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 1 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0420 0.0420 0 0 0]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.99 0.01 0 0 0]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.99 0.01 0 0 0]'))
+assert(isequal(obs.gamma_k, [0 0 1 0 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.042 0 0.042 0 0]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.99 0 0.01 0 0]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.99 0 0.01 0 0]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -289,25 +291,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 2
     1 0 0 0 0 0 0 1
-    0 0 0 0 0 0 0 3
-    0 0 0 0 0 0 0 4
     0 1 0 0 0 0 0 1
+    0 0 0 0 0 0 0 5
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [2 1]))
 assert(isequaln(obs.i_next, [3 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [5 2]))
-assert(isequaln(obs.f_main, [1 4 3]))
+assert(isequaln(obs.f_hold, [3 4]))
+assert(isequaln(obs.f_main, [1 2 5]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0420 0.0420 0 0 0.0420]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9801 0.0099 0 0 0.0099]'))  % NOTE: doesn't quite sum to 1
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9802 0.0099 0 0 0.0099]'))
+assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0420 0 0.0420 0.0420 0]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9801 0 0.0099 0.0099 0]'))  % NOTE: doesn't quite sum to 1
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9802 0 0.0099 0.0099 0]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -321,12 +324,13 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 2
     1 0 0 0 0 0 0 1
-    0 0 0 0 0 0 0 3
-    0 0 1 0 0 0 0 1
     0 1 0 0 0 0 0 1
+    0 0 1 0 0 0 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [3 1]))
 assert(isequaln(obs.i_next, [4 1]))
@@ -335,11 +339,11 @@ assert(isequaln(obs.f_hold, [4 5]))
 assert(isequaln(obs.f_main, [1 2 3]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [1.8682 1.0834 1.8680 1.8682 1.8682]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9704 0.0098 0 0.0098 0.0098]'))  % NOTE: doesn't quite sum to 1
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9746 0.0057 0 0.0098 0.0098]'))
+assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [1.8682 1.868 1.0834 1.8682 1.8682]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9704 0 0.0098 0.0098 0.0098]'))  % NOTE: doesn't quite sum to 1
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9746 0 0.0057 0.0098 0.0098]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -353,25 +357,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    1 0 0 0 0 0 0 1
     0 0 0 1 0 0 0 1
-    0 0 1 0 0 0 0 1
-    0 1 0 0 0 0 0 1  % all sequences are now splits from #1
+    1 0 0 0 0 0 0 1
+    0 1 0 0 0 0 0 1
+    0 0 1 0 0 0 0 1  % all sequences are now splits from #1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [4 1]))
 assert(isequaln(obs.i_next, [5 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [3 4]))
-assert(isequaln(obs.f_main, [1 2 5]))
+assert(isequaln(obs.f_hold, [5 2]))
+assert(isequaln(obs.f_main, [1 3 4]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 1 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.4676 2.0186 2.4676 2.4676 1.1707]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9649 0.0057 0.0097 0.0097 0.0097]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9711 0.0047 0.0098 0.0098 0.0047]'))
+assert(isequal(obs.gamma_k, [0 1 0 0 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.4676 2.4676 2.0186 1.1707 2.4676]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9649 0.0097 0.0057 0.0097 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9711 0.0098 0.0047 0.0047 0.0098]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -385,12 +390,13 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    0 0 0 0 1 0 0 1  % this seq. has now been replaced
     0 0 0 1 0 0 0 1
+    0 0 0 0 1 0 0 1  % this seq. has now been replaced
+    0 1 0 0 0 0 0 1
     0 0 1 0 0 0 0 1
-    0 1 0 0 0 0 0 1 
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [5 1]))
 assert(isequaln(obs.i_next, [6 1]))
@@ -399,11 +405,11 @@ assert(isequaln(obs.f_hold, [2 3]))
 assert(isequaln(obs.f_main, [1 4 5]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 1 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.8078 2.8078 2.8078 1.2019 2.0187]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9614 0.0097 0.0097 0.0097 0.0046]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9728 0.0098 0.0098 0.0042 0.0034]'))
+assert(isequal(obs.gamma_k, [0 0 1 0 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.8078 2.8078 2.8078 2.0187 1.2019]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9614 0.0097 0.0097 0.0046 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9728 0.0098 0.0098 0.0034 0.0042]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -417,25 +423,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    0 0 0 0 1 0 0 1
     0 0 0 1 0 0 0 1
-    0 0 1 0 0 0 0 1
+    0 0 0 0 1 0 0 1
     0 0 0 0 0 1 0 1
+    0 0 1 0 0 0 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [6 1]))
 assert(isequaln(obs.i_next, [7 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [5 2]))
-assert(isequaln(obs.f_main, [1 4 3]))
+assert(isequaln(obs.f_hold, [3 4]))
+assert(isequaln(obs.f_main, [1 5 2]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.0218 3.0218 1.2172 2.0223 3.0218]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9631 0.0097 0.0097 0.0042 0.0097]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9736 0.0098 0.0040 0.0028 0.0098]'))
+assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.0218 1.2172 3.0218 3.0218 2.0223]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9631 0.0097 0.0097 0.0097 0.0042]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9736 0.004 0.0098 0.0098 0.0028]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -449,12 +456,13 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    0 0 0 0 1 0 0 1
     0 0 0 1 0 0 0 1
-    0 0 0 0 0 0 1 1
+    0 0 0 0 1 0 0 1
     0 0 0 0 0 1 0 1
+    0 0 0 0 0 0 1 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)  
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [7 1]))
 assert(isequaln(obs.i_next, [8 1]))
@@ -463,11 +471,11 @@ assert(isequaln(obs.f_hold, [4 5]))
 assert(isequaln(obs.f_main, [1 2 3]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.1865 0.8015 0.6345 0.1865 0.1865]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9638 0.0097 0.0039 0.0097 0.0097]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9281 0.0403 0.0129 0.0094 0.0094]'))
+assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.1865 0.6345 0.8015 0.1865 0.1865]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9638 0.0039 0.0097 0.0097 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9281 0.0129 0.0403 0.0094 0.0094]'))
 
 % For comparison: probability densities if yk had been 0:
 % assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.1646 1.2260 3.1646 3.1646 3.1646]'))
@@ -485,25 +493,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 0
-    0 0 0 0 1 0 0 0
     0 0 0 0 0 0 0 1
-    0 0 0 0 0 0 1 0
+    0 0 0 0 1 0 0 0
     0 0 0 0 0 1 0 0
+    0 0 0 0 0 0 1 0
 ];
 %disp(obs.i)
+%display_obs_data(obs)  
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [8 1]))
 assert(isequaln(obs.i_next, [1 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [3 4]))
-assert(isequaln(obs.f_main, [1 2 5]))
+assert(isequaln(obs.f_hold, [5 2]))
+assert(isequaln(obs.f_main, [1 3 4]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 1 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0166 1.9388 0.0166 0.0166 0.5807]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9188 0.0399 0.0093 0.0093 0.0093]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.1553 0.7867 0.0016 0.0016 0.0548]'))
+assert(isequal(obs.gamma_k, [0 1 0 0 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0166 0.0166 1.9388 0.5807 0.0166]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9188 0.0093 0.0399 0.0093 0.0093]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.1553 0.0016 0.7867 0.0548 0.0016]'))
 
 % Check estimates
 assert(isequal(round(obs.xkp1_est, 4), [1.9184; 0.8599]))
@@ -517,25 +526,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 0
-    0 0 0 0 1 0 0 0
     0 0 0 0 0 0 0 1
-    0 0 0 0 0 0 1 0
+    0 0 0 0 1 0 0 0
     1 0 0 0 1 0 0 0  % New additions have looped back to 1st position
+    0 0 0 0 0 0 1 0
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [5 3]))
-assert(isequaln(obs.f_main, [1 2 4]))
+assert(isequaln(obs.f_hold, [2 4]))
+assert(isequaln(obs.f_main, [3 1 5]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0084 2.5317 0.0084 0.5437 2.5317]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.1537 0.7789 0.0016 0.0016 0.0079]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0006 0.9889 0.0000 0.0004 0.0100]'))
+assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0084 0.0084 2.5317 2.5317 0.5437]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.1537 0.0016 0.7789 0.0079 0.0016]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0006 0 0.9889 0.01 0.0004]'))
 
 % Check estimates
 assert(isequal(round(obs.xkp1_est, 4), [2.4869; 0.9775]))
@@ -610,6 +620,7 @@ seq0 = [
     0 0 0 0 0 0 0 5
 ];
 %%disp(obs.i)  % use for debugging
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [0 0]))
 assert(isequaln(obs.i_next, [1 1]))
@@ -644,25 +655,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    1 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 2
     0 0 0 0 0 0 0 3
-    0 0 0 0 0 0 0 4
+    1 0 0 0 0 0 0 1
     0 0 0 0 0 0 0 5
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, 2))
-assert(isequaln(obs.f_main, [1 5 3 4]))
+assert(isequaln(obs.f_hold, 4))
+assert(isequaln(obs.f_main, [1 2 3 5]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 1 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0420 0.0420 0 0 0]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.99 0.01 0 0 0]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.99 0.01 0 0 0]'))
+assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.042 0 0 0.042 0]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.99 0 0 0.01 0]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.99 0 0 0.01 0]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -676,12 +688,13 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    1 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 2
     0 0 0 0 0 0 0 3
-    0 0 0 0 0 0 0 4
+    1 0 0 0 0 0 0 1
     0 1 0 0 0 0 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [2 1]))
 assert(isequaln(obs.i_next, [3 1]))
@@ -692,9 +705,9 @@ assert(isequaln(obs.f_main, [1 2 3 4]))
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
 assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0420 0.0420 0 0 0.0420]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9801 0.0099 0 0 0.0099]'))  % NOTE: doesn't quite sum to 1
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9802 0.0099 0 0 0.0099]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.042 0 0 0.042 0.042]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9801 0 0 0.0099 0.0099]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9802 0 0 0.0099 0.0099]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -708,25 +721,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    1 0 0 0 0 0 0 1
+    0 0 0 0 0 0 0 2
     0 0 1 0 0 0 0 1
-    0 0 0 0 0 0 0 4
+    1 0 0 0 0 0 0 1
     0 1 0 0 0 0 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [3 1]))
 assert(isequaln(obs.i_next, [4 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 3))
-assert(isequaln(obs.f_main, [1 2 5 4]))
+assert(isequaln(obs.f_main, [1 4 2 5]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 1 0 0]'))
 assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [1.8682 1.0834 1.8682 1.8680 1.8682]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9704 0.0098 0.0098 0 0.0098]'))  % NOTE: doesn't quite sum to 1
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9746 0.0057 0.0098 0 0.0098]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [1.8682 1.868 1.8682 1.0834 1.8682]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9704 0 0.0098 0.0098 0.0098]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9746 0 0.0098 0.0057 0.0098]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -740,25 +754,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    1 0 0 0 0 0 0 1
-    0 0 1 0 0 0 0 1
     0 0 0 1 0 0 0 1
+    0 0 1 0 0 0 0 1
+    1 0 0 0 0 0 0 1
     0 1 0 0 0 0 0 1  % all sequences are now splits from #1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [4 1]))
 assert(isequaln(obs.i_next, [5 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, 4))
-assert(isequaln(obs.f_main, [1 2 5 3]))
+assert(isequaln(obs.f_hold, 2))
+assert(isequaln(obs.f_main, [1 5 4 3]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.4676 2.0186 2.4676 2.4676 1.1707]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9649 0.0057 0.0097 0.0097 0.0097]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9711 0.0047 0.0098 0.0098 0.0047]'))
+assert(isequal(obs.gamma_k, [0 1 0 0 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.4676 2.4676 2.4676 2.0186 1.1707]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9649 0.0097 0.0097 0.0057 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9711 0.0098 0.0098 0.0047 0.0047]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -772,22 +787,23 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    0 0 0 0 1 0 0 1  % this seq. has now been replaced
+    0 0 0 1 0 0 0 1  % this seq. has now been replaced
     0 0 1 0 0 0 0 1
-    0 0 0 1 0 0 0 1
-    0 1 0 0 0 0 0 1 
+    0 0 0 0 1 0 0 1
+    0 1 0 0 0 0 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [5 1]))
 assert(isequaln(obs.i_next, [6 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, 2))
-assert(isequaln(obs.f_main, [1 4 5 3]))
+assert(isequaln(obs.f_hold, 4))
+assert(isequaln(obs.f_main, [1 3 5 2]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 1 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.01 0.99 0.99 0.99]'))
+assert(isequal(obs.gamma_k, [0 0 0 1 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.01 0.99]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [2.8078 2.8078 1.2019 2.8078 2.0187]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9614 0.0097 0.0097 0.0097 0.0046]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9728 0.0098 0.0042 0.0098 0.0034]'))
@@ -804,25 +820,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    0 0 0 0 1 0 0 1
-    0 0 1 0 0 0 0 1
     0 0 0 1 0 0 0 1
+    0 0 1 0 0 0 0 1
+    0 0 0 0 1 0 0 1
     0 0 0 0 0 1 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [6 1]))
 assert(isequaln(obs.i_next, [7 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 5))
-assert(isequaln(obs.f_main, [1 4 2 3]))
+assert(isequaln(obs.f_main, [1 2 3 4]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
 assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.0218 3.0218 2.0223 1.2172 3.0218]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.0218 1.2172 2.0223 3.0218 3.0218]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9631 0.0097 0.0042 0.0097 0.0097]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9736 0.0098 0.0028 0.0040 0.0098]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9736 0.0040 0.0028 0.0098 0.0098]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -836,12 +853,13 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 1
-    0 0 0 0 1 0 0 1
-    0 0 0 0 0 0 1 1
     0 0 0 1 0 0 0 1
+    0 0 0 0 0 0 1 1
+    0 0 0 0 1 0 0 1
     0 0 0 0 0 1 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [7 1]))
 assert(isequaln(obs.i_next, [8 1]))
@@ -852,9 +870,9 @@ assert(isequaln(obs.f_main, [1 4 2 5]))
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 1 0 0]'))
 assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.1865 0.8015 0.1865 0.6345 0.1865]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9638 0.0097 0.0097 0.0039 0.0097]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9281 0.0403 0.0094 0.0129 0.0094]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.1865 0.6345 0.1865 0.8015 0.1865]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9638 0.0039 0.0097 0.0097 0.0097]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.9281 0.0129 0.0094 0.0403 0.0094]'))
 
 % For comparison: probability densities if yk had been 0:
 % assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [3.1646 1.2260 3.1646 3.1646 3.1646]'))
@@ -872,12 +890,13 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 0
-    0 0 0 0 1 0 0 0
-    0 0 0 0 0 0 1 0
     0 0 0 1 0 0 0 0
+    0 0 0 0 0 0 1 0
+    0 0 0 0 1 0 0 0
     0 0 0 0 0 0 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [8 1]))
 assert(isequaln(obs.i_next, [1 1]))
@@ -888,9 +907,9 @@ assert(isequaln(obs.f_main, [1 4 2 3]))
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 1]'))
 assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.01]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0166 1.9388 0.0166 0.9494 0.0166]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9188 0.0399 0.0093 0.0127 0.0093]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.1454 0.7366 0.0015 0.1150 0.0015]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0166 0.9494 0.0166 1.9388 0.0166]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.9188 0.0127 0.0093 0.0399 0.0093]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.1454 0.1150 0.0015 0.7366 0.0015]'))
 
 % Check estimates
 assert(isequal(round(obs.xkp1_est, 4), [1.8619; 0.8147]))
@@ -904,25 +923,26 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
     0 0 0 0 0 0 0 0
-    0 0 0 0 1 0 0 0
-    1 0 0 0 1 0 0 0
     0 0 0 1 0 0 0 0
-    0 0 0 0 0 0 0 1  % New additions have looped back to 1st position
+    1 0 0 0 1 0 0 0  % New additions have looped back to 1st position
+    0 0 0 0 1 0 0 0
+    0 0 0 0 0 0 0 1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 3))
-assert(isequaln(obs.f_main, [1 4 2 5]))
+assert(isequaln(obs.f_main, [4 1 2 5]))  % most probable seq. has changed
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 1 0 0]'))
 assert(isequal(obs.p_gamma_k, [0.99 0.99 0.01 0.99 0.99]'))
-assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0084 2.5317 2.5317 1.3806 0.0084]'))
-assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.1439 0.7293 0.0074 0.1139 0.0015]'))
-assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0006 0.9125 0.0092 0.0777 0.0000]'))
+assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), [0.0084 1.3806 2.5317 2.5317 0.0084]'))
+assert(isequal(round(obs.p_seq_g_Ykm1, 4), [0.1439 0.1139 0.0074 0.7293 0.0015]'))
+assert(isequal(round(obs.p_seq_g_Yk, 4), [0.0006 0.0777 0.0092 0.9125 0]'))
 
 % Check estimates
 assert(isequal(round(obs.xkp1_est, 4), [2.4556; 0.9601]))
@@ -1584,9 +1604,9 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   2
    1   0   0   0   0   0   0   1
    2   0   0   0   0   0   0   1
-   0   0   0   0   0   0   0   4
    0   0   0   0   0   0   0   5
    0   0   0   0   0   0   0   6
    0   0   0   0   0   0   0   7
@@ -1595,23 +1615,24 @@ seq = [
    0   0   0   0   0   0   0  10
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [2 3 5 6 7 8]))
-assert(isequaln(obs.f_main, [1 9 10 4]))
+assert(isequaln(obs.f_hold, [7 8 9 10 3 4]))
+assert(isequaln(obs.f_main, [1 2 5 6]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 1 2 0 0 0 0 0 0 0]'))
+assert(isequal(obs.gamma_k, [0 0 1 2 0 0 0 0 0 0]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
+    [0.9802 0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [0.0129 0.0129 0.0129 0 0 0 0 0 0 0]'))
+    [0.0129 0 0.0129 0.0129 0 0 0 0 0 0]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9802 0.0099 0.0099 0 0 0 0 0 0 0]'))
+    [0.9802 0 0.0099 0.0099 0 0 0 0 0 0]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9802 0.0099 0.0099 0 0 0 0 0 0 0]'))
+    [0.9802 0 0.0099 0.0099 0 0 0 0 0 0]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
@@ -1625,34 +1646,35 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   2
    1   0   0   0   0   0   0   1
    2   0   0   0   0   0   0   1
-   0   0   0   0   0   0   0   4
-   0   0   0   0   0   0   0   5
-   0   0   0   0   0   0   0   6
-   0   0   0   0   0   0   0   7
-   0   0   0   0   0   0   0   8
    0   1   0   0   0   0   0   1
    0   2   0   0   0   0   0   1
+   0   0   0   0   0   0   0   7
+   0   0   0   0   0   0   0   8
+   0   0   0   0   0   0   0   9
+   0   0   0   0   0   0   0  10
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [2 1]))
 assert(isequaln(obs.i_next, [3 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [9 10 2 3 5 6]))
-assert(isequaln(obs.f_main, [1 7 8 4]))
+assert(isequaln(obs.f_hold, [9 10 3 4 5 6]))
+assert(isequaln(obs.f_main, [1 2 7 8]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 1 2]'))
+assert(isequal(obs.gamma_k, [0 0 0 0 1 2 0 0 0 0]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099]'))
+    [0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [0.0134 0.0134 0.0134 0 0 0 0 0 0.0134 0.0134]'))
+    [0.0134 0 0.0134 0.0134 0.0134 0.0134 0 0 0 0]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9608 0.0097 0.0097 0 0 0 0 0 0.0097 0.0097]'))
+    [0.9608 0 0.0097 0.0097 0.0097 0.0097 0 0 0 0]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9612 0.0097 0.0097 0 0 0 0 0 0.0097 0.0097]'))
+    [0.9612 0 0.0097 0.0097 0.0097 0.0097 0 0 0 0]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
@@ -1666,34 +1688,35 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   2
    1   0   0   0   0   0   0   1
    2   0   0   0   0   0   0   1
-   0   0   0   0   0   0   0   4
-   0   0   0   0   0   0   0   5
-   0   0   0   0   0   0   0   6
-   0   0   1   0   0   0   0   1
-   0   0   2   0   0   0   0   1
    0   1   0   0   0   0   0   1
    0   2   0   0   0   0   0   1
+   0   0   1   0   0   0   0   1
+   0   0   2   0   0   0   0   1
+   0   0   0   0   0   0   0   9
+   0   0   0   0   0   0   0  10
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [3 1]))
 assert(isequaln(obs.i_next, [4 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [7 8 9 10 2 3]))
-assert(isequaln(obs.f_main, [1 5 6 4]))
+assert(isequaln(obs.f_hold, [3 4 5 6 7 8]))
+assert(isequaln(obs.f_main, [1 2 9 10]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 0 0 1 2 0 0]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
     [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [2.9604 2.6604 2.6604 2.9564 2.9564 2.9564 2.9604 2.9604 2.9604 2.9604]'))
+    [2.9604 2.9564 2.6604 2.6604 2.9604 2.9604 2.9604 2.9604 2.9564 2.9564]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9421 0.0095 0.0095 0 0 0 0.0095 0.0095 0.0095 0.0095]'))
+    [0.9421 0 0.0095 0.0095 0.0095 0.0095 0.0095 0.0095 0 0]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9447 0.0086 0.0086 0 0 0 0.0095 0.0095 0.0095 0.0095]'))
+    [0.9447 0 0.0086 0.0086 0.0095 0.0095 0.0095 0.0095 0 0]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
@@ -1707,17 +1730,18 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   2
    1   0   0   0   0   0   0   1
    2   0   0   0   0   0   0   1
-   0   0   0   0   0   0   0   4
-   0   0   0   1   0   0   0   1
-   0   0   0   2   0   0   0   1
-   0   0   1   0   0   0   0   1
-   0   0   2   0   0   0   0   1
    0   1   0   0   0   0   0   1
    0   2   0   0   0   0   0   1
+   0   0   1   0   0   0   0   1
+   0   0   2   0   0   0   0   1
+   0   0   0   1   0   0   0   1
+   0   0   0   2   0   0   0   1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [4 1]))
 assert(isequaln(obs.i_next, [5 1]))
@@ -1726,15 +1750,15 @@ assert(isequaln(obs.f_hold, [5 6 7 8 9 10]))
 assert(isequaln(obs.f_main, [1 2 3 4]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 1 2 0 0 0 0]'))
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 1 2]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802]'))
+    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [5.3037 4.9399 4.9399 5.3019 5.3037 5.3037 5.3037 5.3037 4.4399 4.4399]'))
+    [5.3037 5.3019 4.9399 4.9399 4.4399 4.4399 5.3037 5.3037 5.3037 5.3037]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.926 0.0084 0.0084 0 0.0094 0.0094 0.0094 0.0094 0.0094 0.0094]'))
+    [0.926 0 0.0084 0.0084 0.0094 0.0094 0.0094 0.0094 0.0094 0.0094]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9309 0.0079 0.0079 0 0.0094 0.0094 0.0094 0.0094 0.0079 0.0079]'))
+    [0.9309 0 0.0079 0.0079 0.0079 0.0079 0.0094 0.0094 0.0094 0.0094]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
@@ -1749,33 +1773,34 @@ obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   1
    0   0   0   0   2   0   0   1  % these seq.s have now been replaced
-   2   0   0   0   0   0   0   1  %
-   0   0   0   0   1   0   0   1
-   0   0   0   1   0   0   0   1
-   0   0   0   2   0   0   0   1
-   0   0   1   0   0   0   0   1
-   0   0   2   0   0   0   0   1
+   0   0   0   0   1   0   0   1  %
+   2   0   0   0   0   0   0   1
    0   1   0   0   0   0   0   1
    0   2   0   0   0   0   0   1
+   0   0   1   0   0   0   0   1
+   0   0   2   0   0   0   0   1
+   0   0   0   1   0   0   0   1
+   0   0   0   2   0   0   0   1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [5 1]))
 assert(isequaln(obs.i_next, [6 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [4 2 5 6 7 8]))
-assert(isequaln(obs.f_main, [1 10 3 9]))
+assert(isequaln(obs.f_hold, [7 8 9 10 3 2]))
+assert(isequaln(obs.f_main, [1 4 5 6]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 2 0 1 0 0 0 0 0 0]'))
+assert(isequal(obs.gamma_k, [0 2 1 0 0 0 0 0 0 0]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.9802 0.0099 0.9802 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
+    [0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [7.0443 7.0443 6.7215 7.0443 7.0443 7.0443 5.6272 5.6272 5.9658 5.9658]'))
+    [7.0443 7.0443 7.0443 6.7215 5.9658 5.9658 5.6272 5.6272 7.0443 7.0443]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9125 0.0092 0.0077 0.0092 0.0092 0.0092 0.0092 0.0092 0.0077 0.0077]'))
+    [0.9125 0.0092 0.0092 0.0077 0.0077 0.0077 0.0092 0.0092 0.0092 0.0092]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9268 0.0094 0.0075 0.0094 0.0094 0.0094 0.0075 0.0075 0.0066 0.0066]'))
+    [0.9268 0.0094 0.0094 0.0075 0.0066 0.0066 0.0075 0.0075 0.0094 0.0094]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
@@ -1790,33 +1815,34 @@ obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   1
    0   0   0   0   2   0   0   1
-   2   0   0   0   0   0   0   1
    0   0   0   0   1   0   0   1
-   0   0   0   1   0   0   0   1
-   0   0   0   2   0   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   0   1   0   1
+   0   0   0   0   0   2   0   1
    0   0   1   0   0   0   0   1
    0   0   2   0   0   0   0   1
-   0   0   0   0   0   2   0   1
-   0   0   0   0   0   1   0   1
+   0   0   0   1   0   0   0   1
+   0   0   0   2   0   0   0   1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [6 1]))
 assert(isequaln(obs.i_next, [7 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [10 9 4 2 5 6]))
-assert(isequaln(obs.f_main, [1 7 3 8]))
+assert(isequaln(obs.f_hold, [9 10 3 2 5 6]))
+assert(isequaln(obs.f_main, [1 4 7 8]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 2 1]'))
+assert(isequal(obs.gamma_k, [0 0 0 0 1 2 0 0 0 0]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099]'))
+    [0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [8.3546 8.3546 8.0866 8.3546 6.4601 6.4601 6.5830 6.5830 8.3546 8.3546]'))
+    [8.3546 8.3546 8.3546 8.0866 8.3546 8.3546 6.583 6.583 6.4601 6.4601]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9085 0.0092 0.0073 0.0092 0.0092 0.0092 0.0073 0.0073 0.0092 0.0092]'))
+    [0.9085 0.0092 0.0092 0.0073 0.0092 0.0092 0.0073 0.0073 0.0092 0.0092]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9289 0.0094 0.0073 0.0094 0.0073 0.0073 0.0059 0.0059 0.0094 0.0094]'))
+    [0.9289 0.0094 0.0094 0.0073 0.0094 0.0094 0.0059 0.0059 0.0073 0.0073]'))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0; 0; 0]))
@@ -1831,33 +1857,34 @@ obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   1
    0   0   0   0   2   0   0   1
-   2   0   0   0   0   0   0   1
    0   0   0   0   1   0   0   1
+   2   0   0   0   0   0   0   1
+   0   0   0   0   0   1   0   1
+   0   0   0   0   0   2   0   1
+   0   0   0   0   0   0   1   1
+   0   0   0   0   0   0   2   1
    0   0   0   1   0   0   0   1
    0   0   0   2   0   0   0   1
-   0   0   0   0   0   0   2   1
-   0   0   0   0   0   0   1   1
-   0   0   0   0   0   2   0   1
-   0   0   0   0   0   1   0   1
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [7 1]))
 assert(isequaln(obs.i_next, [8 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [8 7 10 9 4 2]))
-assert(isequaln(obs.f_main, [1 6 3 5]))
+assert(isequaln(obs.f_hold, [3 2 5 6 7 8]))
+assert(isequaln(obs.f_main, [1 4 9 10]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 0 0 2 1 0 0]'))
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 1 2 0 0]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
     [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [6.4234 4.9679 6.2889 5.7034 5.6712 4.9222 6.4234 6.4234 6.4234 6.4234]'))
+    [6.4234 4.9679 5.7034 6.2889 6.4234 6.4234 6.4234 6.4234 5.6712 4.9222]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9105 0.0092 0.0071 0.0092 0.0071 0.0071 0.0092 0.0092 0.0092 0.0092]'))
+    [0.9105 0.0092 0.0092 0.0071 0.0092 0.0092 0.0092 0.0092 0.0071 0.0071]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9279 0.0072 0.0071 0.0083 0.0064 0.0056 0.0094 0.0094 0.0094 0.0094]'))
+    [0.9279 0.0072 0.0083 0.0071 0.0094 0.0094 0.0094 0.0094 0.0064 0.0056]'))
 
 % Check estimates
 assert(isequal(round(obs.xkp1_est, 4), [0.4829; -0.0994; 0.1130; -0.0017]))
@@ -1872,33 +1899,34 @@ obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   0
    0   0   0   0   2   0   0   0
-   2   0   0   0   0   0   0   0
    0   0   0   0   1   0   0   0
-   0   0   0   0   0   0   0   2
-   0   0   0   0   0   0   0   1
-   0   0   0   0   0   0   2   0
-   0   0   0   0   0   0   1   0
-   0   0   0   0   0   2   0   0
+   2   0   0   0   0   0   0   0
    0   0   0   0   0   1   0   0
+   0   0   0   0   0   2   0   0
+   0   0   0   0   0   0   1   0
+   0   0   0   0   0   0   2   0
+   0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   2
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [8 1]))
 assert(isequaln(obs.i_next, [1 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [6 5 8 7 10 9]))
+assert(isequaln(obs.f_hold, [5 6 7 8 9 10]))
 assert(isequaln(obs.f_main, [1 4 3 2]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 0 0 0 2 1 0 0 0 0]'))
+assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 1 2]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.9802 0.9802 0.9802 0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802]'))
+    [0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.0099 0.0099]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [4.4809 3.5632 4.4484 6.3667 4.4809 4.4809 4.4809 4.4809 3.509 4.803]'))
+    [4.4809 3.5632 6.3667 4.4484 4.803 3.509 4.4809 4.4809 4.4809 4.4809]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9095 0.0071 0.007 0.0082 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092]'))
+    [0.9095 0.0071 0.0082 0.007 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.9211 0.0057 0.007 0.0117 0.0093 0.0093 0.0093 0.0093 0.0073 0.01]'))
+    [0.9211 0.0057 0.0117 0.007 0.01 0.0073 0.0093 0.0093 0.0093 0.0093]'))
 
 % Check estimates
 assert(isequal(round(obs.xkp1_est, 4), [1.1284; -0.2311; 0.2404; -0.0031]))
@@ -1912,34 +1940,35 @@ yk = Y_m(i,:)';
 obs.update(yk, uk);
 seq = [
    0   0   0   0   0   0   0   0
-   1   0   0   0   0   0   0   0
-   2   0   0   0   0   0   0   0
+   2   0   0   0   0   0   0   0  % New additions have looped back to 1st position
    0   0   0   0   1   0   0   0
-   0   0   0   0   0   0   0   2
-   0   0   0   0   0   0   0   1
-   0   0   0   0   0   0   2   0
-   0   0   0   0   0   0   1   0
+   1   0   0   0   0   0   0   0  %
+   0   0   0   0   0   1   0   0
    0   0   0   0   0   2   0   0
-   0   0   0   0   0   1   0   0  % New additions have looped back to 1st position
+   0   0   0   0   0   0   1   0
+   0   0   0   0   0   0   2   0
+   0   0   0   0   0   0   0   1
+   0   0   0   0   0   0   0   2
 ];
 %disp(obs.i)
+%display_obs_data(obs)
 %disp(debug_array(obs))
 assert(isequaln(obs.i, [1 1]))
 assert(isequaln(obs.i_next, [2 1]))
 assert(isequaln(cell2mat(obs.seq), seq))
-assert(isequaln(obs.f_hold, [2 3 6 5 8 7]))
-assert(isequaln(obs.f_main, [1 4 9 10]))
+assert(isequaln(obs.f_hold, [7 8 9 10 4 2]))
+assert(isequaln(obs.f_main, [1 3 5 6]))
 
 % Check probabilities
-assert(isequal(obs.gamma_k, [0 1 2 0 0 0 0 0 0 0]'))
+assert(isequal(obs.gamma_k, [0 2 0 1 0 0 0 0 0 0]'))
 assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.9802 0.0099 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
+    [0.9802 0.0099 0.9802 0.0099 0.9802 0.9802 0.9802 0.9802 0.9802 0.9802]'))
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
-    [3.677 3.677 3.677 7.9723 3.677 3.677 2.896 4.4379 2.9727 6.9293]'))
+    [3.677 3.677 7.9723 3.677 6.9293 2.9727 4.4379 2.896 3.677 3.677]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9028 0.0091 0.0091 0.0115 0.0091 0.0091 0.0091 0.0091 0.0071 0.0098]'))
+    [0.9028 0.0091 0.0115 0.0091 0.0098 0.0071 0.0091 0.0091 0.0091 0.0091]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
-    [0.8969 0.0091 0.0091 0.0248 0.0091 0.0091 0.0071 0.0109 0.0057 0.0183]'))
+    [0.8969 0.0091 0.0248 0.0091 0.0183 0.0057 0.0109 0.0071 0.0091 0.0091]'))
 
 % Check estimates
 assert(isequal(round(obs.xkp1_est, 4), [1.8414; -0.3752; 0.3694; -0.0038]))
@@ -2295,8 +2324,17 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 end
 
 
+% Functions for debugging and testing sequences
+function display_obs_data(obs)
+    disp(obs.f_hold); disp(obs.f_main); 
+    disp(strjoin(string(round(obs.gamma_k, 4)')));
+    disp(strjoin(string(round(obs.p_gamma_k, 4)')));
+    disp(strjoin(string(round(obs.p_yk_g_seq_Ykm1, 4)')));
+    disp(strjoin(string(round(obs.p_seq_g_Ykm1, 4)')));
+    disp(strjoin(string(round(obs.p_seq_g_Yk, 4)')));
+end
+
 function dba = debug_array(obs)
-% For debugging and testing sequences
     hold = zeros(obs.n_filt, 1);
     hold(nonzeros(obs.f_hold)) = nonzeros(obs.f_hold);
     main = zeros(obs.n_filt, 1);

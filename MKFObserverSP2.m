@@ -156,7 +156,7 @@ classdef MKFObserverSP2 < MKFObserver
             assert(n_main >= nw, "ValueError: n_filt is too low.")
 
             % Filter indices
-            f_main = int16(1:n_main);  
+            f_main = int16(1:n_main);
             f_hold = int16(n_main+1:n_main+n_hold);
 
             % TODO: Remove this
@@ -178,7 +178,7 @@ classdef MKFObserverSP2 < MKFObserver
             % Sequence pruning algorithm initialization
             % Assign all probability to first filter
             obj.p_seq_g_Yk = [1; zeros(obj.n_filt-1, 1)];
-            
+
             % Set estimate covariances to high values for the
             % rest of the filters
             for i = 2:obj.n_filt
@@ -254,28 +254,29 @@ classdef MKFObserverSP2 < MKFObserver
             assert(size(obj.f_main, 2) == obj.n_main)
             assert(isequal(sort(unique([obj.f_main obj.f_hold])), 1:obj.n_filt))
 
-            % Right-shift all filters in holding group. This causes
+            % Left-shift all filters in holding group. This causes
             % the last nw values to 'roll-over' to the left of f_hold.
             % e.g. circshift([1 2 3], 1) -> [3 1 2]
-            obj.f_hold = circshift(obj.f_hold, nw);
+            obj.f_hold = circshift(obj.f_hold, -nw);
 
             % Filters to be moved out of holding group
-            f_move = obj.f_hold(1:nw);
+            f_move = obj.f_hold(end-nw+1:end);
 
             % Rank sequences in main group according to 
             % conditional probabilities
-            [~, i_rank] = sort(obj.p_seq_g_Yk(obj.f_main));
+            [~, i_rank] = sort(obj.p_seq_g_Yk(obj.f_main), 'descend');
+            obj.f_main = obj.f_main(i_rank);
 
             % Select those with lowest probability for pruning
-            f_to_prune = obj.f_main(i_rank(1:nw));
+            f_to_prune = obj.f_main(end-nw+1:end);
 
             % Replace pruned sequences with those from holding
             % group
-            obj.f_main(i_rank(1:nw)) = f_move;
+            obj.f_main(end-nw+1:end) = f_move;
 
             % Make clone(s) of most probable sequence and fitler
             % put new filter(s) at start of holding group
-            obj.f_hold(1:nw) = f_to_prune;
+            obj.f_hold(end-nw+1:end) = f_to_prune;
             for i = 1:nw
                 label = obj.filters{f_to_prune(i)}.label;
                 obj.filters{f_to_prune(i)} = obj.filters{f_max}.copy();
