@@ -1,6 +1,6 @@
 % Kalman Filter class definition
 
-classdef LuenbergerFilter < matlab.mixin.Copyable
+classdef LuenbergerFilter < AbstractLinearFilter
 % obs = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0)
 % Class for simulating a steady-state Kalman filter
 % (i.e. with static gain).
@@ -22,46 +22,23 @@ classdef LuenbergerFilter < matlab.mixin.Copyable
 %     Transactions on Automatic Control, vol. 16, no. 6, 
 %     pp. 596-602, December 1971, doi: 10.1109/TAC.1971.1099826.
 %
-    properties (SetAccess = immutable)
-        A double
-        B double
-        C double
-        D double
-        Ts (1, 1) double {mustBeNonnegative}
-        poles {mustBeNumeric}
-        K {mustBeNumeric}
-        P {mustBeNumeric}
-        n (1, 1) double {mustBeInteger, mustBeNonnegative}
-        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
-        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
-    end
     properties
-        label (1, 1) string
-        x0 (:, 1) double
-        xkp1_est (:, 1) double
-        ykp1_est (:, 1) double
-        type (1, 1) string  % is this still needed? use classdef
+        poles {mustBeNumeric}
     end
     methods
-        function obj = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0)
-            obj.A = A;
-            obj.B = B;
-            obj.C = C;
-            obj.D = D;
-            [n, nu, ny] = check_dimensions(A, B, C, D);
-            obj.Ts = Ts;
+        function obj = LuenbergerFilter(A,B,C,D,Ts,poles,varargin)
+
+            % Call super-class constuctor
+            obj = obj@AbstractLinearFilter(A,B,C,D,Ts,varargin{:});
+            n = obj.n;
+            ny = obj.ny;
+
+            % Set properties for Luenberger filter
             obj.poles = poles;
             obj.type = "LB";
             if nargin < 8
-                x0 = zeros(n, 1);
-            else
-                assert(isequal(size(x0), [n 1]))
+                obj.label = obj.type;
             end
-            obj.x0 = x0;
-            if nargin < 7
-                label = obj.type;
-            end
-            obj.label = label;
 
             % Compute observer gain
             if ny == 1
@@ -71,31 +48,7 @@ classdef LuenbergerFilter < matlab.mixin.Copyable
             end
 
             % Initialize estimates
-            obj.xkp1_est = x0;
-            obj.ykp1_est = C * obj.xkp1_est;
-
-            % Add other useful variables
-            obj.n = n;
-            obj.nu = nu;
-            obj.ny = ny;
-
-        end
-        function update(obj, yk, uk)
-        % obs.update(yk, uk) updates the gain and covariance matrix
-        % of a steady-state filter and calculates the estimates of 
-        % the states and output at the next sample time.
-        %
-        % Arguments:
-        %   yk : vector, size (ny, 1)
-        %       System output measurements at current time k.
-        %   uk : vector, size (nu, 1), optional
-        %       System inputs at current time k.
-        %
-
-            % Update state and output estimates for next timestep
-            obj.xkp1_est = obj.A * obj.xkp1_est + obj.B * uk + ...
-                obj.K * (yk - obj.C * obj.xkp1_est);
-            obj.ykp1_est = obj.C * obj.xkp1_est;
+            obj.reset()
 
         end
     end

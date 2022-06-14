@@ -1,6 +1,6 @@
 % Kalman Filter class definition
 
-classdef KalmanFilter < KalmanFilterSS
+classdef KalmanFilter < AbstractLinearFilter
 % obs = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
@@ -24,18 +24,25 @@ classdef KalmanFilter < KalmanFilterSS
 %       Intial state estimates.
 %
     properties
+        Q double
+        R double
         P0 double
     end
     methods
         function obj = KalmanFilter(A,B,C,D,Ts,P0,Q,R,varargin)
 
             % Call super-class constuctor
-            obj = obj@KalmanFilterSS(A,B,C,D,Ts,Q,R,varargin{:});
+            obj = obj@AbstractLinearFilter(A,B,C,D,Ts,varargin{:});
+            n = obj.n;
+            ny = obj.ny;
 
             % Set additional properties for dynamic KF
-            n = obj.n;
             assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
             obj.P0 = P0;
+            obj.Q = Q;
+            assert(isequal(size(Q), [n n]))
+            obj.R = R;
+            assert(isequal(size(R), [ny ny]))
             obj.type = "KF";
             if nargin < 9
                 obj.label = obj.type;
@@ -58,7 +65,7 @@ classdef KalmanFilter < KalmanFilterSS
             obj.K = nan(obj.n, 1);
 
             % Initialize estimates
-            reset@KalmanFilterSS(obj);
+            reset@AbstractLinearFilter(obj);
 
         end
         function update(obj, yk, uk)
@@ -77,7 +84,7 @@ classdef KalmanFilter < KalmanFilterSS
             [obj.K, obj.P] = kalman_update(obj.P, obj.A, obj.C, obj.Q, obj.R);
 
             % Update state and output estimates for next timestep
-            update@KalmanFilterSS(obj, yk, uk);
+            update@AbstractLinearFilter(obj, yk, uk);
 
         end
     end

@@ -31,43 +31,43 @@ LB2 = luenberger_filter(A,Bu,C,Du,Ts,poles,'LB2');
 
 % Process noise covariance for states 1 and 2
 % These are used by all observers
-Q1 = 0.01; Q2 = 0.01;
+q1 = 0.01; q2 = 0.01;
 
 % Steady-state Kalman filter 1 - tuned to input noise
-Q = diag([Q1 Q2 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
+Q = diag([q1 q2 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
 R = diag(sigma_M.^2);
 KFSS1 = KalmanFilterSS(A,Bu,C,Du,Ts,Q,R,'KFSS1');
 
 % Steady-state Kalman filter 2 - tuned to input shocks
-Q = diag([Q1 Q2 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
+Q = diag([q1 q2 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
 R = diag(sigma_M.^2);
 KFSS2 = KalmanFilterSS(A,Bu,C,Du,Ts,Q,R,'KFSS2');
 
 % Kalman filter 1 - tuned to sigma_wp(1)
 % Covariance matrices
 P0 = 1000*eye(n);
-Q = diag([Q1 Q2 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
+Q = diag([q1 q2 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
 R = diag(sigma_M.^2);
 KF1 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
 % Covariance matrices
 P0 = 1000*eye(n);
-Q = diag([Q1 Q2 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
+Q = diag([q1 q2 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
 R = diag(sigma_M.^2);
 KF2 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF2');
 
 % Kalman filter 3 - manually tuned
 % Covariance matrices
 P0 = 1000*eye(n);
-Q = diag([Q1 Q2 0.1^2 0.1^2]);
+Q = diag([q1 q2 0.1^2 0.1^2]);
 R = diag(sigma_M.^2);
 KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
 % Multiple model filter 1
 label = 'MKF_SF1';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);  % TODO: Is this correct?
+Q0 = diag([q1 q2 0 0]);  % TODO: Is this correct?
 R = diag(sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
@@ -78,7 +78,7 @@ MKF1 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model filter 2
 label = 'MKF_SF2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);  % TODO: Is this correct?
+Q0 = diag([q1 q2 0 0]);  % TODO: Is this correct?
 R = diag(sigma_M.^2);
 %R = diag([1; 2.3].*sigma_M.^2);
 f = 5;  % 10 fusion horizon
@@ -93,7 +93,7 @@ MKF2 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model AFMM filter 1
 label = 'MKF_SP2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);
+Q0 = diag([q1 q2 0 0]);
 R = diag(sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters
@@ -104,7 +104,7 @@ AFMM1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model AFMM filter 2
 label = 'MKF_SP2';
 P0 = 1000*eye(n);
-Q0 = diag([Q1 Q2 0 0]);
+Q0 = diag([q1 q2 0 0]);
 R = diag(sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 30;  % number of filters
