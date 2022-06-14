@@ -20,6 +20,11 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
 %       Intial state estimates.
 %
     properties (SetAccess = immutable)
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
+    end
+    properties
         A double
         B double
         C double
@@ -29,9 +34,6 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
         R double
         K double
         P double
-        n (1, 1) double {mustBeInteger, mustBeNonnegative}
-        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
-        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
         label (1, 1) string
@@ -75,13 +77,23 @@ classdef KalmanFilterSS < matlab.mixin.Copyable
             [~, obj.K, obj.P] = kalman(Gmodel, Q, R, N, 'delayed');
 
             % Initialize estimates
-            obj.xkp1_est = x0;
-            obj.ykp1_est = C * obj.xkp1_est;
+            obj.reset()
 
             % Add other useful variables
             obj.n = n;
             obj.nu = nu;
             obj.ny = ny;
+
+        end
+        function reset(obj)
+        % obj.reset()
+        % Initialize all variables to initial values specified
+        % when observer object was created.
+        %
+
+            % Initialize estimates
+            obj.xkp1_est = obj.x0;
+            obj.ykp1_est = obj.C * obj.xkp1_est;
 
         end
         function update(obj, yk, uk)

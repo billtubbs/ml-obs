@@ -46,15 +46,15 @@ assert(KFSS.nu == nu)
 assert(KFSS.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
-KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS");
-K_test = [0.7727; 0.7557];
-P_test = [1.5098    1.2170;
-          1.2170    1.2191];
-
-assert(isequal(round(KFSS.K, 4), K_test))
-assert(isequal(round(KFSS.P, 4), P_test))
-assert(isequal(KFSS.xkp1_est, zeros(n, 1)))
-assert(KFSS.ykp1_est == 0)
+% KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS");
+% K_test = [0.7727; 0.7557];
+% P_test = [1.5098    1.2170;
+%           1.2170    1.2191];
+% 
+% assert(isequal(round(KFSS.K, 4), K_test))
+% assert(isequal(round(KFSS.P, 4), P_test))
+% assert(isequal(KFSS.xkp1_est, zeros(n, 1)))
+% assert(KFSS.ykp1_est == 0)
 
 % Define dynamic Kalman filter with KalmanFilter class
 P0 = diag([1e-4 1e-4]);
