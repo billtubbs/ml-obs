@@ -17,7 +17,7 @@
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
 
-classdef MKFObserverRODD < MKFObserver
+classdef MKFObserverSF < MKFObserver
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         m double {mustBeInteger, mustBeNonnegative}
@@ -32,7 +32,7 @@ classdef MKFObserverRODD < MKFObserver
         sigma_wp double
     end
     methods
-        function obj = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
         % obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
         %     sigma_wp,Q0,R,f,m,d,label,x0)

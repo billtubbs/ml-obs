@@ -71,7 +71,7 @@ R = sigma_M^2;
 f = 3;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 5;  % spacing parameter
-MKF_SF1 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
@@ -82,7 +82,7 @@ R = sigma_M^2;
 f = 10;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 1;  % spacing parameter
-MKF_SF2 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % General MKF equivalent to MKF2
@@ -100,8 +100,6 @@ f = 100;  % sequence history length
 n_filt = 5;  % number of filters
 n_min = 3;  % minimum life of cloned filters
 MKF_SP1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label);
-MKF_SP21 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,'MMKF_SP21');
 
 % Multiple model observer with sequence pruning #2
@@ -113,9 +111,7 @@ f = 100;  % sequence history length
 n_filt = 10;  % number of filters
 n_min = 4;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label);
-MKF_SP22 = MKFObserverSP2(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,'MMKF_SP22');
 
-observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, ...
-    MKF_SF1, MKF_SF2, MKF3, MKF_SP1, MKF_SP2, MKF_SP21, MKF_SP22};
+observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...
+    MKF3, MKF_SP1, MKF_SP2};

@@ -76,7 +76,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case {'MKF', 'MKF-SF', 'MKF_RODD'}
+        case {'MKF', 'MKF-SF'}
 
             assert(nargin == 3)
             vec_double = varargin{1};
@@ -139,7 +139,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case {'MKF-SP', 'MKF_AFMM'}
+        case 'MKF-SP'
 
             assert(nargin == 3)
             vec_double = varargin{1};
@@ -161,8 +161,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % 2. i_next : size(1, 2)
             % 3. f_main : size(1, n_main)
             % 4. f_hold : size(1, n_hold)
-            % 5. f_unused : size(1, n_filt-1)
-            % 6. seq for each KF : cell(n_filt, 1)
+            % 5. seq for each KF : cell(n_filt, 1)
 
             % Static data to unpack vectors
             vdata.types = {'double', 'double', 'double', 'double', ...

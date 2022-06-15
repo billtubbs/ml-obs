@@ -233,8 +233,7 @@ for i = 1:nT
     vars.int16.i_next = vars_int16{2};
     vars.int16.f_main = vars_int16{3};
     vars.int16.f_hold = vars_int16{4};
-    vars.int16.f_unused = vars_int16{5};
-    vars.int16.seq = vars_int16{6};
+    vars.int16.seq = vars_int16{5};
     obs2_restored = set_obs_vars(MKF_SP1, vars);  % makes a new copy
     assert(isequal(obs2_restored.xkp1_est, obs2.xkp1_est))
     assert(isequal(obs2_restored.ykp1_est, obs2.ykp1_est))
@@ -245,7 +244,6 @@ for i = 1:nT
     assert(isequal(obs2_restored.i_next, obs2.i_next))
     assert(isequal(obs2_restored.f_main, obs2.f_main))
     assert(isequal(obs2_restored.f_hold, obs2.f_hold))
-    assert(isequal(obs2_restored.f_unused, obs2.f_unused))
 
     % Observer updates
     obs2.update(yk, uk);

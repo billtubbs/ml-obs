@@ -1,4 +1,4 @@
-% Test MKFObserverRODD class
+% Test MKFObserverSF class
 
 clear all
 plot_dir = 'plots';
@@ -88,7 +88,7 @@ assert(isequal(round(MKF_SF2.p_gamma, 4), [1-MKF_SF2.epsilon; MKF_SF2.epsilon]))
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
-MKF_testx0 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
@@ -470,7 +470,7 @@ R = diag(sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
 d = 2;  % 10 spacing parameter
-MKF_SF1 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
@@ -481,7 +481,7 @@ R = diag(sigma_M.^2);
 f = 5;  % 10 fusion horizon
 m = 2;  % 2 maximum number of shocks
 d = 2;  % 5 spacing parameter
-MKF_SF2 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Check observer initialization
@@ -571,7 +571,7 @@ assert(isequal(round(MKF_SF2.p_gamma, 6), ...
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
-MKF_testx0 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))

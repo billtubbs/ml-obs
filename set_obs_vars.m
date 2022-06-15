@@ -44,7 +44,7 @@ function obs = set_obs_vars(obs, vars)
                obs.filters{f}.P = vars.P_f{f};
             end
 
-        case {'MKF-SF', 'MKF_RODD'}  % RODD MKF observer
+        case 'MKF-SF'  % RODD MKF observer
 
             % Set double variables
             obs.xkp1_est = vars.xkp1_est;
@@ -60,7 +60,7 @@ function obs = set_obs_vars(obs, vars)
             obs.i = vars.int16.i;
             obs.i_next = vars.int16.i_next;
 
-        case {'MKF-SP', 'MKF_AFMM'}  % adaptive multi-model Kalman filter
+        case 'MKF-SP'  % sequence pruning multi-model Kalman filter
 
             % Set double variables
             obs.xkp1_est = vars.xkp1_est;
@@ -77,7 +77,6 @@ function obs = set_obs_vars(obs, vars)
             obs.i_next = vars.int16.i_next;
             obs.f_main = vars.int16.f_main;
             obs.f_hold = vars.int16.f_hold;
-            obs.f_unused = vars.int16.f_unused;
             obs.seq = vars.int16.seq;
 
         case 'EKF'  % Extended Kalman filters

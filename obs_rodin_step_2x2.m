@@ -72,7 +72,7 @@ R = diag(sigma_M.^2);
 f = 3;  % 5 fusion horizon
 m = 1;  % 1 maximum number of shocks
 d = 2;  % 10 spacing parameter
-MKF1 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
@@ -84,7 +84,7 @@ R = diag(sigma_M.^2);
 f = 5;  % 10 fusion horizon
 m = 2;  % 2 maximum number of shocks
 d = 2;  % 5 spacing parameter
-MKF2 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % General MKF equivalent to MKF2
@@ -98,7 +98,7 @@ R = diag(sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters
 n_min = 4;  % minimum life of cloned filters
-AFMM1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
 % Multiple model AFMM filter 2
@@ -109,5 +109,5 @@ R = diag(sigma_M.^2);
 f = 100;  % sequence history length
 n_filt = 30;  % number of filters
 n_min = 10;  % minimum life of cloned filters
-AFMM2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
