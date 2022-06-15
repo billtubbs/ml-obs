@@ -197,7 +197,7 @@ classdef MKFObserverSP < MKFObserver
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
             obj.p_gamma = p_gamma;
-            obj.type = "MKF-SP";
+            obj.type = "MKF_SP";
         end
 
         function update(obj, yk, uk)

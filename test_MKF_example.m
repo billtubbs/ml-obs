@@ -159,7 +159,7 @@ R = 0.1^2;
 f = 5;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF1 = MKFObserverRODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,'MKF1');
 
 % Simulate observer
@@ -226,7 +226,7 @@ R = 0.1^2;
 f = 10;  % sequence history length
 n_filt = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
-MKF2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,'MKF2');
 
 % Simulate observer
@@ -236,7 +236,7 @@ obs = MKF2;
 for i = 1:nT
     uk = U(i,:)';
     yk = Ym(i,:)';
-    obs = update_AFMM(obs, uk, yk);
+    obs.update(yk, uk);
     Xk_est(i+1,:) = obs.xkp1_est';
     Yk_est(i+1,:) = obs.ykp1_est';
 end
@@ -263,7 +263,7 @@ mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 assert(round(mse_KFSS, 4) == 0.0873)
 assert(round(mse_KF1, 4) == 0.0917)
 assert(round(mse_MKF1, 4) == 0.1029)
-assert(round(mse_MKF2, 4) == 0.0614)
+assert(round(mse_MKF2, 4) == 0.0602)
 
 % Store results
 Xk_est_MKF2 = Xk_est;

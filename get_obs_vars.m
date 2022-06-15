@@ -45,7 +45,7 @@ function vars = get_obs_vars(obs)
                vars.P_f{f} = obs.filters{f}.P;
             end
 
-        case {"MKF-SP", "MKF-SF"}  % multi-model Kalman filters
+        case {"MKF_SP", "MKF_SF"}  % multi-model Kalman filters
 
             % Vars to return
             vars.xkp1_est = obs.xkp1_est;
@@ -64,7 +64,7 @@ function vars = get_obs_vars(obs)
             vars.int16.i = obs.i;
             vars.int16.i_next = obs.i_next;
 
-            if strcmp(obs.type, "MKF-SP")
+            if strcmp(obs.type, "MKF_SP")
                 % Additional variables used by sequence pruning
                 % algorithm
                 vars.int16.f_main = obs.f_main;

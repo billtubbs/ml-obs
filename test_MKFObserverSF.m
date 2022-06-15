@@ -26,7 +26,7 @@ sigma_W = [0; 0];
 obs_rodin_step
 
 % Check observer attributes
-assert(strcmp(MKF_SF1.type, "MKF-SF"))
+assert(strcmp(MKF_SF1.type, "MKF_SF"))
 assert(MKF_SF1.epsilon == epsilon)
 assert(isequal(MKF_SF1.sigma_wp, sigma_wp))
 assert(MKF_SF1.n_filt == 7)
@@ -56,7 +56,7 @@ assert(isequal(MKF_SF1.ykp1_est, zeros(ny,1)))
 assert(isequal(round(MKF_SF1.alpha, 4), 0.0490))
 assert(isequal(round(MKF_SF1.p_gamma, 4), [0.9510; 0.0490]))
 
-assert(strcmp(MKF_SF2.type, "MKF-SF"))
+assert(strcmp(MKF_SF2.type, "MKF_SF"))
 assert(MKF_SF2.epsilon == epsilon)
 assert(isequal(MKF_SF2.sigma_wp, sigma_wp))
 assert(MKF_SF2.n_filt == 56)
@@ -318,7 +318,7 @@ table(MSE.keys', cell2mat(MSE.values'), ...
 % Plot of conditional filter probabilities
 
 % switch obs.type
-%     case {'MKF-SF'}
+%     case {'MKF_SF'}
 %         p_seq_g_Yk = sim_results.MKF_p_seq_g_Yk;
 %         % Note: first data points are nans,
 %         % ignore last data point to make plot wider
@@ -337,7 +337,7 @@ table(MSE.keys', cell2mat(MSE.values'), ...
 % % Plot of trace of filter covariance matrices
 % 
 % switch obs.type
-%     case {'MKF-SF'}
+%     case {'MKF_SF'}
 %         trP_obs = cell2mat(sim_results.trP_obs);
 % 
 %         figure(12); clf
@@ -353,7 +353,7 @@ table(MSE.keys', cell2mat(MSE.values'), ...
 % % Plot of filter correction gains (k1)
 % 
 % switch obs.type
-%     case {'MKF-SF'}
+%     case {'MKF_SF'}
 %         K_obs = cell2mat(sim_results.K_obs);
 %         % Select first gain value onlu
 %         K1_obs = K_obs(:,1:2:end);
@@ -370,13 +370,13 @@ table(MSE.keys', cell2mat(MSE.values'), ...
 
 % Earlier test results (with a shock of amplitude 1)
 % MSE_test_values = containers.Map(...
-%     {'KF2',   'KF3',   'MKF-SF1',  'MKF-SF2',  'MKF3',  'MKF4',  "SKF"}, ...
+%     {'KF2',   'KF3',   'MKF_SF1',  'MKF_SF2',  'MKF3',  'MKF4',  "SKF"}, ...
 %     [0.000934 0.003524 0.004914 0.005016 0.002709 0.000929 0.000929] ...
 % );
 
 % Results on Nov 8 before reverting back the Bayesian updating
 %MSE_test_values = containers.Map(...
-%  {'KF2',   'KF3',   'MKF-SF1',  'MKF-SF2',  'MKF3',  'MKF4',  "SKF"}, ...
+%  {'KF2',   'KF3',   'MKF_SF1',  'MKF_SF2',  'MKF3',  'MKF4',  "SKF"}, ...
 %  [0.000934 0.003524 0.009456 0.005016 0.002709 0.000929 0.000929] ...
 %);
 % Changes since previous results: 
@@ -463,7 +463,7 @@ R = diag(sigma_M.^2);
 KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
 % Multiple model filter 1
-label = 'MKF-SF1';
+label = 'MKF_SF1';
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
@@ -474,7 +474,7 @@ MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
-label = 'MKF-SF2';
+label = 'MKF_SF2';
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
@@ -736,7 +736,7 @@ table(MSE.keys', cell2mat(MSE.values'), ...
 
 % Results on Nov 8 after reverting back the Bayesian updating
 MSE_test_values = containers.Map(...
- {'KF3',               'MKF-SF1',              'MKF-SF2',              ...
+ {'KF3',               'MKF_SF1',              'MKF_SF2',              ...
   'MKF3',              'MKF4',              'SKF'}, ...
  {[0.000676 0.000936], [0.001826 0.006518], [0.002042 0.003289], ...
   [0.001538 0.001718], [0.000123 0.000132], [0.000123 0.000132]} ...
@@ -760,7 +760,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     
     % Arrays to store observer variables
     switch obs.type
-        case {'MKF', 'MKF-SF', 'MKF-SF', 'MKF-SP', 'MKF-SP'}
+        case {'MKF', 'MKF_SF', 'MKF_SF', 'MKF_SP', 'MKF_SP'}
             n_filt = obs.n_filt;
             MKF_p_seq_g_Yk = nan(nT+1, n_filt);
         otherwise
@@ -795,7 +795,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 K_obs{i, 1} = obs.K';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'MKF', 'MKF-SF'}
+            case {'MKF', 'MKF_SF'}
                 obs.update(yk_m, uk_m);
 
                 % Record filter gains and covariance matrices
@@ -807,7 +807,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 % Record filter conditional probabilities
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
 
-            case {'MKF-SP'}
+            case {'MKF_SP'}
                 obs.update(yk_m, uk_m);
 
                 % Record filter gains and covariance matrices
@@ -838,7 +838,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     sim_results.K_obs = K_obs;
     sim_results.trP_obs = trP_obs;
     switch obs.type
-        case {'MKF-SF', 'MKF-SP'}
+        case {'MKF_SF', 'MKF_SP'}
             sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
     end
 

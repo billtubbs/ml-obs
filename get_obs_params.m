@@ -49,7 +49,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case 'MKF-SF'  % RODD MKF observer
+        case 'MKF_SF'  % RODD MKF observer
 
             % Params to return
             params.P0 = obs.P0;
@@ -63,7 +63,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case 'MKF-SP'  % adaptive multi-model Kalman filter
+        case 'MKF_SP'  % adaptive multi-model Kalman filter
 
             % Params to return
             params.P0 = obs.P0;

@@ -76,7 +76,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case {'MKF', 'MKF-SF'}
+        case {'MKF', 'MKF_SF'}
 
             assert(nargin == 3)
             vec_double = varargin{1};
@@ -139,7 +139,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case 'MKF-SP'
+        case 'MKF_SP'
 
             assert(nargin == 3)
             vec_double = varargin{1};
@@ -152,9 +152,10 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % 1. xkp1_est : size(n, 1)
             % 2. ykp1_est : size(ny, 1)
             % 3. p_seq_g_Yk : size(n_filt, 1)
-            % 4. xkp1_est for each KF : cell(1, n_filt)
-            % 5. ykp1_est for each KF : cell(1, n_filt)
-            % 6. P matrix for each filter : cell(1, n_filt)
+            % 4. gamma_k : size(n_filt, 1)
+            % 5. xkp1_est for each KF : cell(1, n_filt)
+            % 6. ykp1_est for each KF : cell(1, n_filt)
+            % 7. P matrix for each filter : cell(1, n_filt)
 
             % int16 vector contents:
             % 1. i : size(1, 2)
@@ -174,12 +175,12 @@ function obs = set_obs_vars_vecs(obs, varargin)
                 repmat({[n n]}, 1, n_filt)};
             vdata.n_els = {n, ny, n_filt, n_filt, n_filt*n, n_filt*ny, ...
                 n_filt*n*n};
-            vdata_int16.types = {'int16', 'int16', 'int16', 'int16', 'int16', ...
+            vdata_int16.types = {'int16', 'int16', 'int16', 'int16', ...
                 repmat({'int16'}, n_filt, 1)};
             vdata_int16.dims = {[1 2], [1 2], [1 obs.n_main], [1 obs.n_hold], ...
-                [1 n_filt-1], repmat({[1 f]}, n_filt, 1)};
+                repmat({[1 f]}, n_filt, 1)};
             vdata_int16.n_els = {int16(2), int16(2), obs.n_main, obs.n_hold, ...
-                int16(n_filt)-1, int16(n_filt)*f};
+                int16(n_filt)*f};
 
             % Add variables data
             vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
@@ -202,8 +203,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             vars.int16.i_next = vars_int16{2};
             vars.int16.f_main = vars_int16{3};
             vars.int16.f_hold = vars_int16{4};
-            vars.int16.f_unused = vars_int16{5};
-            vars.int16.seq = vars_int16{6};
+            vars.int16.seq = vars_int16{5};
 
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);

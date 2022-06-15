@@ -196,7 +196,7 @@ classdef MKFObserverSF < MKFObserver
             obj.beta = beta;
             obj.p_seq = p_seq;
             obj.p_gamma = p_gamma;
-            obj.type = "MKF-SF";
+            obj.type = "MKF_SF";
 
         end
         % TODO: Is MKFObserver reset method okay?

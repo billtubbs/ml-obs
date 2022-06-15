@@ -26,7 +26,7 @@ sigma_M = 0.1;
 sigma_W = [0; 0];
 
 % Check observer attributes
-assert(strcmp(MKF_SP1.type, "MKF-SP"))
+assert(strcmp(MKF_SP1.type, "MKF_SP"))
 assert(MKF_SP1.epsilon == 0.01)
 assert(isequal(MKF_SP1.sigma_wp, sigma_wp))
 assert(MKF_SP1.n_filt == 5)
@@ -2129,10 +2129,10 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 
     % Arrays to store observer variables
     switch obs.type
-        case {'MKF', 'MKF-SF'}
+        case {'MKF', 'MKF_SF'}
             n_filt = obs.n_filt;
             MKF_p_seq_g_Yk = nan(nT+1, n_filt);
-        case {'MKF-SP', 'MKF-SP'}
+        case {'MKF_SP', 'MKF_SP'}
             n_filt = obs.n_filt;
             MKF_p_seq_g_Yk = nan(nT+1, n_filt);
             AFMM_f_main = nan(nT+1, numel(obs.f_main));
@@ -2169,7 +2169,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 K_obs{i, 1} = obs.K';
                 trP_obs{i, 1} = trace(obs.P);
 
-            case {'MKF', 'MKF-SF'}
+            case {'MKF', 'MKF_SF'}
                 obs.update(yk_m, uk_m);
 
                 % Record filter gains and covariance matrices
@@ -2181,7 +2181,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 % Record filter conditional probabilities
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
 
-            case {'MKF-SP'}
+            case {'MKF_SP'}
                 obs.update(yk_m, uk_m);
 
                 % Record filter gains and covariance matrices
@@ -2212,11 +2212,11 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     sim_results.K_obs = K_obs;
     sim_results.trP_obs = trP_obs;
     switch obs.type
-        case {'MKF', 'MKF-SF', 'MKF-SP'}
+        case {'MKF', 'MKF_SF', 'MKF_SP'}
             sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
     end
     switch obs.type
-        case 'MKF-SP'
+        case 'MKF_SP'
             sim_results.AFMM_f_main = AFMM_f_main;
             sim_results.AFMM_f_hold = AFMM_f_hold;
     end
