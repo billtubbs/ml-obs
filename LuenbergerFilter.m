@@ -36,7 +36,7 @@ classdef LuenbergerFilter < AbstractLinearFilter
             % Set properties for Luenberger filter
             obj.poles = poles;
             obj.type = "LB";
-            if nargin < 8
+            if nargin < 7
                 obj.label = obj.type;
             end
 
