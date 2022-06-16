@@ -88,11 +88,12 @@ MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % General MKF equivalent to MKF2
 Q1 = diag([q1 sigma_wp(1)^2]);
 Q2 = diag([q1 sigma_wp(2)^2]);
-MKF3 = MKFObserver({A,A},{B,B},{C,C},{D,D},Ts,P0,{Q1,Q2},{R,R},MKF_SF2.seq,MKF_SF2.T,d,'MKF3');
+MKF3 = MKFObserver({A,A},{B,B},{C,C},{D,D},Ts,P0,{Q1,Q2},{R,R}, ...
+    MKF_SF2.seq,MKF_SF2.T,d,'MKF3');
 % TODO: Allow P0 to be replaced with repmat({P0},1,MKF2.n_filt)
 
 % Multiple model observer with sequence pruning #1
-label = 'MMKF_SP1';
+label = 'MKF_SP1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
@@ -100,10 +101,10 @@ f = 100;  % sequence history length
 n_filt = 5;  % number of filters
 n_min = 3;  % minimum life of cloned filters
 MKF_SP1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,'MMKF_SP21');
+    Q0,R,n_filt,f,n_min,label);
 
 % Multiple model observer with sequence pruning #2
-label = 'MMKF_SP2';
+label = 'MKF_SP2';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
@@ -111,7 +112,7 @@ f = 100;  % sequence history length
 n_filt = 10;  % number of filters
 n_min = 4;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,'MMKF_SP22');
+    Q0,R,n_filt,f,n_min,label);
 
 observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...
     MKF3, MKF_SP1, MKF_SP2};

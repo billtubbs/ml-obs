@@ -18,12 +18,12 @@
 Ts = 1;
 
 % Process model - continuous time
-% This is a simple symmetric, coupled, 2x2 system
+% This is similar to the reservoir system from GEL-7015, HW #3
 s = tf('s');
-G11 = 1 / (1 + 8.5*s);
-G12 = -0.2 / (1 + 8.5*s);
-G21 = -0.2 / (1 + 8.5*s);
-G22 = 1 / (1 + 8.5*s);
+G11 = -0.7 / (1 + 8.5*s);
+G12 = -G11;
+G21 = 1.5 / (1 + 16*s);
+G22 = G21;
 Gc = [G11 G12; G21 G22];
 Gd = c2d(Gc,Ts,'zoh');
 
@@ -67,16 +67,16 @@ Gpd = [Gd series(Gd, HDd)];
 % D = Gpss.D;
 
 % Discrete time state space model
-A = [ 0.8890       0     1 -0.2;
-           0  0.8890  -0.2    1;
-           0       0     1    0;
-           0       0     0    1];
-B = [    1 -0.2  0  0;  % TODO: increase the coupling, -0.5?
-      -0.2    1  0  0;
-         0    0  1  0;
-         0    0  0  1];
-C = [ 0.1110 0         0  0;
-             0  0.1110 0  0];
+A = [ 0.8890       0  1 -1;
+           0  0.9394  1  1;
+           0       0  1  0;
+           0       0  0  1];
+B = [ 1 -1  0  0;
+      1  1  0  0;
+      0  0  1  0;
+      0  0  0  1];
+C = [-0.07769  0       0  0;
+            0  0.09088 0  0];
 D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 

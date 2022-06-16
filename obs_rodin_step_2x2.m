@@ -88,10 +88,13 @@ MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % General MKF equivalent to MKF2
-%MKF3 = mkf_filter({A,A},{B,B},{C,C},{D,D},Ts,repmat({P0},1,MKF2.n_filt),Q,R,MKF2.S,MKF2.p_seq,d,'MKF3');
+Q1 = diag([q1 q2 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
+Q2 = diag([q1 q2 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
+MKF3 = MKFObserver({A,A},{B,B},{C,C},{D,D},Ts,P0,{Q1,Q2},{R,R},MKF_SF2.seq,MKF_SF2.T,d,'MKF3');
+% TODO: Allow P0 to be replaced with repmat({P0},1,MKF2.n_filt)
 
 % Multiple model AFMM filter 1
-label = 'MKF_SP2';
+label = 'MKF_SP1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 q2 0 0]);
 R = diag(sigma_M.^2);
@@ -111,3 +114,6 @@ n_filt = 30;  % number of filters
 n_min = 10;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
+
+observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...
+    MKF3, MKF_SP1, MKF_SP2};
