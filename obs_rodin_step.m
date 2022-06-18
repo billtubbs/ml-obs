@@ -3,20 +3,15 @@
 
 addpath("~/process-observers/")
 
-% Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
-
-% Disturbance input (used by SKF observer)
-Bw = B(:, ~u_meas);
-nw = sum(~u_meas);
-
 % Check observability of system
-Qobs = obsv(A,C);
+Qobs = obsv(A, C);
 unobs = length(A) - rank(Qobs);
 assert(unobs == 0);
+
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Bw = B(:, ~u_meas);
+Du = D(:, u_meas);
 
 % Steady-state Luenberger observer 1
 % Specify poles of observer dynamics
@@ -63,7 +58,7 @@ Q = diag([q1 0.1^2]);
 R = sigma_M^2;
 KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
 
-% Multiple model filter 1
+% Multiple model observer with sequence fusion #1
 label = 'MKF_SF1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
@@ -74,13 +69,13 @@ d = 5;  % spacing parameter
 MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
-% Multiple model filter 2
+% Multiple model observer with sequence fusion #2
 label = 'MKF_SF2';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
 f = 10;  % fusion horizon
-m = 2;  % maximum number of shocks
+m = 1;  % maximum number of shocks
 d = 1;  % spacing parameter
 MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
@@ -98,7 +93,7 @@ P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
 f = 100;  % sequence history length
-n_filt = 5;  % number of filters
+n_filt = 7;  % number of filters
 n_min = 3;  % minimum life of cloned filters
 MKF_SP1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
@@ -110,7 +105,7 @@ Q0 = diag([q1 0]);
 R = sigma_M^2;
 f = 100;  % sequence history length
 n_filt = 10;  % number of filters
-n_min = 4;  % minimum life of cloned filters
+n_min = 5;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 

@@ -12,6 +12,27 @@ rng(seed)
 % Load system and disturbance model from file
 sys_rodin_step
 
+% Simulation settings
+nT = 100;
+t = Ts*(0:nT)';
+
+% Choose time and amplitude of input disturbance
+t_shock = 9.5;
+du0 = 1;
+% When you make the shock larger the MKF observers
+% do better
+%du0 = 2;
+
+% Measured input
+%U = (idinput(size(t)) + 1)/2;
+U = zeros(size(t));
+U(t >= 1) = -1;
+
+% Disturbance input
+alpha = zeros(nT+1, 1);
+alpha(t == t_shock) = 1;  % this is used by the SKF observer
+Wp = du0 .* alpha;
+
 % Observer model without disturbance noise input
 Bu = B(:, u_meas);
 Du = D(:, u_meas);
@@ -59,7 +80,7 @@ assert(isequal(round(MKF_SF1.p_gamma, 4), [0.9510; 0.0490]))
 assert(strcmp(MKF_SF2.type, "MKF_SF"))
 assert(MKF_SF2.epsilon == epsilon)
 assert(isequal(MKF_SF2.sigma_wp, sigma_wp))
-assert(MKF_SF2.n_filt == 56)
+assert(MKF_SF2.n_filt == 11)
 assert(isequaln(MKF_SF1.i, [0 0]))
 assert(MKF_SF2.n == 2)
 assert(MKF_SF2.nu == 1)
@@ -92,34 +113,6 @@ MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
-
-% Simulation settings
-nT = 100;
-t = Ts*(0:nT)';
-
-% Choose time and amplitude of input disturbance
-t_shock = 9.5;
-du0 = 1;
-% When you make the shock larger the MKF observers
-% do better
-%du0 = 2;
-
-% Measured input
-%U = (idinput(size(t)) + 1)/2;
-U = zeros(size(t));
-U(t >= 1) = -1;
-
-% Disturbance input
-alpha = zeros(nT+1, 1);
-alpha(t == t_shock) = 1;  % this is used by the SKF observer
-Wp = du0 .* alpha;
-
-% Multiple model scheduled Kalman filter
-P0 = 1000*eye(n);
-Qx2 = {diag([q1 sigma_wp(1).^2]), diag([q1 sigma_wp(2).^2])};
-R = sigma_M^2;
-seq = alpha';
-SKF = MKFObserverSched({A,A},{Bu,Bu},{C,C},{Du,Du},Ts,P0,Qx2,{R,R},seq,"SKF");
 
 U_sim = [U Wp];
 
@@ -154,6 +147,16 @@ p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
 d = 1;
 MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF4');
+
+% Define scheduled Kalman filter
+% Note: in the case of more than one random input variable, all
+% possible combinations of the switching systems need to be 
+% accounted for.
+% Here, we account for 3 possible combinations:
+% combs = [0 0; 1 0; 0 1];
+% (This is the same as the MKF filters for the RODD).
+% seq = sum(alpha .* 2.^(1:-1:0), 2)';
+SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
 observers = {KF2, KF3, SKF, MKF_SF1, MKF_SF2, MKF3, MKF4};

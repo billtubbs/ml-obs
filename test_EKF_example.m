@@ -34,7 +34,7 @@ dhdx = @vdpMeasurementJacobianFcn;
 obs = EKF_observer(n,f,h,params,u_meas,y_meas,dfdx,dhdx,Ts,P0,Q,R, ...
     label,x0);
 
-% Check identicial initial parameters
+% Check identical initial parameters
 assert(isequal(obs.Pkp1, obj.StateCovariance))
 assert(isequal(obs.xkp1_est, obj.State))
 assert(isequal(obs.Q, obj.ProcessNoise))

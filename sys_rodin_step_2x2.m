@@ -11,6 +11,9 @@
 %  - Gpd : combined system transfer function (2 inputs, 1 output)
 %  - Gpss : state space model of combined system
 %
+% This script is run by run_obs_sim_spec.m during
+% automated simulations.
+%
 
 %% Discrete transfer function polynomial models
 
@@ -28,13 +31,13 @@ Gc = [G11 G12; G21 G22];
 Gd = c2d(Gc,Ts,'zoh');
 
 % ARIMA noise process
-thetaN0 = 1;
-phiN1 = 0.2;
-ThetaN = [0 thetaN0];  % direct transmission
-PhiN = [1 -phiN1];
-HNd1 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
-HNd2 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
-HNd = [HNd1 0; 0 HNd2];
+% thetaN0 = 1;
+% phiN1 = 0.2;
+% ThetaN = [0 thetaN0];  % direct transmission
+% PhiN = [1 -phiN1];
+% HNd1 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+% HNd2 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+% HNd = [HNd1 0; 0 HNd2];
 
 % RODD step disturbance process
 ThetaD = 1;
@@ -88,16 +91,13 @@ ny = size(C, 1);
 % Designate measured input and output signals
 u_meas = [true; true; false; false];
 y_meas = [true; true];
-
-% Make state transition and measurement functions
-[state_fcn, meas_fcn, params] = make_trans_funcs_ssd(A, B, C, D);
+nu = sum(u_meas);
+nw = sum(~u_meas);
 
 % Default initial condition
 x0 = zeros(n, 1);
 
-
-%% Parameters for random inputs
-
+% Parameters for random inputs
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
 sigma_wp = [0.01 1; 0.01 1];
@@ -108,9 +108,9 @@ sigma_W = zeros(n, 1);
 % Measurement noise standard deviation
 sigma_M = [0.1; 0.1];
 
-% To check observer with no noise disturbances
+% To test observer with no noise disturbances
 % sigma_W = zeros(n, 1);
 % sigma_M = zeros(ny, 1);
 
 % Initial state of disturbance process
-p0 = zeros(2, 1);
+p0 = zeros(nw, 1);

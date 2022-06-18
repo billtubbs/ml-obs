@@ -1,6 +1,6 @@
 %% System model definition
 %
-% Discrete transfer function polynomial models for a
+% Discrete-time transfer function polynomial models for a
 % first-order process with a RODD step disturbance at
 % the input to the process.
 % 
@@ -10,6 +10,9 @@
 %  - HDd : Input disturbance RODD transfer function
 %  - Gpd : combined system transfer function (2 inputs, 1 output)
 %  - Gpss : state space model of combined system
+%
+% This script is run by run_obs_sim_spec.m during
+% automated simulations.
 %
 
 %% Discrete transfer function polynomial models
@@ -66,22 +69,20 @@ C = [0.3 0];
 D = zeros(1, 2);
 Gpss = ss(A,B,C,D,Ts);
 
-% Dimensions
-n = size(A, 1);
-nu = size(B, 2);
-ny = size(C, 1);
-
-% Designate measured inputs and outputs variables
+% Designate which input and output variables are measured
 u_meas = [true; false];
 y_meas = true;
 
+% Dimensions
+n = size(A, 1);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+ny = size(C, 1);
+
 % Default initial condition
 x0 = zeros(n, 1);
-p0 = 0;
 
-
-%% Parameters for random inputs
-
+% Parameters for random inputs
 % RODD random variable parameters
 epsilon = 0.01;
 sigma_wp = [0.01 1];
@@ -92,9 +93,9 @@ sigma_W = [0; 0];
 % Measurement noise standard deviation
 sigma_M = 0.1;
 
-% To check observer with no noise disturbances
-%sigma_W = [0; 0];
-%sigma_M = 0.001;
+% To test observer with no noise disturbances
+% sigma_W = zeros(n, 1);
+% sigma_M = zeros(ny, 1);
 
 % Initial state of disturbance process
 p0 = 0;

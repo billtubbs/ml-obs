@@ -576,10 +576,10 @@ for i = 1:n_obs
     % Save updated observer
     observers{i} = obs;
 
-    if strcmp(observers{i}.label, "AFMM1")
-        save('sim_results_AFMM.mat','sim_results');
-        disp("Results saved");
-    end
+%     if strcmp(observers{i}.label, "AFMM1")
+%         save('sim_results_AFMM.mat','sim_results');
+%         disp("Results saved");
+%     end
 
 end
 
