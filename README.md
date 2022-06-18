@@ -1,55 +1,93 @@
 # process-observers
 
-MATLAB scripts for simulating [process observers](https://en.wikipedia.org/wiki/State_observer) for online state estimation and [sensor fusion](https://en.wikipedia.org/wiki/Sensor_fusion).  
+MATLAB scripts for simulating [process observers](https://en.wikipedia.org/wiki/State_observer) for online state estimation, including multiple-model observers suitable for estimating process with *infrequently-occuring*, *abrupt*, *unmeasured disturbances*.  
 
-Each observer is produced by a separate MATLAB function but they are implemented as [structure arrays](https://www.mathworks.com/help/matlab/ref/struct.html) ('structs') with many similar attribues that can be passed as arguments to the associated update functions producing similar behaviours.
+The observers are implemented as MATLAB objects (classes) with similar arguments, properties and methods. They are intended to be used for research purposes to evaluate and compare the behaviour of different multi-model observer algorithms.
 
-For example, the following statement creates a struct which contains all the data needed to simulate a discrete-time Kalman filter.
+For example, the following statement creates a [Kalman filter](https://en.wikipedia.org/wiki/Kalman_filter) object based on a linear model of a dynamical system:
 
 ```Matlab
-KF1 = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF1');
+KF1 = KalmanFilter(A,B,C,D,Ts,P0,Q,R,'KF1');
 ```
 
-These structs do not have any sophisticated functionality and cannot be used directly in Simulink.  They are intended to be used for research purposes in hand-coded iterative simulations like this:
+This object can then be used to iteratively simulate the Kalman filter:
 
 ```Matlab
 % Array to store estimates
-y_est = nan(nT+1,1);
+Y_est = nan(nT+1,1);
+
 % Initial estimate (at t=0)
-y_est(1,:) = obs.ykp1_est;
+Y_est(1,:) = KF1.ykp1_est;
+
 for i = 1:nT
 
-    % Update observer with measurements
-    KF1 = update_KF(KF1, u(i), y_m(i));
+    % Update observer with measurements at current sample time
+    KF1.update(Ym(i), U(i));
 
     % Get estimate of output at next sample time
-    y_est(i+1,:) = obs.ykp1_est;
+    Y_est(i+1,:) = KF1.ykp1_est;
 
 end
 ```
 
+The internal variables can easily be inspected at any point:
+```Matlab
+>> KF1
 
-## Contents
+KF1 = 
+
+  KalmanFilter with properties:
+
+           Q: 0.0100
+           R: 0.2500
+          P0: 1000
+           n: 1
+          nu: 1
+          ny: 1
+           A: 0.7000
+           B: 1
+           C: 0.3000
+           D: 0
+          Ts: 0.5000
+           K: 0.0162
+           P: 0.0195
+       label: "KF1"
+          x0: 0
+    xkp1_est: 3.3566
+    ykp1_est: 1.0070
+        type: "KF"
+
+```
+
+The observer objects can also be included in Simulink models using custom blocks provided in the example model file [MKF_example_sim.slx](MKF_example_sim.slx).
+
+
+## List of contents
 
 Observers currently included:
-- [luenberger_filter.m](luenberger_filter.m) - Luenberger observer (with static correction gain) [[2]](#2).
-- [kalman_filter.m](kalman_filter.m) - Kalman filter [[1]](#1).
-- [kalman_filter_ss.m](kalman_filter_ss.m) - steady-state Kalman filter (with static correction gain).
-- [EKF_observer.m](EKF_observer.m) - extended Kalman filter for non-linear systems.
+- [LuenbergerFilter.m](LuenbergerFilter.m) - Luenberger observer (with static correction gain) [[2]](#2).
+- [KalmanFilter.m](KalmanFilter.m) - Kalman filter [[1]](#1).
+- [KalmanFilterSS.m](KalmanFilterSS.m) - steady-state Kalman filter (with static correction gain).
 
-General-purpose multi-model observers:
-- [mkf_observer.m](mkf_observer.m) - multi-model Kalman filter observer.
-- [MEKF_observer.m](MEKF_observer.m) - multi-model extended Kalman filter observer.
+General-purpose multi-model observer:
+- [MKFObserver.m](MKFObserver.m) - multi-model Kalman filter observer.
 
 Specialised multi-model observers:
-- [mkf_observer_RODD.m](mkf_observer_RODD.m) and [MEKF_observer_RODD.m](MEKF_observer_RODD.m) - multi-model observers for state estimation in the presence of *randomly-occurring deterministic disturbances* (RODDs) as described in Robertson et al. [[3]](#3).
-- [mkf_observer_AFMM.m](mkf_observer_AFMM.m) and [MEKF_observer_AFMM.m](MEKF_observer_AFMM.m) - multi-model observers for state estimation in the presence of *infreuently-occurring disturbances* with the adaptive forgetting through multiple models (AFMM) algorithm as described in Eriksson and Isaksson [[4]](#4).
+- [MKFObserverSF.m](MKFObserverSF.m) - multi-model observer for state estimation in the presence of *randomly-occurring deterministic disturbances* (RODDs) as described in Robertson et al. [[3]](#3).
+- [MKFObserverSP.m](MKFObserverSP.m) - multi-model observer for state estimation in the presence of *infreuently-occurring disturbances* with an adaptive sequence pruning multiple model algorithm described in Eriksson and Isaksson [[4]](#4).
 
-Simulink simulation tools
-- [kalman_filter_sfunc.m](kalman_filter_sfunc.m) - S-function for standard Kalman filter.
-- [kalman_filter_ss_sfunc.m](kalman_filter_ss_sfunc.m) - S-function for steady-state Kalman filter.
-- [mkf_observer_sfunc.m](mkf_observer_sfunc.m) - general-purpose S-function that works with all observer types.
+There are also extended Kalman filter (EKF) versions — *these are currently still under development and not fully tested*:
+- [EKF_observer.m](EKF_observer.m) - extended Kalman filter for non-linear systems.
+- [MEKF_observer.m](MEKF_observer.m) - multi-model extended Kalman filter observer.
+- [MEKF_observer_RODD.m](MEKF_observer_RODD.m) - multi-model observer as described in Robertson et al. [[3]](#3).
+- [MEKF_observer_AFMM.m](MEKF_observer_AFMM.m) - multi-model observer as described in Eriksson and Isaksson [[4]](#4).
+
+Simulink simulation tools:
+- [KalmanFilter_sfunc.m](KalmanFilter_sfunc.m) - S-function for standard Kalman filter.
+- [KalmanFilterSS_sfunc.m](KalmanFilterSS_sfunc.m) - S-function for steady-state Kalman filter.
+- [MKFObserver_sfunc.m](MKFObserver_sfunc.m) - general-purpose S-function that works with all observer types.
 - [MKF_example_sim.slx](MKF_example_sim.slx) - Simulink model file containing S-function blocks.
+
 
 ## Object hierarchy
 
@@ -67,13 +105,13 @@ Clone this repository to your local machine and either add the root to your MATL
 
 Suppose you have some input-output measurement data from a process:
 ```Matlab
-% Measured inputs
-u = [     0     0     1     1     1     1     1     1     1     1 ...
+% Known inputs
+U = [     0     0     1     1     1     1     1     1     1     1 ...
           1     1     1     1     1     1     1     1     1     1 ...
           1]';
 
 % Output measurements
-y_m = [    0.2688    0.9169   -1.1294    0.7311    0.6694 ...
+Ym =  [    0.2688    0.9169   -1.1294    0.7311    0.6694 ...
            0.0032    0.5431    1.0032    2.6715    2.3024 ...
            0.2674    2.4771    1.3345    0.9487    1.3435 ...
            0.8878    0.9311    1.7401    1.7012    1.7063 ...
@@ -103,37 +141,37 @@ Define a Kalman filter observer for this process:
 P0 = 1000;  % estimated variance of the initial state estimate
 Q = 0.01;  % estimated process noise variance
 R = 0.5^2;  % estimated measurement noise variance
-obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,'KF1');
+KF1 = KalmanFilter(A,B,C,D,Ts,P0,Q,R,'KF1');
 ```
 
 Simulate the observer and record the output estimates:
 ```Matlab
 % Number of sample periods
-nT = size(y_m,1) - 1;
+nT = size(Ym,1) - 1;
 % Array to store observer estimates
-y_est = nan(nT,1);
+Y_est = nan(nT,1);
 % Save initial estimate (at t=0)
-y_est(1,:) = obs.ykp1_est;
+Y_est(1,:) = KF1.ykp1_est;
 for i = 1:nT
 
-    % update observer
-    obs = update_KF(obs, u(i), y_m(i));
+    % Update observer with measurements
+    KF1.update(Ym(i), U(i));
 
-    % get estimate of output at next sample time
-    y_est(i+1,:) = obs.ykp1_est;
+    % Get estimate of output at next sample time
+    Y_est(i+1,:) = KF1.ykp1_est;
 
 end
 ```
 
-Compare observer output estimates to measurement data
+Compare observer estimates to measurement data
 ```Matlab
 figure(1)
 t = Ts*(0:nT)';
-plot(t,y_m,'o',t,y_est,'o-')
+plot(t,Ym,'o',t,Y_est,'o-')
 grid on
 xlabel('Time')
 ylabel('Process output')
-legend('y_m(k)','y_est(k)')
+legend('Ym(k)','Yest(k)')
 title("Observer estimates compared to process measurements")
 ```
 
@@ -141,7 +179,7 @@ title("Observer estimates compared to process measurements")
 
 ## Other examples
 
-See the following LiveScripts for more detailed examples of how to use the functions:
+The following scripts provide more detailed examples of how to use the observers:
 
 - [kalman_example_SISO.mlx](kalman_example_SISO.mlx) - Kalman filter simulation on a simple single-input, single-output system
 - [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model observer examples on a 2x2 multivariable system
@@ -149,31 +187,16 @@ See the following LiveScripts for more detailed examples of how to use the funct
 
 ## Help
 
-Most of the functions in this repository are well documented.  Use MATLAB's help command to view the help text:
+All the classes in this repository are well documented.  Use MATLAB's help command to view the help text. E.g.:
 
 ```Matlab
->> help kalman_filter
+>> help KalmanFilter
 ```
-```text
-  obs = kalman_filter(A,B,C,D,Ts,P0,Q,R,label,x0)
-  Creates a struct for simulating a time-varying 
-  Kalman filter (with time-varying gain).
- 
-  Arguments:
-    A, B, C, D : discrete-time system model matrices.
-    Ts : sample period.
-    P0 : Initial value of covariance matrix of the state
-        estimates.
-    Q : Process noise covariance matrix.
-    R : Output measurement noise covariance matrix.
-    label : string name.
-    x0 : intial state estimates (optional).
 
-```
 
 ## Testing
 
-A number of unit test scripts are included.  You can run all the tests by running the MATLAB `runtests` command from the root directory.
+A comprehensive set of unit test scripts are included.  You can run all the tests by running the MATLAB `runtests` command from the root directory.
 
 ## References
 
