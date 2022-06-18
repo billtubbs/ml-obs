@@ -31,39 +31,21 @@ function vars = get_obs_vars(obs)
             vars.ykp1_est = obs.ykp1_est;
             vars.P = obs.P;
 
-%         case 'MKF'  % general multi-model Kalman filter
-% 
-%             % Vars to return
-%             vars.xkp1_est = obs.xkp1_est;
-%             vars.ykp1_est = obs.ykp1_est;
-%             vars.P_f = cell(1, obs.n_filt);
-%             vars.ykp1_est_f = cell(1, obs.n_filt);
-%             vars.xkp1_est_f = cell(1, obs.n_filt);
-%             for f = 1:obs.n_filt
-%                vars.xkp1_est_f{f} = obs.filters{f}.xkp1_est;
-%                vars.ykp1_est_f{f} = obs.filters{f}.ykp1_est;
-%                vars.P_f{f} = obs.filters{f}.P;
-%             end
-% 
-%         case   % RODD MKF observer
-% 
-%             % Vars to return
-%             vars.xkp1_est = obs.xkp1_est;
-%             vars.ykp1_est = obs.ykp1_est;
-%             vars.p_seq_g_Yk = obs.p_seq_g_Yk;
-%             vars.xkp1_est_f = cell(1, obs.n_filt);
-%             vars.ykp1_est_f = cell(1, obs.n_filt);
-%             vars.P_f = cell(1, obs.n_filt);
-%             for f = 1:obs.n_filt
-%                vars.xkp1_est_f{f} = obs.filters{f}.xkp1_est;
-%                vars.ykp1_est_f{f} = obs.filters{f}.ykp1_est;
-%                vars.P_f{f} = obs.filters{f}.P;
-%             end
-%             % Integer variables
-%             vars.int16.i = obs.i;
-%             vars.int16.i_next = obs.i_next;
+        case 'MKF'  % general multi-model Kalman filter
 
-        case {'MKF', 'MKF_AFMM', 'MKF_RODD'}  % multi-model Kalman filters
+            % Vars to return
+            vars.xkp1_est = obs.xkp1_est;
+            vars.ykp1_est = obs.ykp1_est;
+            vars.P_f = cell(1, obs.n_filt);
+            vars.ykp1_est_f = cell(1, obs.n_filt);
+            vars.xkp1_est_f = cell(1, obs.n_filt);
+            for f = 1:obs.n_filt
+               vars.xkp1_est_f{f} = obs.filters{f}.xkp1_est;
+               vars.ykp1_est_f{f} = obs.filters{f}.ykp1_est;
+               vars.P_f{f} = obs.filters{f}.P;
+            end
+
+        case {"MKF_SP", "MKF_SF"}  % multi-model Kalman filters
 
             % Vars to return
             vars.xkp1_est = obs.xkp1_est;
@@ -82,11 +64,11 @@ function vars = get_obs_vars(obs)
             vars.int16.i = obs.i;
             vars.int16.i_next = obs.i_next;
 
-            if strcmp(obs.type, 'MKF_AFMM')
-                % Additional variables used by AFMM algorithm
+            if strcmp(obs.type, "MKF_SP")
+                % Additional variables used by sequence pruning
+                % algorithm
                 vars.int16.f_main = obs.f_main;
                 vars.int16.f_hold = obs.f_hold;
-                vars.int16.f_unused = obs.f_unused;
                 vars.int16.seq = obs.seq;
             end
 

@@ -31,10 +31,12 @@ function params = get_obs_params(obs)
         case 'SKF'  % Scheduled Kalman filters
 
             % Params to return
-            params.P0 = obs.P0;
+            params.P0 = obs.P0;  % Don't store these - too many
+            params.Q = obs.Q;
             params.R = obs.R;
-            params.Q0 = obs.Q0;
-            params.sigma_wp = obs.sigma_wp;
+            params.f = obs.f;
+            params.d = obs.d;
+            params.n_filt = obs.n_filt;
 
         case 'MKF'  % general multi-model Kalman filter
 
@@ -47,7 +49,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case 'MKF_RODD'  % RODD MKF observer
+        case 'MKF_SF'  % RODD MKF observer
 
             % Params to return
             params.P0 = obs.P0;
@@ -61,7 +63,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case 'MKF_AFMM'  % adaptive multi-model Kalman filter
+        case 'MKF_SP'  % adaptive multi-model Kalman filter
 
             % Params to return
             params.P0 = obs.P0;

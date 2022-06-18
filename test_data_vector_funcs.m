@@ -129,8 +129,8 @@ Ym = Y + V;  % measurement
 obs_rodin_step
 
 % Make copies of KF1
-obs1 = KF1;
-obs2 = KF1;
+obs1 = KF1.copy();
+obs2 = KF1.copy();
 
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
@@ -142,7 +142,7 @@ Yk_est = {nan(nT+1,ny), nan(nT+1,ny)};
 for i = 1:nT
     uk = U(i,:)';
     yk = Ym(i,:)';
-    obs1 = update_KF(obs1, uk, yk);
+    obs1.update(yk, uk);
     Xk_est{1}(i+1,:) = obs1.xkp1_est';
     Yk_est{1}(i+1,:) = obs1.ykp1_est';
 
@@ -157,7 +157,7 @@ for i = 1:nT
     obs2.P(:) = vars{3};
 
     % Observer updates
-    obs2 = update_KF(obs2, uk, yk);
+    obs2.update(yk, uk);
 
     % Convert dynamic variables to vdata struct
     vars = get_obs_vars(obs2);
@@ -197,9 +197,9 @@ Ym = Y + V;  % measurement
 % Load observers from file
 obs_rodin_step
 
-% Make copies of AFMM1
-obs1 = AFMM1;
-obs2 = AFMM1;
+% Make copies of MKF_SP1
+obs1 = MKF_SP1.copy();
+obs2 = MKF_SP1.copy();
 
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
@@ -214,7 +214,7 @@ Yk_est = {nan(nT+1,ny), nan(nT+1,ny)};
 for i = 1:nT
     uk = U(i,:)';
     yk = Ym(i,:)';
-    obs1 = update_AFMM(obs1, uk, yk);
+    obs1.update(yk, uk);
     Xk_est{1}(i+1,:) = obs1.xkp1_est';
     Yk_est{1}(i+1,:) = obs1.ykp1_est';
 
@@ -233,9 +233,8 @@ for i = 1:nT
     vars.int16.i_next = vars_int16{2};
     vars.int16.f_main = vars_int16{3};
     vars.int16.f_hold = vars_int16{4};
-    vars.int16.f_unused = vars_int16{5};
-    vars.int16.seq = vars_int16{6};
-    obs2_restored = set_obs_vars(AFMM1, vars);  % makes a new copy
+    vars.int16.seq = vars_int16{5};
+    obs2_restored = set_obs_vars(MKF_SP1, vars);  % makes a new copy
     assert(isequal(obs2_restored.xkp1_est, obs2.xkp1_est))
     assert(isequal(obs2_restored.ykp1_est, obs2.ykp1_est))
     assert(isequal(obs2_restored.filters{1}.xkp1_est, obs2.filters{1}.xkp1_est))
@@ -245,10 +244,9 @@ for i = 1:nT
     assert(isequal(obs2_restored.i_next, obs2.i_next))
     assert(isequal(obs2_restored.f_main, obs2.f_main))
     assert(isequal(obs2_restored.f_hold, obs2.f_hold))
-    assert(isequal(obs2_restored.f_unused, obs2.f_unused))
 
     % Observer updates
-    obs2 = update_AFMM(obs2, uk, yk);
+    obs2.update(yk, uk);
 
     % Convert dynamic variables to vdata struct
     vars = get_obs_vars(obs2);
@@ -291,9 +289,9 @@ Ym = Y + V;  % measurement
 % Load observers from file
 obs_rodin_step
 
-% Make copies of AFMM1
-obs1 = MKF1;
-obs2 = MKF1;
+% Make copies of MKF_SP1
+obs1 = MKF_SF1.copy();
+obs2 = MKF_SF1.copy();
 
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
@@ -308,7 +306,7 @@ Yk_est = {nan(nT+1,ny), nan(nT+1,ny)};
 for i = 1:nT
     uk = U(i,:)';
     yk = Ym(i,:)';
-    obs1 = update_MKF(obs1, uk, yk);
+    obs1.update(yk, uk);
     Xk_est{1}(i+1,:) = obs1.xkp1_est';
     Yk_est{1}(i+1,:) = obs1.ykp1_est';
 
@@ -325,7 +323,7 @@ for i = 1:nT
     vars.P_f = vars_double{7};
     vars.int16.i = vars_int16{1};
     vars.int16.i_next = vars_int16{2};
-    obs2_restored = set_obs_vars(MKF1, vars);  % makes a new copy
+    obs2_restored = set_obs_vars(MKF_SF1, vars);  % makes a new copy
     assert(isequal(obs2_restored.xkp1_est, obs2.xkp1_est))
     assert(isequal(obs2_restored.ykp1_est, obs2.ykp1_est))
     assert(isequal(obs2_restored.filters{1}.xkp1_est, obs2.filters{1}.xkp1_est))
@@ -335,7 +333,7 @@ for i = 1:nT
     assert(isequal(obs2_restored.i_next, obs2.i_next))
 
     % Observer updates
-    obs2 = update_MKF(obs2, uk, yk);
+    obs2.update(yk, uk);
 
     % Convert dynamic variables to vdata struct
     vars = get_obs_vars(obs2);

@@ -10,7 +10,7 @@ rng(seed)
 sys_rodin_step
 
 % Load observers from file
-obs_rodin_step
+obs_rodin_step_old
 
 
 %% Test initialization with rodin_step system
@@ -576,6 +576,11 @@ for i = 1:n_obs
     % Save updated observer
     observers{i} = obs;
 
+%     if strcmp(observers{i}.label, "AFMM1")
+%         save('sim_results_AFMM.mat','sim_results');
+%         disp("Results saved");
+%     end
+
 end
 
 % % Show table of mean-squared errors
@@ -588,9 +593,11 @@ MSE_test_values = containers.Map(...
 );
 
 for label = MSE.keys
-    %fprintf("%s: %f\n", label{1}, MSE(label{1}))
+    %fprintf("%s: %f (%f)\n", label{1}, MSE(label{1}), MSE_test_values(label{1}))
     assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
 end
+
+return
 
 % % Display results of last simulation
 % 
@@ -1028,7 +1035,8 @@ MSE_test_values = containers.Map(...
 );
 
 for label = MSE.keys
-   assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
+    %fprintf("%s: %f, %f (%f, %f)\n", label{1}, MSE(label{1}), MSE_test_values(label{1}))
+    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
 end
 
 
@@ -1157,9 +1165,9 @@ end
 % function dba = debug_array(obs)
 % % For debugging and testing sequences
 %     hold = zeros(obs.n_filt, 1);
-%     hold(obs.f_hold) = obs.f_hold;
+%     hold(nonzeros(obs.f_hold)) = nonzeros(obs.f_hold);
 %     main = zeros(obs.n_filt, 1);
-%     main(obs.f_main) = obs.f_main;
+%     main(nonzeros(obs.f_main)) = nonzeros(obs.f_main);
 %     seq = cell2mat(obs.seq);
 %     p_max = (obs.p_seq_g_Yk == max(obs.p_seq_g_Yk));
 %     dba = [table(hold, main) array2table(seq) table(p_max)];

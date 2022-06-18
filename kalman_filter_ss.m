@@ -12,7 +12,7 @@ function obs = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0)
 %   x0 : intial state estimates (optional).
 %
     [n, nu, ny] = check_dimensions(A, B, C, D);
-    if nargin == 8
+    if nargin < 9
         x0 = zeros(n, 1);
     end
     assert(isequal(size(x0), [n 1]))
@@ -25,6 +25,15 @@ function obs = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0)
     assert(isequal(size(Q), [n n]))
     obs.R = R;
     assert(isequal(size(R), [ny ny]))
+    if nargin < 9
+        x0 = zeros(n, 1);
+    else
+        assert(isequal(size(x0), [n 1]))   
+    end
+    obs.x0 = x0;
+    if nargin < 8
+        label = obs.type;
+    end
     obs.label = label;
     obs.status = 1;
     obs.type = "KFSS";
@@ -35,16 +44,15 @@ function obs = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0)
     H = zeros(ny, n);  % no direct transmission of noises
     Gmodel = ss(A, [B G], C, [D H], Ts);
 
-    % Use MATLAB's Kalman filter object to compute
+    % Use MATLAB's Kalman filter function to compute the
     % steady-state gain and covariance matrix
-    [obs.sys, obs.K, obs.P] = ...
-        kalman(Gmodel, Q, R, N, 'delayed');
+    [~, obs.K, obs.P] = kalman(Gmodel, Q, R, N, 'delayed');
 
     % Initialize estimates
     obs.xkp1_est = x0;
     obs.ykp1_est = C * obs.xkp1_est;
 
-    % Flag used buy update_KF function
+    % Flag used by update_KF function
     obs.static_gain = true;
 
     % Add other useful variables

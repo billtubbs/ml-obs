@@ -18,21 +18,26 @@
 %% Discrete transfer function polynomial models
 
 % Sample time
-Ts = 0.5;
+Ts = 1;
 
-% Process
-omega0 = 0.3;
-delta1 = 0.7;
-Omega = [0 omega0];  % delay of 1
-Delta = [1 -delta1];
-Gd = tf(Omega, Delta, Ts);
+% Process model - continuous time
+% This is similar to the reservoir system from GEL-7015, HW #3
+s = tf('s');
+G11 = -0.7 / (1 + 8.5*s);
+G12 = -G11;
+G21 = 1.5 / (1 + 16*s);
+G22 = G21;
+Gc = [G11 G12; G21 G22];
+Gd = c2d(Gc,Ts,'zoh');
 
 % ARIMA noise process
-thetaN0 = 1;
-phiN1 = 0.2;
-ThetaN = [0 thetaN0];  % direct transmission
-PhiN = [1 -phiN1];
-HNd = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+% thetaN0 = 1;
+% phiN1 = 0.2;
+% ThetaN = [0 thetaN0];  % direct transmission
+% PhiN = [1 -phiN1];
+% HNd1 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+% HNd2 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+% HNd = [HNd1 0; 0 HNd2];
 
 % RODD step disturbance process
 ThetaD = 1;
@@ -49,11 +54,15 @@ d = 1;
 % PhiD = [1 -0.5];
 % d = 1;
 
-HDd = rodd_tf(ThetaD, PhiD, d, Ts);
+% Combined disturbance model
+HDd1 = rodd_tf(ThetaD, PhiD, d, Ts);
+HDd2 = rodd_tf(ThetaD, PhiD, d, Ts);
+HDd = [HDd1 0; 0 HDd2];
 
 % Combined system transfer functions
 Gpd = [Gd series(Gd, HDd)];
 
+% Combined system - discrete time state space model
 % Gpss = minreal(ss(Gpd));
 % A = Gpss.A;
 % B = Gpss.B;
@@ -61,41 +70,47 @@ Gpd = [Gd series(Gd, HDd)];
 % D = Gpss.D;
 
 % Discrete time state space model
-A = [0.7 1;
-     0 1];
-B = [1 0;
-     0 1];
-C = [0.3 0];
-D = zeros(1, 2);
+A = [ 0.8890       0  1 -1;
+           0  0.9394  1  1;
+           0       0  1  0;
+           0       0  0  1];
+B = [ 1 -1  0  0;
+      1  1  0  0;
+      0  0  1  0;
+      0  0  0  1];
+C = [-0.07769  0       0  0;
+            0  0.09088 0  0];
+D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
-
-% Designate which input and output variables are measured
-u_meas = [true; false];
-y_meas = true;
 
 % Dimensions
 n = size(A, 1);
+nu = size(B, 2);
+ny = size(C, 1);
+
+% Designate measured input and output signals
+u_meas = [true; true; false; false];
+y_meas = [true; true];
 nu = sum(u_meas);
 nw = sum(~u_meas);
-ny = size(C, 1);
 
 % Default initial condition
 x0 = zeros(n, 1);
 
 % Parameters for random inputs
 % RODD random variable parameters
-epsilon = 0.01;
-sigma_wp = [0.01 1];
+epsilon = [0.01; 0.01];
+sigma_wp = [0.01 1; 0.01 1];
 
 % Process noise standard deviation
-sigma_W = [0; 0];
+sigma_W = zeros(n, 1);
 
 % Measurement noise standard deviation
-sigma_M = 0.1;
+sigma_M = [0.1; 0.1];
 
 % To test observer with no noise disturbances
 % sigma_W = zeros(n, 1);
 % sigma_M = zeros(ny, 1);
 
 % Initial state of disturbance process
-p0 = 0;
+p0 = zeros(nw, 1);

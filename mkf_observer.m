@@ -20,7 +20,7 @@ function obs = mkf_observer(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
 %   d : detection interval length in number of sample periods.
 %   label : string name.
 %   x0 : intial state estimates (optional, default zeros)
-%   gamma0 : initial model indicator values (zero-based)
+%   gamma0 : initial model indicator value (zero-based)
 %       (optional, default zeros).
 %
 

@@ -44,11 +44,11 @@ Q = diag([0.01^2 0.1^2]);
 R = 0.1^2;
 Bu = B(:,1);  % observer model without unmeasured inputs
 Du = D(:,1);
-KFSS = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,'KFSS');
+KFSS = KalmanFilterSS(A,Bu,C,Du,Ts,Q,R,'KFSS');
 
 % Kalman filter with time-varying gain
 P0 = eye(n);
-KF1 = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
+KF1 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
 
 % Define multi-model filter 1
 P0 = eye(n);
@@ -57,7 +57,7 @@ R = 0.1^2;
 f = 5;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF1 = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,'MKF1');
 
 % Define multi-model filter 2
@@ -67,7 +67,7 @@ R = 0.1^2;
 f = 10;  % sequence history length
 n_filt = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
-MKF2 = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,'MKF2');
 
 fprintf("Running Simulink simulation...\n")
@@ -80,7 +80,7 @@ assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KFSS.Data), [], [1 2]) < 1e
 % Check Kalman filter estimates are close to true system states
 assert(mean(abs(sim_out.X_hat_KFSS.Data - sim_out.X.Data), [1 2]) < 0.5)
 
-% Load simulation results produed by test_MKF_example.m
+% Load simulation results produced by test_MKF_example.m
 % Save results - these are used by test_MKF_example_sim.m
 filename = 'MKF_example.csv';
 results_dir = 'results';
@@ -93,9 +93,9 @@ sim_results = readtable(fullfile(results_dir, filename));
 % - Xk_est_MKF2, Yk_est_MKF2
 
 % Check all Simulink observer estimates are same as MATLAB estimates
-assert(max(abs(sim_out.X_hat_KFSS.Data - sim_results{:, {'Xk_est_KFSS_1', 'Xk_est_KFSS_2'}}), [], [1 2]) < 1e-8)
-assert(max(abs(sim_out.X_hat_KF1.Data - sim_results{:, {'Xk_est_KF1_1', 'Xk_est_KF1_2'}}), [], [1 2]) < 1e-8)
-assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results{:, {'Xk_est_MKF1_1', 'Xk_est_MKF1_2'}}), [], [1 2]) < 1e-8)
-assert(max(abs(sim_out.X_hat_MKF2.Data - sim_results{:, {'Xk_est_MKF2_1', 'Xk_est_MKF2_2'}}), [], [1 2]) < 1e-8)
+assert(max(abs(sim_out.X_hat_KFSS.Data - sim_results{:, {'Xk_est_KFSS_1', 'Xk_est_KFSS_2'}}), [], [1 2]) < 1e-12)
+assert(max(abs(sim_out.X_hat_KF1.Data - sim_results{:, {'Xk_est_KF1_1', 'Xk_est_KF1_2'}}), [], [1 2]) < 1e-12)
+assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results{:, {'Xk_est_MKF1_1', 'Xk_est_MKF1_2'}}), [], [1 2]) < 1e-12)
+assert(max(abs(sim_out.X_hat_MKF2.Data - sim_results{:, {'Xk_est_MKF2_1', 'Xk_est_MKF2_2'}}), [], [1 2]) < 1e-12)
 
 %disp("Simulations complete")

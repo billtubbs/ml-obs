@@ -1,6 +1,6 @@
 function obs = update_MKF(obs, uk, yk, show_plots)
 % obs = update_MKF(obs, uk, yk, show_plots)
-% updates the multi-model Kalman filter and calculate the
+% updates the multi-model Kalman filter and calculates the
 % estimates of the states and output at the next sample
 % time.
 %
@@ -34,7 +34,6 @@ function obs = update_MKF(obs, uk, yk, show_plots)
                   mod(obs.i(2), obs.d) + 1];
 
     % Arrays to store model indicator sequence values
-    gamma_k = zeros(obs.n_filt, 1);  % TODO: This should be set here
     p_gamma_k = nan(obs.n_filt, 1);
 
     % Arrays to collect estimates from each filter
@@ -60,9 +59,6 @@ function obs = update_MKF(obs, uk, yk, show_plots)
         if ~isscalar(yk_cov)
             yk_cov = triu(yk_cov.',1) + tril(yk_cov);
         end
-
-        % Save for debugging purposes
-        obs.filters{f}.yk_cov = yk_cov;
 
         % Calculate normal probability density (multivariate)
         obs.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);

@@ -40,7 +40,7 @@ switch obs.type
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
-    case {'MKF', 'MKF_RODD', 'MKF_AFMM'}
+    case {'MKF', 'MKF_SP', 'MKF_SF'}  % multi-model Kalman filters
 
         vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
             vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};

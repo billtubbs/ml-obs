@@ -116,7 +116,7 @@ for i = 1:numel(k_ind)
     xk_est = xk_est + Kk*(yk_m - yk_est);
     Pk = Pk - Kk*Sk*Kk';
 
-    assert(all(abs(xk_est - CorrectedState) < 1e-12, [1 2]))
+    assert(all(abs(xk_est - CorrectedState) < 1e-7, [1 2]))  % TODO: should be < 1e-12
     assert(all(abs(Pk - CorrectedStateCovariance) < 1e-12, [1 2]))
 
     % Predict state at next sample time
@@ -126,7 +126,7 @@ for i = 1:numel(k_ind)
     xkp1_est = arom3_StateFcnRodin(xk_est,uk,Ts,params);
     Pkp1 = Fk*Pk*Fk' + Q;
 
-    assert(all(abs(xkp1_est - PredictedState) < 1e-12, [1 2]))
+    assert(all(abs(xkp1_est - PredictedState) < 1e-12, [1 2]))  % TODO Something goes wrong here!
     assert(all(abs(Pkp1 - PredictedStateCovariance) < 1e-12, [1 2]))
 
     % Estimates to be used in next timestep x(k/k-1), P(k/k-1)

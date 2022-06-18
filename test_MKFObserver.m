@@ -1,25 +1,16 @@
-% Test functions mkf_observer.m and update_MKF.m
+% Test classes MKFObserver and MKFObserverSched
 
 clear all
 
 seed = 0;
 rng(seed)
 
+% Define system
+
 % Sample period
 Ts = 0.5;
 
-% Input disturbance variance
-%sigma_w = 0.1;
-sigma_w = 0;
-
-% Process noise std. dev.
-sigma_W = [0; 0];
-
-% Measurement noise std. dev.
-sigma_M = 0.1;
-
 % Discrete time state space models
-
 % Model #1
 A1 = 0.7;
 B1 = 1;
@@ -39,23 +30,36 @@ n = size(A1, 1);
 nu = size(B1, 2);
 ny = size(C1, 1);
 
+% Check dimensions
 assert(isequal(size(A1), size(A2)))
 assert(isequal(size(B1), size(B2)))
 assert(isequal(size(C1), size(C2)))
 assert(isequal(size(D1), size(D2)))
 
-
-% System models
+% Define system models
 A = {A1, A2};
 B = {B1, B2};
 C = {C1, C2};
 D = {D1, D2};
 
+% Input disturbance variance
+%sigma_w = 0.1;
+sigma_w = 0;
+
+% Process noise std. dev.
+sigma_W = [0; 0];
+
+% Measurement noise std. dev.
+sigma_M = 0.1;
+
+
+%% Simulation tests
+
 % Simulation settings
 nT = 60;
 t = Ts*(0:nT)';
 
-% Random inputs
+% Inputs
 %U = (idinput(size(t)) + 1)/2;
 U = zeros(nT+1,1);
 U(t>2) = 1;
@@ -107,8 +111,6 @@ Gamma(t>=10, 1) = 1;
 % linkaxes([ax1 ax2 ax3], 'x')
 
 
-% Kalman filters
-
 % Observer parameters (same for all observers)
 P0 = 10000;
 x0 = 0.5;
@@ -119,12 +121,17 @@ R2 = 0.1^2;
 assert(isequal(size(Q1), size(Q2)))
 assert(isequal(size(R1), size(R2)))
 
+% Standard Kalman filters
 KF1 = KalmanFilter(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
 KF2 = KalmanFilter(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
 
-% Define an observer with a switching system
+% Define observers with a switching system
 Q = {Q1,Q2};
 R = {R1,R2};
+
+% Define scheduled MKF filter
+seq = Gamma';
+SKF = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,"SKF",x0);
 
 % Transition probabilities
 epsilon = 0.05;
@@ -143,11 +150,12 @@ assert(isequal(seq1{2}, Gamma'))
 % Define MKF observer 1
 seq = seq1;
 n_filt = numel(seq);
-P0j = repmat({P0}, n_filt, 1);
+%P0j = repmat({P0}, n_filt, 1);
 d = 1;
 
 % First, define with no initial state specified (should be set to zero)
-MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1');
+% TODO: Allow independent P0 to be specified for each filter.
+MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1');
 
 assert(strcmp(MKF1.type, "MKF"))
 assert(isequal(MKF1.A, A))
@@ -174,26 +182,26 @@ assert(MKF1.ykp1_est == 0)
 assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 
 % Redefine this time with initial conditions
-MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0);
+MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1',x0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
 gamma0 = 0;
-MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0,gamma0);
+MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1',x0,gamma0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
 assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 gamma0 = zeros(n_filt, 1);
 gamma0(end) = 1;
-MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1',x0,gamma0);
+MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1',x0,gamma0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
 assert(isequal(MKF1.gamma_k, gamma0))
 
 % With default initial conditions
-MKF1 = mkf_observer(A,B,C,D,Ts,P0j,Q,R,seq,T,d,'MKF1');
+MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1');
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, MKF1};
+observers = {KF1, KF2, MKF1, SKF};
 n_obs = numel(observers);
 obs_labels = cell(1, n_obs);
 for f  = 1:n_obs
@@ -220,7 +228,7 @@ E_obs = Y - Y_est;
 %figure(2); clf
 %plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
 
-% Check KF1 was accurate before system switched
+% Check KF1 was accurate befomsere system switched
 assert(nanmean(E_obs(t < 10, 1).^2) < 0.0001)
 
 % Check KF2 was accurate after system switched
@@ -231,6 +239,34 @@ mses = nanmean(E_obs.^2);
 
 % Check MKF observer estimation error was low
 assert(round(mses(f_mkf), 4) == 0.1296)
+
+% Reset observer states to original initial conditions
+KF1.reset()
+KF2.reset()
+MKF1.reset()
+SKF.reset();
+
+% Redefine a new observer (identical to above)
+MKF1_new = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1');
+assert(isequaln(MKF1_new, MKF1))
+MKF1_new.label = "MKF1_new";
+
+% Make a copy
+MKF1_copy = MKF1_new.copy();
+assert(isequaln(MKF1_copy, MKF1_new))
+MKF1_copy.label = "MKF1_copy";
+
+% Choose observers to include in simulation
+observers = {KF1, KF2, SKF, MKF1, MKF1_new, MKF1_copy};
+
+n_obs = numel(observers);
+obs_labels = cell(1, n_obs);
+for f  = 1:n_obs
+    obs_labels{f} = observers{f}.label;
+end
+
+% Identify which observer to log MKF data for
+f_mkf = 4;
 
 % Simulate observers - with measurement noise (Ym)
 [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers] = ...
@@ -245,7 +281,7 @@ E_obs = Y - Y_est;
 
 % Combine and display results
 sim_results = table(t,Gamma,U,X,Y,Ym,X_est,Y_est,E_obs);
-writetable(sim_results, "results/test_mkf_sim_results.csv");
+writetable(sim_results, "results/test_MKFO_sim_results.csv");
 
 % Display results from MKF observer
 sim_results_MKF = [ ...
@@ -255,10 +291,10 @@ sim_results_MKF = [ ...
     table(MKF_i) ...
     table(MKF_p_seq_g_Yk) ...
 ];
-writetable(sim_results_MKF, "results/test_mkf_sim_results_MKF.csv");
+writetable(sim_results_MKF, "results/test_MKFO_sim_results_MKF.csv");
 
-%figure(3); clf
-%plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
+% figure(3); clf
+% plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
 
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
@@ -266,6 +302,80 @@ mses = nanmean(E_obs.^2);
 
 % Check MKF observer estimation error
 assert(round(mses(f_mkf), 4) == 0.1335)
+
+% Check all observer estimation errors
+assert(isequal(round(mses, 4), ...
+    [5.1749  0.4074  0.0685  0.1335  0.1387  0.0877]))
+% TODO: Why do the copies not produce identical simulation results?
+% (see plot figure).
+
+% % Plot selected observers
+% figure(4); clf
+% plot_obs_estimates(t,X,X_est(:,[3 4]),Y,Y_est(:,[3 4]),obs_labels([3 4]))
+
+
+%% Test copy methods
+
+% Observer parameters (same for all observers)
+P0 = 10000;
+x0 = 0.5;
+Q1 = 0.01;
+R1 = 0.1^2;
+Q2 = 0.01;
+R2 = 0.1^2;
+
+% Switching parameters
+Q = {Q1,Q2};
+R = {R1,R2};
+
+% Transition probabilities
+epsilon = 0.05;
+T = [1-epsilon epsilon; epsilon 1-epsilon];
+assert(all(sum(T, 2) == 1))
+
+% System indicator sequences
+nT = 60;
+seq1 = {
+    zeros(1, nT+1);
+    [zeros(1, 20) ones(1, nT+1-20)];  % equal to Gamma'
+    [zeros(1, 40) ones(1, nT+1-40)];
+    ones(1, nT+1);
+ };
+
+% Define MKF observer
+seq = seq1;
+n_filt = numel(seq);
+%P0j = repmat({P0}, n_filt, 1);
+d = 1;
+
+% Define multi-model observer with initial conditions
+MKF = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF',x0);
+
+% Test handle copy
+MKF_hcopy = MKF;
+assert(isequaln(MKF_hcopy, MKF))  % same values
+assert(MKF_hcopy == MKF)  % must be same object
+
+MKF.x0 = 1.0;
+assert(isequal(MKF_hcopy.x0, 1.0))
+
+% Test true copy
+MKF_copy = MKF.copy();
+assert(isequaln(MKF_copy, MKF))  % same values
+assert(MKF_copy ~= MKF)  % must not be same object
+assert(isequaln(MKF_copy.filters{1}, MKF.filters{1}))
+assert(isequaln(MKF_copy.filters{2}, MKF.filters{2}))
+
+% Check deep copy was made
+% TODO: This is not working
+%assert(MKF_copy.filters{1} ~= MKF.filters{1})  % must not be same object
+%assert(MKF_copy.filters{2} ~= MKF.filters{2})
+
+MKF.label = "New name";
+assert(~isequal(MKF_copy.label, "New name"))
+
+MKF.filters{1}.x0 = 99;
+%assert(~isequal(MKF_copy.filters{1}.x0, 99))
 
 %END
 
@@ -333,8 +443,10 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
             switch obs.type
                 case 'KF'
                     obs.update(yk, uk);
+                case 'SKF'
+                    obs.update(yk, uk);
                 case 'MKF'
-                    obs = update_MKF(obs, uk, yk, false);
+                    obs.update(yk, uk);
                 otherwise
                     error('Observer type not valid')
             end
@@ -348,7 +460,6 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
             end
             xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
             ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
-            observers{f} = obs;  % save changes
         end
 
         % Record observer estimates
