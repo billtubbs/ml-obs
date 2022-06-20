@@ -1,19 +1,20 @@
 function S = combinations(n, m)
 % S = combinations(n, m) returns a cell array of
-% vectors of width n representing all combinations of
-% sequences with m values set to 1 and all other
-% values 0.
+% integer vectors of width n representing all
+% combinations of sequences with m values set to
+% 1 and all other values 0.
 %
-% Example
-%
+% Example:
 % >> S = combinations(3, 2);
 % >> cell2mat(S)
 % 
 % ans =
 % 
-%      1     1     0
-%      1     0     1
-%      0     1     1
+%   3×3 int16 matrix
+% 
+%    1   1   0
+%    1   0   1
+%    0   1   1
 %      
 
     C = int16(nchoosek(1:n, m));

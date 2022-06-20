@@ -53,8 +53,8 @@ classdef MKFObserverSP < MKFObserver
     methods
         function obj = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
             sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
-        % obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-        %     Q0,R,n_filt,f,n_min,label,x0)
+        % obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        %     sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
         %
         % Creates a struct for simulating a multi-model observer
         % using the adaptive forgetting through multiple models 
@@ -88,9 +88,11 @@ classdef MKFObserverSP < MKFObserver
         %
 
             % TODO: Expose spacing parameter d as an argument
-
             % Number of states
             n = check_dimensions(A, B, C, D);
+
+            % Check size of initial process covariance matrix
+            assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
             % Detection interval length in number of sample periods.
             d = 1;  % TODO: Make this a specified parameter.
@@ -101,11 +103,19 @@ classdef MKFObserverSP < MKFObserver
             end
 
             % Observer model without disturbance noise input
+            nw = sum(~u_meas);  % Number of input disturbances
+            assert(nw > 0, "ValueError: u_meas");
             Bu = B(:, u_meas);
             Bw = B(:, ~u_meas);
             Du = D(:, u_meas);
-            nw = sum(~u_meas);  % Number of input disturbances
-            assert(nw > 0, "ValueError: u_meas");
+
+            % Probability of at least one shock in a detection interval
+            % (Detection interval is d sample periods in length).
+            if d == 1
+                alpha = epsilon;
+            else
+                alpha = (1 - (1 - epsilon).^d);
+            end
 
             % Modified variances of shock signal over detection
             % interval (see (16) on p.264 of Robertson et al. 1998)
@@ -113,28 +123,10 @@ classdef MKFObserverSP < MKFObserver
 
             % Construct process noise covariance matrices for each 
             % possible input disturbance (returns a cell array)
-            Q = construct_Q(Q0, Bw, var_wp, u_meas);
+            [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw);
 
-            % Number of switching models
+            % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
-
-            % Probabilities of no-shock, shock
-            p_gamma = [1-epsilon epsilon]';
-
-            if nw > 1
-
-                % Possible combinations of each disturbance input:
-                % Assume only one may occur in the same sample period
-                Z = [zeros(1, nw); eye(nw)];
-
-                % Modified indicator value probabilities
-                p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-
-                % Normalize so that sum(Pr(gamma(k))) = 1
-                % TODO: Is this the right thing to do for sub-optimal approach?
-                p_gamma = p_gamma ./ sum(p_gamma);
-
-            end
 
             % Transition probability matrix
             % Note that for RODD disturbances Pr(gamma(k)) is
@@ -199,7 +191,6 @@ classdef MKFObserverSP < MKFObserver
             obj.p_gamma = p_gamma;
             obj.type = "MKF_SP";
         end
-
         function update(obj, yk, uk)
         % obs.update(yk, uk)
         % updates the multi-model Kalman filter and calculates the
@@ -298,67 +289,4 @@ classdef MKFObserverSP < MKFObserver
 
         end
     end
-end
-
-
-function Q = construct_Q(Q0, Bw, var_wp, u_meas)
-% Q = construct_Q(Q0, B, var_wp, u_meas) 
-% returns a cell array of different process noise 
-% covariance matrices Qj for each filter model j = 
-% 1:nj for the tracking of infrequently-occurring
-% input disturbances.
-%
-% Arguments:
-%   Q0 : nxn matrix containing variances for measured
-%        states on the diagonal (all other elements 
-%        are ignored).
-%   Bw : system input matrix for the random shock signals
-%       (n x nw).
-%   var_wp : variances of shock disturbances over 
-%       detection interval.
-%   u_meas : binary vector indicating which inputs are
-%        measured.
-%
-
-    % Number of states
-    n = size(Bw, 1);
-
-    % Check size of initial process covariance matrix
-    assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
-
-    % Number of input disturbances
-    nw = sum(~u_meas);
-    % Check size of disturbance input matrix
-    assert(isequal(size(Bw), [n nw]))
-
-    % TODO: This only works for disturbances with 2
-    % states (i.e. shock/no shock). Could be extended
-    % to other cases (e.g. no shock, small shock, big
-    % shock)
-    assert(size(var_wp, 2) == 2)
-
-    % Number of switching models required. Assume only 
-    % one shock per detection period is possible.
-    nj = 1 + nw;
-
-    % Array of variances of each shock combination
-    var_x = repmat(diag(Q0), 1, nj);
-
-    % Add noise variances for model 1 assuming no shocks
-    % occurred
-    var_x(:, 1) = var_x(:, 1) + Bw * var_wp(:, 1);
-
-    % Add variances for models 2 to nj to reflect one
-    % of each shocks occuring.
-    for i = 1:nw
-        var_i = var_wp(:, 1);  % no shock
-        var_i(i) = var_wp(i, 2);  % shock
-        var_x(:, i+1) = var_x(:, i+1) + Bw * var_i;
-    end
-
-    Q = cell(1, nj);
-    for j = 1:nj
-        Q{j} = diag(var_x(:, j));
-    end
-
 end

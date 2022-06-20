@@ -34,7 +34,7 @@ classdef MKFObserverSF < MKFObserver
     methods
         function obj = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
-        % obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        % obs = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
         %     sigma_wp,Q0,R,f,m,d,label,x0)
         %
         % Arguments:
@@ -64,6 +64,9 @@ classdef MKFObserverSF < MKFObserver
             % Number of states
             n = check_dimensions(A, B, C, D);
 
+            % Check size of initial process covariance matrix
+            assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
+
             % Initial state estimates
             if nargin < 16
                 x0 = zeros(n,1);
@@ -73,93 +76,32 @@ classdef MKFObserverSF < MKFObserver
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
             % Observer model without disturbance noise input
+            nw = sum(~u_meas);  % Number of input disturbances
+            assert(nw > 0, "ValueError: u_meas");
             Bu = B(:, u_meas);
             Bw = B(:, ~u_meas);
             Du = D(:, u_meas);
-            nw = int16(sum(~u_meas));  % Number of input disturbances
-            assert(nw > 0, "ValueError: u_meas");
 
-            % Number of filters needed
-            % TODO: arg f here is not actually the fusion horizon 
-            % (which is f*d).  Should maybe use f/d her and assert no
-            % remainder.
-            n_filt = n_filters(m, f, nw);
-
-            % Generate indicator sequences
-            seq = combinations_lte(f*nw, m);
-
-            % Probability of shock over a detection interval
+            % Probability of at least one shock in a detection interval
             % (Detection interval is d sample periods in length).
-            alpha = (1 - (1 - epsilon).^d);
-
-            % Probabilities of no-shock / shock over detection interval
-            % (this is named delta in Robertson et al. 1998)
-            p_gamma = [1-alpha'; alpha'];
-
-            if nw == 1
-
-                % Number of models (with different Q matrices)
-                nj = 2;
-
-                % Generate required Q matrices.
-                Q = cell(1, nj);
-                for i = 1:nj
-                    var_x = diag(Q0);
-                    % Modified variances of shock signal over detection
-                    % interval (see (16) on p.264 of Robertson et al. 1998)
-                    var_x = var_x + Bw * sigma_wp(:, i).^2' ./ d;
-                    Q{i} = diag(var_x);
-                end
-
-            elseif nw > 1
-
-                % Note: In the case of more than one input disturbance
-                % there may be multiple combinations of disturbances
-                % occuring simultaneously. To simulate these, construct
-                % a different Q matrix for each possible combination.
-
-                % Reshape sequences into matrices with a row for each
-                % input disturbance sequence
-                seq = cellfun(@(x) reshape(x, nw, []), seq, ...
-                    'UniformOutput', false);
-
-                % Find all unique combinations of simultaneous shocks
-                [Z,~,ic] = unique(cell2mat(seq')', 'sorted', 'rows');
-
-                % Number of Q matrices needed
-                nj = size(Z, 1);
-
-                % Rearrange as one sequence for each filter and convert
-                % back to cell array
-                seq = reshape((ic - 1)', [], n_filt)'; 
-                seq = mat2cell(seq, ones(n_filt, 1), f);
-
-                % Generate required Q matrices
-                Q = cell(1, nj);
-                for i = 1:nj
-                    ind = Z(i, :) + 1;
-                    var_x = diag(Q0);
-                    % Modified variances of shock signal over detection
-                    % interval (see (16) on p.264 of Robertson et al. 1998)
-                    idx = sub2ind(size(sigma_wp), 1:nw, ind);
-                    var_x = var_x + Bw * sigma_wp(idx).^2' ./ d;
-                    %var_x(~u_meas) = var_x(~u_meas) .* sigma_wp(idx).^2' ./ d;
-                    Q{i} = diag(var_x);
-                end
-
-                % Modify indicator value probabilities for
-                % combinations of shocks
-                p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-
-                % Normalize so that sum(Pr(gamma(k))) = 1
-                % TODO: Is this the right thing to do for sub-optimal approach?
-                p_gamma = p_gamma ./ sum(p_gamma);
-
+            if d == 1
+                alpha = epsilon;
             else
-
-                error("Value error: no unmeasured inputs")
-
+                alpha = (1 - (1 - epsilon).^d);
             end
+
+            % Modified variances of shock signal over detection
+            % interval (see (16) on p.264 of Robertson et al. 1998)
+            var_wp = sigma_wp.^2 ./ d;
+
+            % Construct process noise covariance matrices and switching
+            % sequences over the fusion horizon, and the prior 
+            % probabilities of each sequence.
+            [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
+                var_wp, f, m, nw);
+
+            % Number of models (each with a different hypothesis sequence)
+            nj = numel(Q);
 
             % Transition probability matrix
             % Note that for RODD disturbances Pr(gamma(k)) is
@@ -199,14 +141,5 @@ classdef MKFObserverSF < MKFObserver
             obj.type = "MKF_SF";
 
         end
-        % TODO: Is MKFObserver reset method okay?
-%         function reset(obj)
-% 
-%             disp("Not yet implemented")
-%             reset@MKFObserver(obj)
-% 
-%         end
-
     end
-
 end
