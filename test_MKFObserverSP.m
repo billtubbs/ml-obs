@@ -7,7 +7,7 @@ seed = 0;
 rng(seed)
 
 
-%% Test initialization with rodin_step system
+%% Test initialization with SISO system
 
 % Load system and disturbance model from file
 sys_rodin_step
@@ -950,7 +950,7 @@ assert(isequal(round(obs.ykp1_est, 4), 0.7367))
 assert(isequal(round(obs.ykp1_est - yk, 4), 0.0797))  % Same as old version (0.0797)
 
 
-%% Run full simulation
+%% Run full simulation - SISO system
 
 clear all
 plot_dir = 'plots';
@@ -1092,7 +1092,7 @@ for i = 1:n_obs
     % Compute mean-squared error
     Y_est = sim_results.Y_est;
     MSE(obs.label) = mean((Y_est - Y).^2);
-    
+
     % Save updated observer
     observers{i} = obs;
 
@@ -1286,28 +1286,6 @@ sys_rodin_step_2x2sym
 % Load observers from file
 obs_rodin_step_2x2
 
-% % Multiple model observer with sequence pruning 1
-% label = "MKF_SP1";
-% P0 = 1000*eye(n);
-% Q0 = diag([0.01 0.01 0 0]);
-% R = diag(sigma_M.^2);
-% f = 10;  % sequence history length
-% n_filt = 15;  % number of filters
-% n_min = 5;  % minimum life of cloned filters
-% MKF_SP21 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,n_filt,f,n_min,label);
-% 
-% % Multiple model observer with sequence pruning 2
-% label = "MKF_SP2";
-% P0 = 1000*eye(n);
-% Q0 = diag([0.01 0.01 0 0]);
-% R = diag(sigma_M.^2);
-% f = 10;  % sequence history length
-% n_filt = 30;  % number of filters
-% n_min = 10;  % minimum life of cloned filters
-% MKF_SP22 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,n_filt,f,n_min,label);
-
 % Check observer initialization
 assert(isequal(MKF_SP1.epsilon, epsilon))
 assert(isequal(MKF_SP1.sigma_wp, sigma_wp))
@@ -1417,39 +1395,6 @@ t = sim_data(:, 1);
 U_m = sim_data(:, 2:3);
 Wp = sim_data(:, 4:5);
 Y_m = sim_data(:, 6:7);
-
-% Define custom MKF test observers
-
-% Devise a custom multi-model filter with a shock indicator 
-% sequence that perfectly reflects the shock occurence in
-% this test simulation (t = t_shock)
-% Multiple model filter 1
-A2 = repmat({A}, 1, 2);
-Bu2 = repmat({Bu}, 1, 2);
-C2 = repmat({C}, 1, 2);
-Du2 = repmat({Du}, 1, 2);
-P0 = 1000*eye(n);
-Q0 = diag([q1 q1 0 0]);
-%P0_init = repmat({P0}, 1, n);
-Q2 = {diag([Q0(1,1) Q0(2,2) sigma_wp(:,1)'.^2]), ...
-      diag([Q0(1,1) Q0(2,2) sigma_wp(:,2)'.^2])};
-R2 = {diag(sigma_M.^2), diag(sigma_M.^2)};
-seq = {zeros(1, nT+1); zeros(1, nT+1)};
-seq{2}(t == 10) = 1;
-p_gamma = [1-epsilon epsilon]';
-T = repmat(p_gamma', 2, 1);
-d = 1;
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF3');
-
-% Define scheduled Kalman filter
-% Note: in the case of more than one random input variable, all
-% possible combinations of the switching systems need to be 
-% accounted for.
-% Here, we account for 3 possible combinations:
-% combs = [0 0; 1 0; 0 1];
-% (This is the same as the MKF filters for the RODD).
-% seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Set marker values on each sequence - for testing only
 % these values at the end of the sequences are not used
@@ -1988,25 +1933,29 @@ Du2 = repmat({Du}, 1, 3);
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 1 1]);
 %P0_init = repmat({P0}, 1, 3);
-Q2 = {diag([Q0(1,1) Q0(2,2) sigma_wp(1,1)^2 sigma_wp(2,1)^2]), ...
-      diag([Q0(1,1) Q0(2,2) sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
-      diag([Q0(1,1) Q0(2,2) sigma_wp(1,1)^2 sigma_wp(2,2)^2])};
+Q2 = {diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]), ...
+      diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
+      diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2])};
 R2 = {diag(sigma_M.^2), diag(sigma_M.^2), diag(sigma_M.^2)};
-seq = {zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1)};
-seq{2}(t == t_shock(1)) = 1;
-seq{3}(t == t_shock(2)) = 2;
+seq = {zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1)};
+seq{2}(t == t_shock(1)) = 1;  % shock 1
+seq{3}(t == t_shock(2)) = 2;  % shock 2
+seq{4}(t == t_shock(1)) = 1;  % both
+seq{4}(t == t_shock(2)) = 2;
 p_gamma = [1-epsilon epsilon]';
-Z = [0 0; 0 1; 1 0];  % combinations
+Z = [0 0; 1 0; 0 1];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 3, 1);
 d = 1;
 MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF3');
+assert(MKF3.n_filt == 4)
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == t_shock(1)) = 1;
 seq{1}(t == t_shock(2)) = 2;
 MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF4');
+assert(MKF4.n_filt == 1)
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -2019,7 +1968,7 @@ MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF4');
 SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
-observers = {KF3, MKF_SP1, MKF_SP2, SKF};
+observers = {KF3, MKF_SP1, MKF_SP2, MKF3, MKF4, SKF};
 
 % Simulate system
 X = zeros(nT+1,n);
@@ -2107,10 +2056,10 @@ end
 
 % Results on Nov 8 after reverting back the Bayesian updating
 MSE_test_values = containers.Map(...
- {'KF3',               'MKF_SP1',              'MKF_SP2',              ...
-  'SKF'}, ...
+ {'KF3',               'MKF_SP1',           'MKF_SP2',           ...
+  'MKF3',              'MKF4',              'SKF'             }, ...
  {[0.000676 0.000936], [0.000739 0.001498], [0.000759 0.001521], ...
-  [0.000123 0.000132]} ...
+  [0.000796 0.000830], [0.000123 0.000132], [0.000123 0.000132]} ...
 );
 
 for label = MSE.keys

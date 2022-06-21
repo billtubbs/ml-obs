@@ -5,6 +5,9 @@ clear all
 seed = 0;
 rng(seed)
 
+
+%% Simulation test - SISO system
+
 % Define system
 
 % Sample period
@@ -51,9 +54,6 @@ sigma_W = [0; 0];
 
 % Measurement noise std. dev.
 sigma_M = 0.1;
-
-
-%% Simulation tests
 
 % Simulation settings
 nT = 60;
@@ -314,7 +314,239 @@ assert(isequal(round(mses, 4), ...
 % plot_obs_estimates(t,X,X_est(:,[3 4]),Y,Y_est(:,[3 4]),obs_labels([3 4]))
 
 
+%% Simulation test on 2x2 system
+
+% Sample time
+Ts = 1;
+
+% NOTE: this is a previous version of the system with lower
+% coupling (-0.2) and epsilon = [0.01; 0.01].
+
+% Discrete time state space model
+A = [ 0.8890       0     1 -0.2;
+           0  0.8890  -0.2    1;
+           0       0     1    0;
+           0       0     0    1];
+B = [    1 -0.2  0  0;
+      -0.2    1  0  0;
+         0    0  1  0;
+         0    0  0  1];
+C = [ 0.1110 0         0  0;
+             0  0.1110 0  0];
+D = zeros(2, 4);
+Gpss = ss(A,B,C,D,Ts);
+
+% Dimensions
+n = size(A, 1);
+nu = size(B, 2);
+ny = size(C, 1);
+
+% Designate measured input and output signals
+u_meas = [true; true; false; false];
+y_meas = [true; true];
+
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+
+% Disturbance input (used by SKF observer)
+Bw = B(:, ~u_meas);
+nw = sum(~u_meas);
+
+% RODD random variable parameters
+epsilon = [0.01; 0.01];
+sigma_M = [0.1; 0.1];
+sigma_wp = [0.01 1; 0.01 1];
+
+% Simulation settings
+nT = 200;
+t = Ts*(0:nT)';
+
+% Choose time and amplitude of input disturbance
+t_shock = [5 10];
+du0 = [1; 1];
+% When you make the shock larger the MKF observers
+% do better
+%du0 = [2; 2];
+
+% Measured input
+%U = (idinput(size(t)) + 1)/2;
+U = zeros(nT+1, 2);
+U(t >= 1, 1) = -1;
+
+% Disturbance input
+% This is used by the SKF observer
+alpha = zeros(nT+1, 2);
+alpha(t == t_shock(1), 1) = 1;
+alpha(t == t_shock(2), 2) = 1;
+Wp = du0' .* alpha;
+
+U_sim = [U Wp];
+
+% Custom MKF test observers
+% Devise a custom multi-model filter with a shock indicator 
+% sequence that perfectly reflects the shock occurence in
+% this test simulation (t = t_shock)
+% Multiple model filter 1
+A2 = repmat({A}, 1, 3);
+Bu2 = repmat({Bu}, 1, 3);
+C2 = repmat({C}, 1, 3);
+Du2 = repmat({Du}, 1, 3);
+P0 = 1000*eye(n);
+Q0 = diag([0.01 0.01 1 1]);
+%P0_init = repmat({P0}, 1, 3);
+Q2 = {diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]), ...
+      diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
+      diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2])};
+R2 = {diag(sigma_M.^2), diag(sigma_M.^2), diag(sigma_M.^2)};
+seq = {zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1)};
+seq{2}(t == t_shock(1)) = 1;  % shock 1
+seq{3}(t == t_shock(2)) = 2;  % shock 2
+seq{4}(t == t_shock(1)) = 1;  % both
+seq{4}(t == t_shock(2)) = 2;
+p_gamma = [1-epsilon epsilon]';
+Z = [0 0; 1 0; 0 1];  % combinations
+p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
+p_gamma = p_gamma ./ sum(p_gamma);  % normalized
+T = repmat(p_gamma', 3, 1);
+d = 1;
+MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF3');
+assert(MKF3.n_filt == 4)
+
+seq = {zeros(1, nT+1)};
+seq{1}(t == t_shock(1)) = 1;
+seq{1}(t == t_shock(2)) = 2;
+MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF4');
+assert(MKF4.n_filt == 1)
+
+% Define scheduled Kalman filter
+% Note: in the case of more than one random input variable, all
+% possible combinations of the switching systems need to be 
+% accounted for.
+% Here, we account for 3 possible combinations:
+% combs = [0 0; 1 0; 0 1];
+% (This is the same as the MKF filters for the RODD).
+% seq = sum(alpha .* 2.^(1:-1:0), 2)';
+SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
+
+% Choose observers to test
+observers = {MKF3, MKF4, SKF};
+n_obs = numel(observers);
+
+% Simulate system
+X = zeros(nT+1,n);
+Y = zeros(nT+1,ny);
+xk = zeros(n,1);
+
+for i = 1:nT+1
+
+    % Inputs
+    uk = U_sim(i,:)';
+
+    % Compute y(k)
+    yk = C*xk + D*uk;
+
+    % Store results
+    X(i, :) = xk';
+    Y(i, :) = yk';
+    
+    % Compute x(k+1)
+    xk = A*xk + B*uk;
+
+end
+
+% Check simulation output is correct
+[Y2, t, X2] = lsim(Gpss, U_sim, t);
+assert(isequal(X, X2))
+assert(isequal(Y, Y2))
+
+% Choose measurement noise for plant
+sigma_MP = [0; 0];  % Set to zero for testing
+Y_m = Y + sigma_MP'.*randn(nT+1, ny);
+
+% Simulate observers
+f_mkf = 1;
+
+% Simulate observers
+[Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers] = ...
+    run_simulation_obs(Y_m,U,observers,f_mkf);
+
+% Compute mean-squared errors
+MSE = containers.Map();
+for i = 1:n_obs
+    MSE(observers{i}.label) = mean((Ykp1_est(:, i*ny-1:i*ny) - Y).^2);
+end
+%fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
+
+% % Display results of last simulation
+% 
+% X_est = sim_results.X_est;
+% E_obs = sim_results.E_obs;
+% K_obs = sim_results.K_obs;
+% trP_obs = sim_results.trP_obs;
+% 
+% table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
+% 
+% % Display gains and trace of covariance matrix
+% table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
+%     'VariableNames', {'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
+% 
+% % Show table of mean-squared errors
+% table(MSE.keys', cell2mat(MSE.values'), ...
+%     'VariableNames', {'Observer', 'MSE'})
+
+% Results on Nov 8 after reverting back the Bayesian updating
+MSE_test_values = containers.Map(...
+ {'MKF3',              'MKF4',              'SKF'             }, ...
+ {[0.000707 0.000348], [0.000234 0.000083], [0.000234 0.000083]} ...
+);
+
+for label = MSE.keys
+    %fprintf("%s: %f, %f (%f, %f)\n", label{1}, MSE(label{1}), MSE_test_values(label{1}))
+    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
+end
+
+
 %% Test copy methods
+
+% Define system
+
+% Sample period
+Ts = 0.5;
+
+% Discrete time state space models
+% Model #1
+A1 = 0.7;
+B1 = 1;
+C1 = 0.3;
+D1 = 0;
+Gpss1 = ss(A1,B1,C1,D1,Ts);
+
+% Model #2
+A2 = 0.9;
+B2 = 1;
+C2 = -0.3;  % -ve gain!
+D2 = 0;
+Gpss2 = ss(A2,B2,C2,D2,Ts);
+
+% Dimensions
+n = size(A1, 1);
+nu = size(B1, 2);
+ny = size(C1, 1);
+
+% Check dimensions
+assert(isequal(size(A1), size(A2)))
+assert(isequal(size(B1), size(B2)))
+assert(isequal(size(C1), size(C2)))
+assert(isequal(size(D1), size(D2)))
+
+% Define system models
+A = {A1, A2};
+B = {B1, B2};
+C = {C1, C2};
+D = {D1, D2};
 
 % Observer parameters (same for all observers)
 P0 = 10000;
@@ -435,21 +667,12 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
     for i = 1:nT+1
 
         yk = Ym(i, :)';
-        uk = U(i, :);
+        uk = U(i, :)';
 
         % Update observers
         for f = 1:n_obs
             obs = observers{f};
-            switch obs.type
-                case 'KF'
-                    obs.update(yk, uk);
-                case 'SKF'
-                    obs.update(yk, uk);
-                case 'MKF'
-                    obs.update(yk, uk);
-                otherwise
-                    error('Observer type not valid')
-            end
+            obs.update(yk, uk);
             if f == f_mkf
                 MKF_i(i, :) = obs.i;
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
