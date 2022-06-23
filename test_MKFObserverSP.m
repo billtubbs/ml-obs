@@ -53,8 +53,9 @@ assert(numel(MKF_SP1.filters) == MKF_SP1.n_filt)
 assert(isequal(size(MKF_SP1.seq), [MKF_SP1.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SP1.seq)), [MKF_SP1.n_filt MKF_SP1.f]))
 assert(MKF_SP1.f == size(MKF_SP1.seq{1}, 2))
-assert(isequal(size(MKF_SP1.xkp1_est), [n 1]))
-assert(isequal(size(MKF_SP1.ykp1_est), [ny 1]))
+assert(isequal(MKF_SP1.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_SP1.P, 1000*eye(2)))
+assert(isequal(MKF_SP1.ykp1_est, zeros(ny, 1)))
 assert(isequal(MKF_SP1.p_gamma, [1-MKF_SP1.epsilon; MKF_SP1.epsilon]))
 
 % Check initialization of filters
@@ -94,8 +95,9 @@ assert(numel(MKF_SP2.filters) == MKF_SP2.n_filt)
 assert(isequal(size(MKF_SP2.seq), [MKF_SP2.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SP2.seq)), [MKF_SP2.n_filt MKF_SP2.f]))
 assert(MKF_SP2.f == size(MKF_SP2.seq{1}, 2))
-assert(isequal(size(MKF_SP2.xkp1_est), [n 1]))
-assert(isequal(size(MKF_SP2.ykp1_est), [ny 1]))
+assert(isequal(MKF_SP2.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_SP2.P, 1000*eye(2)))
+assert(isequal(MKF_SP2.ykp1_est, zeros(ny, 1)))
 assert(isequal(MKF_SP2.p_gamma, [1-MKF_SP2.epsilon; MKF_SP2.epsilon]))
 
 % Check initialization of filters
@@ -1074,7 +1076,7 @@ MSE = containers.Map();
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs,alpha);
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -1314,8 +1316,9 @@ assert(numel(MKF_SP1.filters) == MKF_SP1.n_filt)
 assert(isequal(size(MKF_SP1.seq), [MKF_SP1.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SP1.seq)), [MKF_SP1.n_filt MKF_SP1.f]))
 assert(MKF_SP1.f == size(MKF_SP1.seq{1}, 2))
-assert(isequal(size(MKF_SP1.xkp1_est), [n 1]))
-assert(isequal(size(MKF_SP1.ykp1_est), [ny 1]))
+assert(isequal(MKF_SP1.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_SP1.P, 1000*eye(4)))
+assert(isequal(MKF_SP1.ykp1_est, zeros(ny, 1)))
 assert(isequal(round(MKF_SP1.p_gamma, 6), [0.990050; 0.004975; 0.004975]))
 
 % Check observer initialization
@@ -1346,8 +1349,9 @@ assert(numel(MKF_SP2.filters) == MKF_SP2.n_filt)
 assert(isequal(size(MKF_SP2.seq), [MKF_SP2.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SP2.seq)), [MKF_SP2.n_filt MKF_SP2.f]))
 assert(MKF_SP2.f == size(MKF_SP2.seq{1}, 2))
-assert(isequal(size(MKF_SP2.xkp1_est), [n 1]))
-assert(isequal(size(MKF_SP2.ykp1_est), [ny 1]))
+assert(isequal(MKF_SP2.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_SP2.P, 1000*eye(4)))
+assert(isequal(MKF_SP2.ykp1_est, zeros(ny, 1)))
 assert(isequal(round(MKF_SP2.p_gamma, 6), [0.990050; 0.004975; 0.004975]))
 
 % Check optional definition with an initial state estimate works
@@ -1931,7 +1935,6 @@ Bu2 = repmat({Bu}, 1, 3);
 C2 = repmat({C}, 1, 3);
 Du2 = repmat({Du}, 1, 3);
 P0 = 1000*eye(n);
-Q0 = diag([0.01 0.01 1 1]);
 %P0_init = repmat({P0}, 1, 3);
 Q2 = {diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]), ...
       diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
@@ -2011,7 +2014,7 @@ MSE = containers.Map();
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs,alpha);
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -2068,112 +2071,6 @@ for label = MSE.keys
 end
 
 return
-
-
-function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
-    obs,alpha)
-
-    k = (0:nT)';
-    t = Ts*k;
-    X_est = nan(nT+1,n);
-    Y_est = nan(nT+1,ny);
-    E_obs = nan(nT+1,ny);
-
-    % Arrays to store observer variables
-    switch obs.type
-        case {'MKF', 'MKF_SF'}
-            n_filt = obs.n_filt;
-            MKF_p_seq_g_Yk = nan(nT+1, n_filt);
-        case {'MKF_SP', 'MKF_SP'}
-            n_filt = obs.n_filt;
-            MKF_p_seq_g_Yk = nan(nT+1, n_filt);
-            AFMM_f_main = nan(nT+1, numel(obs.f_main));
-            AFMM_f_hold = nan(nT+1, numel(obs.f_hold));
-        otherwise
-            n_filt = 1;
-    end
-    K_obs = cell(nT+1, n_filt);
-    trP_obs = cell(nT+1, n_filt);
-
-    % Start simulation at k = 0
-    for i = 1:nT+1
-
-        % For debugging:
-        %fprintf("t = %f\n", t(i));
-
-        % Process measurements
-        uk_m = U_m(i,:)';
-        yk_m = Y_m(i,:)';
-
-        % Record observer estimates and output errors
-        X_est(i, :) = obs.xkp1_est';
-        Y_est(i, :) = obs.ykp1_est';
-        E_obs(i, :) = yk_m' - obs.ykp1_est';
-
-        % Kalman update equations
-        % Update observer gains and covariance matrix
-        switch obs.type
-
-            case {'KF', 'SKF'}
-                obs.update(yk_m, uk_m);
-
-                % Record filter gain and covariance matrix
-                K_obs{i, 1} = obs.K';
-                trP_obs{i, 1} = trace(obs.P);
-
-            case {'MKF', 'MKF_SF'}
-                obs.update(yk_m, uk_m);
-
-                % Record filter gains and covariance matrices
-                for j=1:obs.n_filt
-                    K_obs{i, j} = obs.filters{j}.K';
-                    trP_obs{i, j} = trace(obs.filters{j}.P);
-                end
-
-                % Record filter conditional probabilities
-                MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-
-            case {'MKF_SP'}
-                obs.update(yk_m, uk_m);
-
-                % Record filter gains and covariance matrices
-                for j=1:obs.n_filt
-                    K_obs{i, j} = obs.filters{j}.K';
-                    trP_obs{i, j} = trace(obs.filters{j}.P);
-                end
-
-                % Record filter conditional probabilities
-                MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-
-                % Record filter arrangement
-                AFMM_f_main(i, :) = obs.f_main;
-                AFMM_f_hold(i, :) = obs.f_hold;
-
-            otherwise
-                error('Observer type not valid')
-
-        end
-
-    end
-
-    sim_results.t = t;
-    sim_results.k = k;
-    sim_results.X_est = X_est;
-    sim_results.Y_est = Y_est;
-    sim_results.E_obs = E_obs;
-    sim_results.K_obs = K_obs;
-    sim_results.trP_obs = trP_obs;
-    switch obs.type
-        case {'MKF', 'MKF_SF', 'MKF_SP'}
-            sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
-    end
-    switch obs.type
-        case 'MKF_SP'
-            sim_results.AFMM_f_main = AFMM_f_main;
-            sim_results.AFMM_f_hold = AFMM_f_hold;
-    end
-
-end
 
 
 % Functions for debugging and testing sequences

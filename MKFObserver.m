@@ -20,13 +20,13 @@ classdef MKFObserver < matlab.mixin.Copyable
         B cell
         C cell
         D cell
-        P0 double
         Q cell
         R cell
         seq cell
         gamma0 double {mustBeInteger, mustBeNonnegative}
         T double
         label (1, 1) string
+        P0 double
         x0 (:, 1) double
         i (1, 2) {mustBeInteger, mustBeNonnegative}
         i_next (1, 2) {mustBeInteger, mustBeNonnegative}
@@ -38,11 +38,13 @@ classdef MKFObserver < matlab.mixin.Copyable
         p_seq_g_Ykm1 double
         filters  cell
         xkp1_est (:, 1) double
+        P double
         ykp1_est (:, 1) double
         type (1, 1) string
     end
     methods
-        function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
+        function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label, ...
+                x0,gamma0)
         % obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
         %
         % Arguments:
@@ -80,13 +82,13 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.C = C;
             obj.D = D;
             obj.Ts = Ts;
-            obj.P0 = P0;
             obj.Q = Q;
             obj.R = R;
             obj.seq = seq;
             obj.T = T;
             obj.d = d;
             obj.label = label;
+            obj.P0 = P0;
             obj.x0 = x0;
 
             % Number of filters required
@@ -129,6 +131,7 @@ classdef MKFObserver < matlab.mixin.Copyable
         % Initialize all variables to initial values specified
         % when observer object was created.
         %
+
             % Switching variable at previous time instant
             obj.gamma_k = obj.gamma0;
 
@@ -167,11 +170,12 @@ classdef MKFObserver < matlab.mixin.Copyable
 
             % Initialize estimates
             obj.xkp1_est = obj.x0;
+            obj.P = obj.P0;
             obj.ykp1_est = obj.C{1} * obj.xkp1_est;
 
         end
-        function update(obj, yk, uk, show_plots)
-        % obj.update(yk, uk, show_plots)
+        function update(obj, yk, uk)
+        % obj.update(yk, uk)
         % updates the multi-model Kalman filter and calculates the
         % estimates of the states and output at the next sample
         % time.
@@ -184,11 +188,6 @@ classdef MKFObserver < matlab.mixin.Copyable
         %   yk : vector (ny, 1) of system output measurements
         %       at the current sample time.
         %
-
-            % Debugging option
-            if nargin < 4
-                show_plots = false;
-            end
 
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
@@ -208,6 +207,7 @@ classdef MKFObserver < matlab.mixin.Copyable
 
             % Arrays to collect estimates from each filter
             Xkf_est = zeros(obj.n_filt, obj.n);
+            Pkf_est = zeros(obj.n_filt, obj.n.^2);
             Ykf_est = zeros(obj.n_filt, obj.ny);
 
             % Bayesian update to conditional probabilities
@@ -221,9 +221,8 @@ classdef MKFObserver < matlab.mixin.Copyable
                 yk_est = obj.filters{f}.ykp1_est;
 
                 % Calculate covariance of the output estimation errors
-                P = obj.filters{f}.P;
                 C = obj.filters{f}.C;
-                yk_cov = C*P*C' + obj.filters{f}.R;
+                yk_cov = C * obj.filters{f}.P * C' + obj.filters{f}.R;
 
                 % Make sure covariance matrix is symmetric
                 if ~isscalar(yk_cov)
@@ -232,27 +231,6 @@ classdef MKFObserver < matlab.mixin.Copyable
 
                 % Calculate normal probability density (multivariate)
                 obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
-
-                % Display pdf and yk
-                if show_plots && f <= 7
-                    figure(50+f); clf
-                    %s3 = 3*sqrt(yk_cov);  % no. of std. dev. to show
-                    s3 = 1;  % or specify value
-                    x = linspace(yk_est - s3, yk_est + s3, 101);
-                    y = normpdf(x, yk_est, sqrt(diag(yk_cov)));
-                    plot(x, y); hold on
-                    p_yk_est = normpdf(0, 0, sqrt(diag(yk_cov)));
-                    stem(yk_est, p_yk_est)
-                    p_yk = normpdf(yk, yk_est, sqrt(diag(yk_cov)));
-                    plot(yk, p_yk, 'ok', 'MarkerFaceColor', 'k')
-                    xlim([yk_est-s3 yk_est+s3])
-                    ylim([0 5])  % Specify max prob.
-                    grid on
-                    title(sprintf('Filter %d',f))
-                    legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$', ...
-                        'Interpreter','Latex')
-                    set(gcf,'Position',[f*250-150 50 250 150])
-                end
 
                 % Index of model used in previous sample time
                 ind_km1 = obj.gamma_k(f) + 1;  % MATLAB indexing
@@ -286,7 +264,6 @@ classdef MKFObserver < matlab.mixin.Copyable
                 obj.filters{f}.D = obj.D{ind};
                 obj.filters{f}.Q = obj.Q{ind};
                 obj.filters{f}.R = obj.R{ind};
-                %end
 
                 % Update observer estimates, gain and covariance matrix
                 obj.filters{f}.update(yk, uk);
@@ -294,6 +271,7 @@ classdef MKFObserver < matlab.mixin.Copyable
 
                 % Save state and output estimates for next timestep
                 Xkf_est(f, :) = obj.filters{f}.xkp1_est';
+                Pkf_est(f, :) = reshape(obj.filters{f}.P, 1, obj.n.^2);
                 Ykf_est(f, :) = obj.filters{f}.ykp1_est';
 
             end
@@ -312,33 +290,16 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Note: above calculation normalizes p_seq_g_Yk so that
             % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
 
-            if show_plots
-                % Plot gamma_k, p_yk_g_seq_Ykm1 and 
-                figure(50)
-                subplot(3,1,1)
-                bar(1:obj.n_filt, obj.p_yk_g_seq_Ykm1)
-                title('$p(y(k)|\Gamma(k),Y(k-1))$','Interpreter','Latex')
-                subplot(3,1,2)
-                bar(1:obj.n_filt, obj.p_gamma_k)
-                ylim([0, 1])
-                title('Shock probabilities $\gamma(k)$','Interpreter','Latex')
-                subplot(3,1,3)
-                bar(1:obj.n_filt, obj.p_seq_g_Yk)
-                xlabel('Filter')
-                title('$p(\Gamma(k)|Y(k))$','Interpreter','Latex')
-            end
-
             % Compute multi-model observer state and output estimates
+            % and estimated state error covariance using the weighted-
+            % averages based on the conditional probabilities.
             obj.xkp1_est = sum(Xkf_est .* obj.p_seq_g_Yk, 1)';
+            obj.P = reshape(sum(Pkf_est .* obj.p_seq_g_Yk, 1)', ...
+                obj.n, obj.n);
             obj.ykp1_est = sum(Ykf_est .* obj.p_seq_g_Yk, 1)';
             assert(~any(isnan(obj.xkp1_est)))
             assert(~any(isnan(obj.ykp1_est)))
-            % TODO: Calculate multi-model state covariance estimate
 
-            if show_plots 
-                disp(obj.label);
-                disp('stop')
-            end
         end
     end
 % TODO: Should do a deep copy automatically (i.e. without this)

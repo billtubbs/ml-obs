@@ -137,6 +137,9 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         % when observer object was created.
         %
 
+            % Switching variable at previous time instant
+            obj.gamma_k = 0;
+
             % Initialize sequence index and counter
             % obj.i(1) is the sequence index (1 <= i(1) <= obj.f)
             % obj.i(2) is the counter for prob. updates (1 <= i(2) <= obj.d)
@@ -145,6 +148,9 @@ classdef MKFObserverSched < matlab.mixin.Copyable
 
             % Initialize Kalman filter
             obj.filter.reset()
+
+            % Initialize covariance matrix
+            obj.P = obj.filter.P;
 
             % Initialize estimates
             obj.xkp1_est = obj.filter.xkp1_est;

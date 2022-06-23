@@ -73,6 +73,7 @@ assert(isequal(size(cell2mat(MKF_SF1.seq)), [MKF_SF1.n_filt MKF_SF1.f]))
 assert(MKF_SF1.beta == sum(MKF_SF1.p_seq))
 assert(MKF_SF1.f == size(MKF_SF1.seq{1}, 2))
 assert(isequal(MKF_SF1.xkp1_est, zeros(n,1)))
+assert(isequal(MKF_SF1.P, 1000*eye(2)))
 assert(isequal(MKF_SF1.ykp1_est, zeros(ny,1)))
 assert(isequal(round(MKF_SF1.alpha, 4), 0.0490))
 assert(isequal(round(MKF_SF1.p_gamma, 4), [0.9510; 0.0490]))
@@ -103,6 +104,7 @@ assert(isequal(size(cell2mat(MKF_SF2.seq)), [MKF_SF2.n_filt MKF_SF2.f]))
 assert(MKF_SF2.beta == sum(MKF_SF2.p_seq))
 assert(MKF_SF2.f == size(MKF_SF2.seq{1}, 2))
 assert(isequal(MKF_SF2.xkp1_est, zeros(n,1)))
+assert(isequal(MKF_SF2.P, 1000*eye(2)))
 assert(isequal(MKF_SF2.ykp1_est, zeros(ny,1)))
 assert(isequal(round(MKF_SF2.alpha, 4), MKF_SF2.epsilon))
 assert(isequal(round(MKF_SF2.p_gamma, 4), [1-MKF_SF2.epsilon; MKF_SF2.epsilon]))
@@ -204,8 +206,7 @@ MSE = containers.Map();
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs, ...
-        alpha);
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -232,20 +233,20 @@ end
 
 % Display results of last simulation
 
-X_est = sim_results.X_est;
-E_obs = sim_results.E_obs;
-K_obs = sim_results.K_obs;
-trP_obs = sim_results.trP_obs;
+% X_est = sim_results.X_est;
+% E_obs = sim_results.E_obs;
+% trP_obs = sim_results.trP_obs;
+% trP_obs_j = sim_results.trP_obs_j;
+% K_obs_j = sim_results.K_obs_j;
+% table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs,trP_obs)
 
-table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs);
-
-% Display gains and trace of covariance matrix
-table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
-    'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'});
+% Display gains and trace of covariance matrices of each filter
+% table(t, cell2mat(K_obs_j), cell2mat(trP_obs_j), ...
+%     'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'});
 
 % Show table of mean-squared errors
-table(MSE.keys', cell2mat(MSE.values'), ...
-    'VariableNames', {'Observer', 'MSE'});
+% table(MSE.keys', cell2mat(MSE.values'), ...
+%     'VariableNames', {'Observer', 'MSE'});
 
 
 % Plot of inputs and outputs
@@ -516,8 +517,9 @@ assert(isequal(size(MKF_SF1.seq), [MKF_SF1.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SF1.seq)), [MKF_SF1.n_filt MKF_SF1.f]))
 assert(MKF_SF1.beta == sum(MKF_SF1.p_seq))
 assert(MKF_SF1.f == size(MKF_SF1.seq{1}, 2))
-assert(isequal(size(MKF_SF1.xkp1_est), [n 1]))
-assert(isequal(size(MKF_SF1.ykp1_est), [ny 1]))
+assert(isequal(MKF_SF1.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_SF1.P, 1000*eye(4)))
+assert(isequal(MKF_SF1.ykp1_est, zeros(ny, 1)))
 assert(sum(MKF_SF1.p_gamma) == 1)
 alpha = (1 - (1 - epsilon).^d);  % prob. over detection interval 
 p_gamma = [1-alpha'; alpha'];
@@ -559,8 +561,9 @@ assert(isequal(size(MKF_SF2.seq), [MKF_SF2.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SF2.seq)), [MKF_SF2.n_filt MKF_SF2.f]))
 assert(MKF_SF2.beta == sum(MKF_SF2.p_seq))
 assert(MKF_SF2.f == size(MKF_SF2.seq{1}, 2))
-assert(isequal(size(MKF_SF2.xkp1_est), [n 1]))
-assert(isequal(size(MKF_SF2.ykp1_est), [ny 1]))
+assert(isequal(MKF_SF1.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_SF1.P, 1000*eye(4)))
+assert(isequal(MKF_SF1.ykp1_est, zeros(ny, 1)))
 assert(sum(MKF_SF2.p_gamma) == 1)
 alpha = (1 - (1 - epsilon).^d);  % prob. over detection interval 
 p_gamma = [1-alpha'; alpha'];
@@ -692,8 +695,7 @@ MSE = containers.Map();
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs, ...
-        alpha);
+    [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -720,13 +722,12 @@ end
 
 
 % Display results of last simulation
-
-X_est = sim_results.X_est;
-E_obs = sim_results.E_obs;
-K_obs = sim_results.K_obs;
-trP_obs = sim_results.trP_obs;
-
-%table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
+% X_est = sim_results.X_est;
+% E_obs = sim_results.E_obs;
+% trP_obs = sim_results.trP_obs;
+% K_obs_j = sim_results.K_obs_j;
+% trP_obs_j = sim_results.trP_obs_j;
+% table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
 
 % Display gains and trace of covariance matrix
 %K_data = cell2mat(cellfun(@(X) X(:)', K_obs, 'UniformOutput', false));
@@ -734,8 +735,8 @@ trP_obs = sim_results.trP_obs;
 %    'VariableNames', {'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
 
 % Show table of mean-squared errors
-table(MSE.keys', cell2mat(MSE.values'), ...
-    'VariableNames', {'Observer', 'MSE'});
+% table(MSE.keys', cell2mat(MSE.values'), ...
+%     'VariableNames', {'Observer', 'MSE'});
 
 % Results on Nov 8 after reverting back the Bayesian updating
 MSE_test_values = containers.Map(...
@@ -748,101 +749,4 @@ MSE_test_values = containers.Map(...
 for label = MSE.keys
     %fprintf("%s: %f, %f (%f, %f)\n", label{1}, MSE(label{1}), MSE_test_values(label{1}))
     assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
-end
-return
-
-
-function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
-    obs,alpha)
-
-    k = (0:nT)';
-    t = Ts*k;
-    X_est = nan(nT+1,n);
-    Y_est = nan(nT+1,ny);
-    E_obs = nan(nT+1,ny);
-    
-    % Arrays to store observer variables
-    switch obs.type
-        case {'MKF', 'MKF_SF', 'MKF_SF', 'MKF_SP', 'MKF_SP'}
-            n_filt = obs.n_filt;
-            MKF_p_seq_g_Yk = nan(nT+1, n_filt);
-        otherwise
-            n_filt = 1;
-    end
-    K_obs = cell(nT+1, n_filt);
-    trP_obs = cell(nT+1, n_filt);
-
-    % Start simulation at k = 0
-    for i = 1:nT+1
-
-        % For debugging:
-        %fprintf("t = %f\n", t(i));
-
-        % Process measurements
-        uk_m = U_m(i,:)';
-        yk_m = Y_m(i,:)';
-
-        % Record observer estimates and output errors
-        X_est(i, :) = obs.xkp1_est';
-        Y_est(i, :) = obs.ykp1_est';
-        E_obs(i, :) = yk_m' - obs.ykp1_est';
-
-        % Kalman update equations
-        % Update observer gains and covariance matrix
-        switch obs.type
-
-            case {'KF', 'SKF'}
-                obs.update(yk_m, uk_m);
-
-                % Record filter gain and covariance matrix
-                K_obs{i, 1} = obs.K';
-                trP_obs{i, 1} = trace(obs.P);
-
-            case {'MKF', 'MKF_SF'}
-                obs.update(yk_m, uk_m);
-
-                % Record filter gains and covariance matrices
-                for j=1:obs.n_filt
-                    K_obs{i, j} = obs.filters{j}.K';
-                    trP_obs{i, j} = trace(obs.filters{j}.P);
-                end
-
-                % Record filter conditional probabilities
-                MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-
-            case {'MKF_SP'}
-                obs.update(yk_m, uk_m);
-
-                % Record filter gains and covariance matrices
-                for j=1:obs.n_filt
-                    K_obs{i, j} = obs.filters{j}.K';
-                    trP_obs{i, j} = trace(obs.filters{j}.P);
-                end
-
-                % Record filter conditional probabilities
-                MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-
-                % Record filter arrangement
-                AFMM_f_main(i, :) = obs.f_main;
-                AFMM_f_hold(i, :) = obs.f_hold;
-
-            otherwise
-                error('Observer type not valid')
-
-        end
-
-    end
-
-    sim_results.t = t;
-    sim_results.k = k;
-    sim_results.X_est = X_est;
-    sim_results.Y_est = Y_est;
-    sim_results.E_obs = E_obs;
-    sim_results.K_obs = K_obs;
-    sim_results.trP_obs = trP_obs;
-    switch obs.type
-        case {'MKF_SF', 'MKF_SP'}
-            sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
-    end
-
 end

@@ -240,11 +240,6 @@ classdef MKFObserverSP < MKFObserver
             % Number of disturbances
             nw = size(obj.epsilon, 1);
 
-            % Consistency checks - can be removed later
-            assert(size(obj.f_hold, 2) == obj.n_hold)
-            assert(size(obj.f_main, 2) == obj.n_main)
-            assert(isequal(sort(unique([obj.f_main obj.f_hold])), 1:obj.n_filt))
-
             % Left-shift all filters in holding group. This causes
             % the last nw values to 'roll-over' to the left of f_hold.
             % e.g. circshift([1 2 3], 1) -> [3 1 2]
