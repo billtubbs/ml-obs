@@ -14,7 +14,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     switch obs.type
         case {'KF', 'KFSS'}
             K_obs = cell(nT+1, 1);
-        case {'MKF', 'MKF_SF', 'MKF_SP'}
+        case {'MKF', 'MKF_SF', 'MKF_SF95', 'MKF_SP'}
             n_filt = obs.n_filt;
             MKF_p_seq_g_Yk = nan(nT+1, n_filt);
             K_obs_j = cell(nT+1, n_filt);
@@ -45,7 +45,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.K';
 
-            case {'MKF', 'MKF_SF'}
+            case {'MKF', 'MKF_SF', 'MKF_SF95'}
 
                 % Record filter gains and covariance matrices of
                 % each model filter

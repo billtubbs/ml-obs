@@ -87,6 +87,12 @@ d = 10;  % spacing parameter
 MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
+% Multiple model observer with sequence fusion based on method
+% described in Robertson et al. 1995.
+label = 'MKF_SF95';
+MKF_SF95 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,label);
+
 % General MKF - should be equivalent to MKF2
 Q1 = diag([q1 q2 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
 Qnj = diag([q1 q2 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);

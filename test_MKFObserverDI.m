@@ -181,7 +181,7 @@ d = 1;
 % TODO: Allow independent P0 to be specified for each filter.
 MKF1 = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1');
 
-assert(strcmp(MKF1.type, "MKF"))
+assert(strcmp(MKF1.type, "MKF_DI"))
 assert(isequal(MKF1.A, A))
 assert(isequal(MKF1.B, B))
 assert(isequal(MKF1.C, C))

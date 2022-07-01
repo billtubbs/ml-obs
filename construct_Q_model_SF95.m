@@ -1,6 +1,7 @@
-function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
-    var_wp, f, m, nw)
-% [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, var_wp, f, m, nw)
+function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
+    sigma_wp, f, m, d, nw)
+% [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
+%     sigma_wp, f, m, d, nw)
 % Constructs the parameters needed to model the sub-optimal
 % multi-model algorithm using sequence fusion for the
 % tracking of infrequently-occurring random disturbances.
@@ -14,22 +15,22 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
 %        are ignored).
 %   Bw : system input matrix for the random shock signals
 %       (n x nw).
-%   alpha : Probability of at least one shock in a 
-%       detection interval.
-%   var_wp : variances of shock disturbances over 
-%       detection interval. See (16) on p.264 of Robertson 
-%       et al. (1998).
+%   epsilon : Probability of a shock.
+%   sigma_wp : variances of shock disturbances.
 %   f : fusion horizon (length of disturbance sequences).
 %   m : maximum number of disturbances over fusion horizon.
+%   d : detection interval length in number of sample periods.
 %   nw : number of independent input disturbances.
 %
 
     % Generate indicator sequences
     seq = combinations_lte(f*nw, m);
 
+    % Expand sequence by inserting detection intervals
+
     % Probabilities of no-shock / shock over detection interval
     % (this is named delta in Robertson et al. 1998)
-    p_gamma = [1-alpha'; alpha'];
+    p_gamma = [1-epsilon'; epsilon'];
 
     if nw == 1  % only one disturbance
 
@@ -40,7 +41,9 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
         Q = cell(1, nj);
         for i = 1:nj
             var_x = diag(Q0);
-            var_x = var_x + Bw * var_wp(:, i);
+            % Modified variances of shock signal over detection
+            % interval (see (16) on p.264 of Robertson et al. 1998)
+            var_x = var_x + Bw * sigma_wp(:, i).^2;
             Q{i} = diag(var_x);
         end
 
@@ -78,10 +81,8 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
         for i = 1:nj
             var_x = diag(Q0);
             ind = Z(i, :) + 1;
-            % Modified variances of shock signal over detection
-            % interval (see (16) on p.264 of Robertson et al. 1998)
-            idx = sub2ind(size(var_wp), 1:nw, ind);
-            var_x = var_x + Bw * var_wp(idx)';
+            idx = sub2ind(size(sigma_wp), 1:nw, ind);
+            var_x = var_x + Bw * sigma_wp(idx)'.^2;
             Q{i} = diag(var_x);
         end
 

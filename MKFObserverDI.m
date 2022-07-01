@@ -132,7 +132,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             obj.nu = nu;
             obj.ny = ny;
             obj.nj = nj;
-            obj.type = "MKF";
+            obj.type = "MKF_DI";
 
         end
         function reset(obj)

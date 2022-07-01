@@ -38,7 +38,16 @@ function params = get_obs_params(obs)
             params.d = obs.d;
             params.n_filt = obs.n_filt;
 
-        case 'MKF'  % general multi-model Kalman filter
+        case "MKF"  % general multi-model Kalman filters
+
+            % Params to return
+            params.P0 = obs.P0;  % Don't store these - too many
+            params.Q = obs.Q;
+            params.R = obs.R;
+            params.f = obs.f;
+            params.n_filt = obs.n_filt;
+
+        case "MKF_DI"  % multi-model Kalman filter with detection interval
 
             % Params to return
             params.P0 = obs.P0;  % Don't store these - too many
@@ -49,7 +58,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case 'MKF_SF'  % RODD MKF observer
+        case {"MKF_SF", "MKF_SF95"}  % MKF observer with sequence fusion
 
             % Params to return
             params.P0 = obs.P0;
@@ -63,7 +72,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case 'MKF_SP'  % adaptive multi-model Kalman filter
+        case "MKF_SP"   % MKF observer with sequence pruning
 
             % Params to return
             params.P0 = obs.P0;
