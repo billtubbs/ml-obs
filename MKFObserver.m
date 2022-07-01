@@ -202,8 +202,17 @@ classdef MKFObserver < matlab.mixin.Copyable
                           idivide(obj.i(2), obj.d), obj.f) + 1, ...
                           mod(obj.i(2), obj.d) + 1];
 
-            % Arrays to store model indicator sequence values
-            obj.p_gamma_k = nan(obj.n_filt, 1);
+            % Update model indicator values gamma(k) with the
+            % current values from the filter's sequence and keep a
+            % copy of the previous values
+            gamma_km1 = obj.gamma_k;
+            obj.gamma_k = cellfun(@(x) x(:, obj.i(1)), obj.seq);
+
+            % Compute Pr(gamma(k)) based on Markov transition
+            % probability matrix
+            % TODO: This doesn't need to be a property since gamma_k
+            % and p_gamma are properties.
+            obj.p_gamma_k = prob_gamma(obj.gamma_k, obj.T(gamma_km1+1, :)');
 
             % Arrays to collect estimates from each filter
             Xkf_est = zeros(obj.n_filt, obj.n);
@@ -232,22 +241,8 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % Calculate normal probability density (multivariate)
                 obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
 
-                % Index of model used in previous sample time
-                ind_km1 = obj.gamma_k(f) + 1;  % MATLAB indexing
-
-                % Update model indicator value gamma(k) with the
-                % current value from the filter's sequence
-                obj.gamma_k(f) = obj.seq{f}(:, obj.i(1));
-
                 % Model index at current sample time
                 ind = obj.gamma_k(f) + 1;  % MATLAB indexing
-
-                % Compute Pr(gamma(k)) based on Markov transition
-                % probability matrix
-                % TODO: Can this be computed prior to the for loop for 
-                % efficiency?
-                obj.p_gamma_k(f) = prob_gamma(obj.gamma_k(f), ...
-                    obj.T(ind_km1, :)');
 
                 % Update filter covariances if at start of a detection
                 % interval.

@@ -1,7 +1,13 @@
 % Test MKFObserverSF class
 
 clear all
+
+% This is only needed for plotting
+addpath("~/ml-plot-utils/")
 plot_dir = 'plots';
+if ~isfolder(plot_dir)
+    mkdir(plot_dir)
+end
 
 seed = 0;
 rng(seed)
@@ -161,7 +167,8 @@ MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF4');
 SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
-observers = {KF2, KF3, SKF, MKF_SF1, MKF_SF2, MKF3, MKF4};
+%observers = {KF2, KF3, SKF, MKF_SF1, MKF_SF2, MKF3, MKF4};
+observers = {MKF_SF1};
 
 % Note: KF1 is too slow to pass static error test here
 
@@ -231,26 +238,26 @@ for i = 1:n_obs
 
 end
 
-% Display results of last simulation
-
+% % Display results of last simulation
+% 
 % X_est = sim_results.X_est;
 % E_obs = sim_results.E_obs;
 % trP_obs = sim_results.trP_obs;
 % trP_obs_j = sim_results.trP_obs_j;
 % K_obs_j = sim_results.K_obs_j;
 % table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs,trP_obs)
-
-% Display gains and trace of covariance matrices of each filter
+% 
+% % Display gains and trace of covariance matrices of each filter
 % table(t, cell2mat(K_obs_j), cell2mat(trP_obs_j), ...
 %     'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'});
-
-% Show table of mean-squared errors
+% 
+% % Show table of mean-squared errors
 % table(MSE.keys', cell2mat(MSE.values'), ...
 %     'VariableNames', {'Observer', 'MSE'});
 
 
-% Plot of inputs and outputs
-
+% % Plot of inputs and outputs
+% 
 % obs_label = obs.label;
 % 
 % set(groot,'defaultAxesTickLabelInterpreter','latex');
@@ -317,10 +324,10 @@ end
 % linkaxes([ax1, ax2 ax3 ax4], 'x')
 % 
 % set(gcf,'Position',[100 200 560 600]);
-
-
-% Plot of conditional filter probabilities
-
+% 
+% 
+% % Plot of conditional filter probabilities
+% 
 % switch obs.type
 %     case {'MKF_SF'}
 %         p_seq_g_Yk = sim_results.MKF_p_seq_g_Yk;
@@ -330,10 +337,10 @@ end
 %         figure(11); clf
 %         t = Ts*(0:nT)';
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Pr(\Gamma(k) \mid Y(k))$'};
-%         filename = sprintf('rod_MKFObserver_test_pyk_wfplot.png');
-%         filepath = fullfile(plot_dir, filename);
-%         show_waterfall_plot(t(2:end-1), p_seq_g_Yk(2:end-1, :), [0 1], ...
-%             ax_labels, [0 82], filepath);
+%         make_waterfall_plot(t(2:end-1), p_seq_g_Yk(2:end-1, :), [0 1], ...
+%             ax_labels, [0 72]);
+%         filename = sprintf('rod_MKFObserver_test_pyk_wfplot');
+%         save_fig_to_pdf(fullfile(plot_dir, filename));
 %         title('Conditional probabilities of y(k)')
 % end
 % 
@@ -342,14 +349,14 @@ end
 % 
 % switch obs.type
 %     case {'MKF_SF'}
-%         trP_obs = cell2mat(sim_results.trP_obs);
+%         trP_obs_j = cell2mat(sim_results.trP_obs_j);
 % 
 %         figure(12); clf
 %         t = Ts*(0:nT)';
 %         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
-%         filename = sprintf('rod_MKFObserver_test_trP_wfplot.png');
-%         filepath = fullfile(plot_dir, filename);
-%         show_waterfall_plot(t, trP_obs, [0 5], ax_labels, [0 82], filepath);
+%         make_waterfall_plot(t, trP_obs_j, [0 2], ax_labels, [0 82]);
+%         filename = sprintf('rod_MKFObserver_test_trP_wfplot');
+%         save_fig_to_pdf(fullfile(plot_dir, filename));
 %         title('Trace of covariance matrices')
 % 
 % end
@@ -358,17 +365,18 @@ end
 % 
 % switch obs.type
 %     case {'MKF_SF'}
-%         K_obs = cell2mat(sim_results.K_obs);
+%         K_obs_j = cell2mat(sim_results.K_obs_j);
 %         % Select first gain value onlu
-%         K1_obs = K_obs(:,1:2:end);
+%         K1_obs = K_obs_j(:,1:2:end);
+%         K2_obs = K_obs_j(:,2:2:end);
 % 
 %         figure(13); clf
 %         t = Ts*(0:nT)';
-%         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$Tr(P(k))$'};
-%         filename = sprintf('rod_MKFObserver_test_K_wfplot.png');
-%         filepath = fullfile(plot_dir, filename);
-%         show_waterfall_plot(t, K1_obs, [0 5], ax_labels, [0 82], filepath);
-%         title('Filter correction gains (k1)')
+%         ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$K_{1,1}(k)$'};
+%         make_waterfall_plot(t, K1_obs, [0 5], ax_labels, [0 82]);
+%         title('Filter correction gain ($K_{1,1}$)', 'Interpreter', 'latex')
+%         filename = sprintf('rod_MKFObserver_test_K_wfplot');
+%         save_fig_to_pdf(fullfile(plot_dir, filename));
 % 
 % end
 
@@ -740,7 +748,7 @@ end
 
 % Results on Nov 8 after reverting back the Bayesian updating
 MSE_test_values = containers.Map(...
- {'KF3',               'MKF_SF1',              'MKF_SF2',              ...
+ {'KF3',               'MKF_SF1',           'MKF_SF2', ...
   'MKF3',              'MKF4',              'SKF'}, ...
  {[0.000676 0.000936], [0.001826 0.006518], [0.002042 0.003289], ...
   [0.001538 0.001718], [0.000123 0.000132], [0.000123 0.000132]} ...
