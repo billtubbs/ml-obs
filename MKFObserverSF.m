@@ -17,7 +17,7 @@
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
 
-classdef MKFObserverSF < MKFObserver
+classdef MKFObserverSF < MKFObserverDI
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         m double {mustBeInteger, mustBeNonnegative}
@@ -125,7 +125,7 @@ classdef MKFObserverSF < MKFObserver
             %P0_init = repmat({P0}, 1, n_filt);
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,x0);
+            obj = obj@MKFObserverDI(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,x0);
 
             % Add additional variables used by RODD observer
             obj.u_meas = u_meas;

@@ -59,13 +59,12 @@ assert(isequal(params.beta, MKF_SF1.beta))
 
 params = get_obs_params(MKF_SP1);
 assert(isequal(fieldnames(params), {'P0', 'Q0', 'R', 'epsilon', ...
-    'sigma_wp', 'n_filt', 'd', 'f', 'n_min'}'))
+    'sigma_wp', 'n_filt', 'f', 'n_min'}'))
 assert(isequal(params.P0, MKF_SP1.P0))
 assert(isequal(params.Q0, MKF_SP1.Q0))
 assert(isequal(params.R, MKF_SP1.R))
 assert(isequal(params.epsilon, MKF_SP1.epsilon))
 assert(isequal(params.sigma_wp, MKF_SP1.sigma_wp))
 assert(isequal(params.n_filt, MKF_SP1.n_filt))
-assert(isequal(params.d, MKF_SP1.d))
 assert(isequal(params.f, MKF_SP1.f))
 assert(isequal(params.n_min, MKF_SP1.n_min))

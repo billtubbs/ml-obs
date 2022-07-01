@@ -80,11 +80,11 @@ d = 1;  % spacing parameter
 MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
-% General MKF equivalent to MKF2
+% General MKF - should be equivalent to MKF_SF2
 Q1 = diag([q1 sigma_wp(1)^2]);
 Q2 = diag([q1 sigma_wp(2)^2]);
 MKF3 = MKFObserver({A,A},{B,B},{C,C},{D,D},Ts,P0,{Q1,Q2},{R,R}, ...
-    MKF_SF2.seq,MKF_SF2.T,d,'MKF3');
+    MKF_SF2.seq,MKF_SF2.T,'MKF3');
 % TODO: Allow P0 to be replaced with repmat({P0},1,MKF2.n_filt)
 
 % Multiple model observer with sequence pruning #1

@@ -35,7 +35,7 @@ assert(isequal(MKF_SP1.n_hold, 3))
 assert(isequal(MKF_SP1.n_main, 4))
 assert(isequaln(MKF_SP1.f_hold, [5 6 7]))
 assert(isequaln(MKF_SP1.f_main, [1 2 3 4]))
-assert(isequaln(MKF_SP1.i, [0 0]))
+assert(isequaln(MKF_SP1.i, 0))
 assert(MKF_SP1.n == 2)
 assert(MKF_SP1.nu == 1)
 assert(MKF_SP1.ny == 1)
@@ -74,7 +74,7 @@ assert(isequal(MKF_SP2.n_hold, 5))
 assert(isequal(MKF_SP2.n_main, 5))
 assert(isequaln(MKF_SP2.f_hold, [6 7 8 9 10]))
 assert(isequaln(MKF_SP2.f_main, [1 2 3 4 5]))
-assert(isequaln(MKF_SP2.i, [0 0]))
+assert(isequaln(MKF_SP2.i, 0))
 assert(MKF_SP2.n == 2)
 assert(MKF_SP2.nu == 1)
 assert(MKF_SP2.ny == 1)
@@ -180,7 +180,6 @@ obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, 0))
-assert(obs.d == 1)
 
 % % Generate test simulation data
 % nT = 10;
@@ -227,8 +226,8 @@ seq0 = [
 %%disp(obs.i)  % use for debugging
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [0 0]))
-assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(obs.i, 0))
+assert(isequaln(obs.i_next, 1))
 assert(isequaln(cell2mat(obs.seq), seq0))
 assert(isequal(obs.n_hold, 2))
 assert(isequal(obs.n_main, 3))
@@ -268,8 +267,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [1 1]))
-assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(obs.i, 1))
+assert(isequaln(obs.i_next, 2))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [5 3]))
 assert(isequaln(obs.f_main, [1 2 4]))
@@ -301,8 +300,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [2 1]))
-assert(isequaln(obs.i_next, [3 1]))
+assert(isequaln(obs.i, 2))
+assert(isequaln(obs.i_next, 3))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [3 4]))
 assert(isequaln(obs.f_main, [1 2 5]))
@@ -334,8 +333,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [3 1]))
-assert(isequaln(obs.i_next, [4 1]))
+assert(isequaln(obs.i, 3))
+assert(isequaln(obs.i_next, 4))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [4 5]))
 assert(isequaln(obs.f_main, [1 2 3]))
@@ -367,8 +366,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [4 1]))
-assert(isequaln(obs.i_next, [5 1]))
+assert(isequaln(obs.i, 4))
+assert(isequaln(obs.i_next, 5))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [5 2]))
 assert(isequaln(obs.f_main, [1 3 4]))
@@ -400,8 +399,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [5 1]))
-assert(isequaln(obs.i_next, [6 1]))
+assert(isequaln(obs.i, 5))
+assert(isequaln(obs.i_next, 6))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [2 3]))
 assert(isequaln(obs.f_main, [1 4 5]))
@@ -433,8 +432,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [6 1]))
-assert(isequaln(obs.i_next, [7 1]))
+assert(isequaln(obs.i, 6))
+assert(isequaln(obs.i_next, 7))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [3 4]))
 assert(isequaln(obs.f_main, [1 5 2]))
@@ -466,8 +465,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)  
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [7 1]))
-assert(isequaln(obs.i_next, [8 1]))
+assert(isequaln(obs.i, 7))
+assert(isequaln(obs.i_next, 8))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [4 5]))
 assert(isequaln(obs.f_main, [1 2 3]))
@@ -503,8 +502,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)  
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [8 1]))
-assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(obs.i, 8))
+assert(isequaln(obs.i_next, 1))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [5 2]))
 assert(isequaln(obs.f_main, [1 3 4]))
@@ -536,8 +535,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [1 1]))
-assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(obs.i, 1))
+assert(isequaln(obs.i_next, 2))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [2 4]))
 assert(isequaln(obs.f_main, [3 1 5]))
@@ -577,7 +576,6 @@ obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, 0))
-assert(obs.d == 1)
 
 % % Generate test simulation data
 % nT = 10;
@@ -624,8 +622,8 @@ seq0 = [
 %%disp(obs.i)  % use for debugging
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [0 0]))
-assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(obs.i, 0))
+assert(isequaln(obs.i_next, 1))
 assert(isequaln(cell2mat(obs.seq), seq0))
 assert(isequal(obs.n_hold, 1))
 assert(isequal(obs.n_main, 4))
@@ -665,8 +663,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [1 1]))
-assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(obs.i, 1))
+assert(isequaln(obs.i_next, 2))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 4))
 assert(isequaln(obs.f_main, [1 2 3 5]))
@@ -698,8 +696,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [2 1]))
-assert(isequaln(obs.i_next, [3 1]))
+assert(isequaln(obs.i, 2))
+assert(isequaln(obs.i_next, 3))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 5))
 assert(isequaln(obs.f_main, [1 2 3 4]))
@@ -731,8 +729,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [3 1]))
-assert(isequaln(obs.i_next, [4 1]))
+assert(isequaln(obs.i, 3))
+assert(isequaln(obs.i_next, 4))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 3))
 assert(isequaln(obs.f_main, [1 4 2 5]))
@@ -764,8 +762,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [4 1]))
-assert(isequaln(obs.i_next, [5 1]))
+assert(isequaln(obs.i, 4))
+assert(isequaln(obs.i_next, 5))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 2))
 assert(isequaln(obs.f_main, [1 5 4 3]))
@@ -797,8 +795,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [5 1]))
-assert(isequaln(obs.i_next, [6 1]))
+assert(isequaln(obs.i, 5))
+assert(isequaln(obs.i_next, 6))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 4))
 assert(isequaln(obs.f_main, [1 3 5 2]))
@@ -830,8 +828,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [6 1]))
-assert(isequaln(obs.i_next, [7 1]))
+assert(isequaln(obs.i, 6))
+assert(isequaln(obs.i_next, 7))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 5))
 assert(isequaln(obs.f_main, [1 2 3 4]))
@@ -863,8 +861,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [7 1]))
-assert(isequaln(obs.i_next, [8 1]))
+assert(isequaln(obs.i, 7))
+assert(isequaln(obs.i_next, 8))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 3))
 assert(isequaln(obs.f_main, [1 4 2 5]))
@@ -900,8 +898,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [8 1]))
-assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(obs.i, 8))
+assert(isequaln(obs.i_next, 1))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 5))
 assert(isequaln(obs.f_main, [1 4 2 3]))
@@ -933,8 +931,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [1 1]))
-assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(obs.i, 1))
+assert(isequaln(obs.i_next, 2))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, 3))
 assert(isequaln(obs.f_main, [4 1 2 5]))  % most probable seq. has changed
@@ -1042,15 +1040,13 @@ seq = {zeros(1, nT+1); zeros(1, nT+1)};
 seq{2}(t == 10) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-d = 1;
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF3');
+MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == 10) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-d = 1;
-MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF4');
+MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -1266,7 +1262,7 @@ end
 %         if size(Z, 1) > nT
 %             Z = Z(1:nT,:);
 %         else
-%             Z = [Z(1:obs.i(1),:); Z(obs.i(1)+1:end,:)];
+%             Z = [Z(1:obs.i,:); Z(obs.i+1:end,:)];
 %         end
 %         seq_len = size(Z, 1);
 %         t = Ts*(nT-seq_len+1:nT)';
@@ -1297,7 +1293,7 @@ assert(isequal(MKF_SP1.n_hold, 5*2))
 assert(isequal(MKF_SP1.n_main, 9))
 assert(isequaln(MKF_SP1.f_hold, 10:19))
 assert(isequaln(MKF_SP1.f_main, 1:9))
-assert(isequaln(MKF_SP1.i, [0 0]))
+assert(isequaln(MKF_SP1.i, 0))
 assert(MKF_SP1.n == 4)
 assert(MKF_SP1.nu == 2)
 assert(MKF_SP1.ny == 2)
@@ -1330,7 +1326,7 @@ assert(isequal(MKF_SP2.n_hold, 9*2))
 assert(isequal(MKF_SP2.n_main, 7))
 assert(isequaln(MKF_SP2.f_hold, 8:25))
 assert(isequaln(MKF_SP2.f_main, 1:7))
-assert(isequaln(MKF_SP2.i, [0 0]))
+assert(isequaln(MKF_SP2.i, 0))
 assert(MKF_SP2.n == 4)
 assert(MKF_SP2.nu == 2)
 assert(MKF_SP2.ny == 2)
@@ -1378,7 +1374,6 @@ obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, [0 0]'))
-assert(obs.d == 1)
 
 % Test simuation data
 sim_data = [ ...
@@ -1420,8 +1415,8 @@ seq0 = [
 ];
 %%disp(obs.i)  % use for debugging
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [0 0]))
-assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(obs.i, 0))
+assert(isequaln(obs.i_next, 1))
 assert(isequaln(cell2mat(obs.seq), seq0))
 assert(isequal(obs.n_hold, 6))
 assert(isequal(obs.n_main, 4))
@@ -1466,8 +1461,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [1 1]))
-assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(obs.i, 1))
+assert(isequaln(obs.i_next, 2))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [7 8 9 10 3 4]))
 assert(isequaln(obs.f_main, [1 2 5 6]))
@@ -1508,8 +1503,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [2 1]))
-assert(isequaln(obs.i_next, [3 1]))
+assert(isequaln(obs.i, 2))
+assert(isequaln(obs.i_next, 3))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [9 10 3 4 5 6]))
 assert(isequaln(obs.f_main, [1 2 7 8]))
@@ -1550,8 +1545,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [3 1]))
-assert(isequaln(obs.i_next, [4 1]))
+assert(isequaln(obs.i, 3))
+assert(isequaln(obs.i_next, 4))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [3 4 5 6 7 8]))
 assert(isequaln(obs.f_main, [1 2 9 10]))
@@ -1592,8 +1587,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [4 1]))
-assert(isequaln(obs.i_next, [5 1]))
+assert(isequaln(obs.i, 4))
+assert(isequaln(obs.i_next, 5))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [5 6 7 8 9 10]))
 assert(isequaln(obs.f_main, [1 2 3 4]))
@@ -1634,8 +1629,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [5 1]))
-assert(isequaln(obs.i_next, [6 1]))
+assert(isequaln(obs.i, 5))
+assert(isequaln(obs.i_next, 6))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [7 8 9 10 3 2]))
 assert(isequaln(obs.f_main, [1 4 5 6]))
@@ -1676,8 +1671,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [6 1]))
-assert(isequaln(obs.i_next, [7 1]))
+assert(isequaln(obs.i, 6))
+assert(isequaln(obs.i_next, 7))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [9 10 3 2 6 5]))
 assert(isequaln(obs.f_main, [1 4 7 8]))
@@ -1718,8 +1713,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [7 1]))
-assert(isequaln(obs.i_next, [8 1]))
+assert(isequaln(obs.i, 7))
+assert(isequaln(obs.i_next, 8))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [3 2 6 5 8 7]))
 assert(isequaln(obs.f_main, [1 4 9 10]))
@@ -1760,8 +1755,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [8 1]))
-assert(isequaln(obs.i_next, [1 1]))
+assert(isequaln(obs.i, 8))
+assert(isequaln(obs.i_next, 1))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [6 5 8 7 9 10]))
 assert(isequaln(obs.f_main, [1 4 3 2]))
@@ -1802,8 +1797,8 @@ seq = [
 %disp(obs.i)
 %display_obs_data(obs)
 %disp(debug_array(obs))
-assert(isequaln(obs.i, [1 1]))
-assert(isequaln(obs.i_next, [2 1]))
+assert(isequaln(obs.i, 1))
+assert(isequaln(obs.i_next, 2))
 assert(isequaln(cell2mat(obs.seq), seq))
 assert(isequaln(obs.f_hold, [8 7 9 10 4 2]))
 assert(isequaln(obs.f_main, [1 3 6 5]))
@@ -1950,14 +1945,13 @@ Z = [0 0; 1 0; 0 1];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 3, 1);
-d = 1;
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF3');
+MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
 assert(MKF3.n_filt == 4)
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == t_shock(1)) = 1;
 seq{1}(t == t_shock(2)) = 2;
-MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,d,'MKF4');
+MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
 assert(MKF4.n_filt == 1)
 
 % Define scheduled Kalman filter

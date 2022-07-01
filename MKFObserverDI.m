@@ -1,16 +1,26 @@
 % Multi-model Kalman Filter class definition
 %
 % Class for simulating a multi-model Kalman filter for state
-% estimation of a Markov jump linear system.
+% estimation of a Markov jump linear system. This version
+% implements a 'detection interval' used by certain sub-optimal
+% algorithms to reduce the number of filters required. This
+% is used by MKFObserverSF.m.
+%
+% References:
+%  -  Robertson, D. G., & Lee, J. H. (1998). A method for the
+%     estimation of infrequent abrupt changes in nonlinear 
+%     systems. Automatica, 34(2), 261-270.
+%     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
 
-classdef MKFObserver < matlab.mixin.Copyable
+classdef MKFObserverDI < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         n (1, 1) double {mustBeInteger, mustBeNonnegative}
         nu (1, 1) double {mustBeInteger, mustBeNonnegative}
         ny (1, 1) double {mustBeInteger, mustBeNonnegative}
         nj (1, 1) double {mustBeInteger, mustBeNonnegative}
+        d (1, 1) double {mustBeInteger, mustBeNonnegative}
         f (1, 1) double {mustBeInteger, mustBeNonnegative}
         n_filt (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
@@ -27,8 +37,8 @@ classdef MKFObserver < matlab.mixin.Copyable
         label (1, 1) string
         P0 double
         x0 (:, 1) double
-        i (1, 1) {mustBeInteger, mustBeNonnegative}
-        i_next (1, 1) {mustBeInteger, mustBeNonnegative}
+        i (1, 2) {mustBeInteger, mustBeNonnegative}
+        i_next (1, 2) {mustBeInteger, mustBeNonnegative}
         gamma_k double
         p_seq_g_Yk double
         p_yk_g_seq_Ykm1 double
@@ -42,9 +52,9 @@ classdef MKFObserver < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0, ...
-                gamma0)
-        % obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0,gamma0)
+        function obj = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,label, ...
+                x0,gamma0)
+        % obs = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
         %
         % Arguments:
         %	A, B, C, D : cell arrays containing discrete-time system
@@ -59,6 +69,7 @@ classdef MKFObserver < matlab.mixin.Copyable
         %   seq : model indicator sequences for each filter (in rows).
         %   T : transition probabity matrix of the Markov switching
         %       process.
+        %   d : detection interval length in number of sample periods.
         %   label : string name.
         %   x0 : intial state estimates (optional, default zeros)
         %   gamma0 : initial model indicator value (zero-based)
@@ -69,10 +80,10 @@ classdef MKFObserver < matlab.mixin.Copyable
 
             % System dimensions
             [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
-            if nargin < 13
+            if nargin < 14
                 gamma0 = 0;
             end
-            if nargin < 12
+            if nargin < 13
                 x0 = zeros(n,1);
             end
             obj.A = A;
@@ -84,6 +95,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.R = R;
             obj.seq = seq;
             obj.T = T;
+            obj.d = d;
             obj.label = label;
             obj.P0 = P0;
             obj.x0 = x0;
@@ -133,8 +145,10 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.gamma_k = obj.gamma0;
 
             % Sequence index and counter for prob. updates
-            obj.i = int16(0);
-            obj.i_next = int16(1);
+            % obj.i(1) is the sequence index (1 <= i(1) <= obj.f)
+            % obj.i(2) is the counter for prob. updates (1 <= i(2) <= obj.d)
+            obj.i = int16([0 0]);
+            obj.i_next = int16([1 1]);
 
             % Initialize conditional probabilities: all equally likely
             obj.p_seq_g_Yk = ones(obj.n_filt, 1) ./ double(obj.n_filt);
@@ -187,15 +201,21 @@ classdef MKFObserver < matlab.mixin.Copyable
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-            % Increment sequence index
+            % Increment sequence index and update counter
+            % obj.i(1) is the sequence index (1 <= i(1) <= obj.f)
+            % obj.i(2) is the counter for prob. updates (1 <= i(2) <= obj.d)
+            % Whenever obj.i(2) exceeds obj.d (the spacing parameter), it is
+            % reset to 1, and the sequence index obj.i(1) is incremented.
             obj.i = obj.i_next;
-            obj.i_next = mod(obj.i, obj.f) + 1;
+            obj.i_next = [mod(obj.i(1) - 1 + ...
+                          idivide(obj.i(2), obj.d), obj.f) + 1, ...
+                          mod(obj.i(2), obj.d) + 1];
 
             % Update model indicator values gamma(k) with the
             % current values from the filter's sequence and keep a
             % copy of the previous values
             gamma_km1 = obj.gamma_k;
-            obj.gamma_k = cellfun(@(x) x(:, obj.i), obj.seq);
+            obj.gamma_k = cellfun(@(x) x(:, obj.i(1)), obj.seq);
 
             % Compute Pr(gamma(k)) based on Markov transition
             % probability matrix
@@ -233,7 +253,15 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % Model index at current sample time
                 ind = obj.gamma_k(f) + 1;  % MATLAB indexing
 
-                % Set filter model according to current index value
+                % Set filter covariances if at start of a detection
+                % interval.
+                % Note: Currently, this update must happen every sample 
+                % period so that S-functions do not have to memorize all
+                % the model parameters each timestep.
+                %if obj.i(2) == 1
+                % Select filter system model based on current
+                % model indicator value
+                % TODO: only need to change these if ind changed?
                 obj.filters{f}.A = obj.A{ind};
                 obj.filters{f}.B = obj.B{ind};
                 obj.filters{f}.C = obj.C{ind};

@@ -109,21 +109,9 @@ classdef MKFObserverSP < MKFObserver
             Bw = B(:, ~u_meas);
             Du = D(:, u_meas);
 
-            % Probability of at least one shock in a detection interval
-            % (Detection interval is d sample periods in length).
-            if d == 1
-                alpha = epsilon;
-            else
-                alpha = (1 - (1 - epsilon).^d);
-            end
-
-            % Modified variances of shock signal over detection
-            % interval (see (16) on p.264 of Robertson et al. 1998)
-            var_wp = sigma_wp.^2 ./ d;
-
             % Construct process noise covariance matrices for each 
             % possible input disturbance (returns a cell array)
-            [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw);
+            [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, epsilon, sigma_wp.^2, nw);
 
             % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
@@ -165,7 +153,7 @@ classdef MKFObserverSP < MKFObserver
             %P0_init = repmat({P0}, 1, n_filt);
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,x0);
+            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,label,x0);
 
             % Sequence pruning algorithm initialization
             % Assign all probability to first filter
