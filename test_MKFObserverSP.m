@@ -29,12 +29,12 @@ sigma_W = [0; 0];
 assert(strcmp(MKF_SP1.type, "MKF_SP"))
 assert(MKF_SP1.epsilon == 0.01)
 assert(isequal(MKF_SP1.sigma_wp, sigma_wp))
-assert(MKF_SP1.n_filt == 7)
-assert(MKF_SP1.n_min == 3)
-assert(isequal(MKF_SP1.n_hold, 3))
-assert(isequal(MKF_SP1.n_main, 4))
-assert(isequaln(MKF_SP1.f_hold, [5 6 7]))
-assert(isequaln(MKF_SP1.f_main, [1 2 3 4]))
+assert(MKF_SP1.n_filt == 10)
+assert(MKF_SP1.n_min == 7)
+assert(isequal(MKF_SP1.n_hold, 7))
+assert(isequal(MKF_SP1.n_main, 3))
+assert(isequaln(MKF_SP1.f_hold, 4:10))
+assert(isequaln(MKF_SP1.f_main, 1:3))
 assert(isequaln(MKF_SP1.i, 0))
 assert(MKF_SP1.n == 2)
 assert(MKF_SP1.nu == 1)
@@ -68,12 +68,12 @@ end
 
 assert(MKF_SP2.epsilon == 0.01)
 assert(isequal(MKF_SP2.sigma_wp, sigma_wp))
-assert(MKF_SP2.n_filt == 10)
-assert(MKF_SP2.n_min == 5)
-assert(isequal(MKF_SP2.n_hold, 5))
-assert(isequal(MKF_SP2.n_main, 5))
-assert(isequaln(MKF_SP2.f_hold, [6 7 8 9 10]))
-assert(isequaln(MKF_SP2.f_main, [1 2 3 4 5]))
+assert(MKF_SP2.n_filt == 25)
+assert(MKF_SP2.n_min == 21)
+assert(isequal(MKF_SP2.n_hold, 21))
+assert(isequal(MKF_SP2.n_main, 4))
+assert(isequaln(MKF_SP2.f_hold, 5:25))
+assert(isequaln(MKF_SP2.f_main, 1:4))
 assert(isequaln(MKF_SP2.i, 0))
 assert(MKF_SP2.n == 2)
 assert(MKF_SP2.nu == 1)
@@ -1102,7 +1102,7 @@ end
 
 MSE_test_values = containers.Map(...
     {'MKF_SP1', 'MKF_SP2', 'KF2', 'KF3', 'SKF', 'MKF3', 'MKF4'}, ...
-    [0.002688 0.002687 0.000934 0.003524 0.000929 0.002711 0.000929]' ...
+    [0.002686 0.002688 0.000934 0.003524 0.000929 0.002711 0.000929]' ...
 );
 
 for label = MSE.keys

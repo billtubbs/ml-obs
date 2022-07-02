@@ -69,7 +69,7 @@ label = 'MKF_SF1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 q2 0 0]);  % TODO: Is this correct?
 R = diag(sigma_M.^2);
-f = 5;  % fusion horizon
+f = 25;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 5;  % spacing parameter
 MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
@@ -81,7 +81,7 @@ P0 = 1000*eye(n);
 Q0 = diag([q1 q2 0 0]);  % TODO: Is this correct?
 R = diag(sigma_M.^2);
 %R = diag([1; 2.3].*sigma_M.^2);
-f = 3;  % fusion horizon
+f = 30;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 10;  % spacing parameter
 MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
@@ -90,7 +90,7 @@ MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model observer with sequence fusion based on method
 % described in Robertson et al. 1995.
 label = 'MKF_SF95';
-MKF_SF95 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % General MKF - should be equivalent to MKF2

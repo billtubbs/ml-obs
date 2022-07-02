@@ -13,6 +13,56 @@ seed = 0;
 rng(seed)
 
 
+%% Test sequence generation 1
+
+% Load SISO system and disturbance model from file
+sys_rodin_step
+
+% Define sequence fusion observer
+% This example is used in methods section of thesis report
+P0 = eye(n);
+Q0 = diag([0.01 0]);
+R = sigma_M^2;
+f = 9;  % fusion horizon
+m = 1;  % maximum number of shocks
+d = 3;  % spacing parameter
+MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,"MKF_SF95");
+
+seq_test = { ...
+    [0 0 0 0 0 0 0 0 0]; ...
+    [1 0 0 0 0 0 0 0 0]; ...
+    [0 0 0 1 0 0 0 0 0]; ...
+    [0 0 0 0 0 0 1 0 0] ...
+};
+assert(isequal(MKF_SF95.seq, seq_test))
+
+
+%% Test sequence generation 2
+
+% Load SISO system and disturbance model from file
+sys_rodin_step
+
+% Define sequence fusion observer
+% This example is used in methods section of thesis report
+P0 = eye(n);
+Q0 = diag([0.01 0]);
+R = sigma_M^2;
+f = 10;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 5;  % spacing parameter
+MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,"MKF_SF95");
+
+seq_test = { ...
+    [0 0 0 0 0 0 0 0 0 0]; ...
+    [1 0 0 0 0 0 0 0 0 0]; ...
+    [0 0 0 0 0 1 0 0 0 0]; ...
+    [1 0 0 0 0 1 0 0 0 0] ...
+};
+assert(isequal(MKF_SF95.seq, seq_test))
+
+
 %% Test observers for SISO system
 
 % Load system and disturbance model from file
@@ -74,7 +124,7 @@ label = 'MKF_SF1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
-f = 3;  % fusion horizon
+f = 15;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 5;  % spacing parameter
 MKF_SF1 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
@@ -84,7 +134,7 @@ MKF_SF1 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 assert(strcmp(MKF_SF1.type, "MKF_SF95"))
 assert(MKF_SF1.epsilon == epsilon)
 assert(isequal(MKF_SF1.sigma_wp, sigma_wp))
-assert(MKF_SF1.f == f*d)
+assert(MKF_SF1.f == f)
 assert(MKF_SF1.m == m)
 assert(MKF_SF1.d == d)
 assert(MKF_SF1.n_filt == 7)
@@ -129,7 +179,7 @@ MKF_SF2 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 assert(strcmp(MKF_SF2.type, "MKF_SF95"))
 assert(MKF_SF2.epsilon == epsilon)
 assert(isequal(MKF_SF2.sigma_wp, sigma_wp))
-assert(MKF_SF2.f == f*d)
+assert(MKF_SF2.f == f)
 assert(MKF_SF2.m == m)
 assert(MKF_SF2.d == d)
 assert(MKF_SF2.n_filt == 11)
@@ -160,9 +210,16 @@ assert(isequal(MKF_SF2.ykp1_est, zeros(ny,1)))
 assert(isequal(round(MKF_SF2.epsilon, 4), 0.01))
 assert(isequal(round(MKF_SF2.p_gamma, 4), [0.99; 0.01]))
 
-% Check optional definition with an initial state estimate works
+% Check optional definition with an initial state estimate
+label = 'MKF_testx0';
 x0 = [0.1; 0.5];
-MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+P0 = 1000*eye(n);
+Q0 = diag([q1 0]);
+R = sigma_M^2;
+f = 15;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 3;  % spacing parameter
+MKF_testx0 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
@@ -441,10 +498,10 @@ end
 %  - Bayesian prob updates only at end of detection intervals
 % Note: performance of MKF3 increases if shock amplitude is increased.
 
-% Results on Nov 8 after reverting back the Bayesian updating
+% Test MSE values
 MSE_test_values = containers.Map(...
  {'KF2',   'KF3',   'MKF_SF1',  'MKF_SF2',  'MKF3',  'MKF4',  'SKF'}, ...
- [0.000934 0.003524 0.004914 0.005016 0.002709 0.000929 0.000929] ...
+ [0.000934 0.003524 0.006051 0.005016 0.002709 0.000929 0.000929] ...
 );
 
 for label = MSE.keys
@@ -522,9 +579,9 @@ label = 'MKF_SF1';
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
-f = 3;  % 5 fusion horizon
-m = 1;  % 1 maximum number of shocks
-d = 2;  % 10 spacing parameter
+f = 6;  % fusion horizon
+m = 1;  % maximum number of shocks
+d = 2;  % spacing parameter
 MKF_SF1 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
@@ -533,9 +590,9 @@ label = 'MKF_SF2';
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
-f = 5;  % 10 fusion horizon
-m = 2;  % 2 maximum number of shocks
-d = 2;  % 5 spacing parameter
+f = 10;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 2;  % spacing parameter
 MKF_SF2 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
@@ -626,7 +683,15 @@ assert(isequal(round(MKF_SF2.p_gamma, 6), ...
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
-MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+label = 'MKF_testx0';
+P0 = 1000*eye(n);
+Q0 = diag([0.01 0.01 0 0]);
+R = diag(sigma_M.^2);
+%R = diag([1; 2.3].*sigma_M.^2);
+f = 30;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 10;  % spacing parameter
+MKF_testx0 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
@@ -786,11 +851,11 @@ end
 % table(MSE.keys', cell2mat(MSE.values'), ...
 %     'VariableNames', {'Observer', 'MSE'});
 
-% Results on Nov 8 after reverting back the Bayesian updating
+% Test MSE values
 MSE_test_values = containers.Map(...
  {'KF3',               'MKF_SF1',           'MKF_SF2', ...
   'MKF3',              'MKF4',              'SKF'}, ...
- {[0.000676 0.000936], [0.001884 0.003244], [0.000883 0.001088], ...
+ {[0.000676 0.000936], [0.001918 0.003485], [0.000950 0.001443], ...
   [0.001538 0.001718], [0.000123 0.000132], [0.000123 0.000132]} ...
 );
 

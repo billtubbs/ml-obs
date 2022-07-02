@@ -1,6 +1,7 @@
 function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
-    var_wp, f, m, nw)
-% [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, var_wp, f, m, nw)
+    var_wp, n_di, m, nw)
+% [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, var_wp, ...
+%     n_di, m, nw)
 % Constructs the parameters needed to model the sub-optimal
 % multi-model algorithm using sequence fusion for the
 % tracking of infrequently-occurring random disturbances.
@@ -19,13 +20,14 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
 %   var_wp : variances of shock disturbances over 
 %       detection interval. See (16) on p.264 of Robertson 
 %       et al. (1998).
-%   f : fusion horizon (length of disturbance sequences).
+%   n_di : number of detection intervals within the fusion 
+%       horizon.
 %   m : maximum number of disturbances over fusion horizon.
 %   nw : number of independent input disturbances.
 %
 
     % Generate indicator sequences
-    seq = combinations_lte(f*nw, m);
+    seq = combinations_lte(n_di*nw, m);
 
     % Probabilities of no-shock / shock over detection interval
     % (this is named delta in Robertson et al. 1998)
@@ -66,12 +68,12 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
         % TODO: arg f here is not actually the fusion horizon 
         % (which is f*d).  Should maybe use f/d here and assert no
         % remainder.
-        n_filt = n_filters(m, f, nw);
+        n_filt = n_filters(m, n_di, nw);
 
         % Rearrange as one sequence for each filter and convert
         % back to cell array
         seq = reshape((ic - 1)', [], n_filt)';
-        seq = mat2cell(seq, ones(n_filt, 1), f);
+        seq = mat2cell(seq, ones(n_filt, 1), n_di);
 
         % Generate required Q matrices
         Q = cell(1, nj);

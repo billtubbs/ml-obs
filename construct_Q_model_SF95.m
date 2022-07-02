@@ -1,5 +1,5 @@
 function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
-    sigma_wp, f, m, d, nw)
+    sigma_wp, n_di, m, d, nw)
 % [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
 %     sigma_wp, f, m, d, nw)
 % Constructs the parameters needed to model the sub-optimal
@@ -17,14 +17,15 @@ function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
 %       (n x nw).
 %   epsilon : Probability of a shock.
 %   sigma_wp : variances of shock disturbances.
-%   f : fusion horizon (length of disturbance sequences).
+%   n_di : number of detection intervals within the fusion 
+%       horizon.
 %   m : maximum number of disturbances over fusion horizon.
 %   d : detection interval length in number of sample periods.
 %   nw : number of independent input disturbances.
 %
 
     % Generate indicator sequences
-    seq = combinations_lte(f*nw, m);
+    seq = combinations_lte(n_di*nw, m);
 
     % Expand sequence by inserting detection intervals
 
@@ -69,12 +70,12 @@ function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
         % TODO: arg f here is not actually the fusion horizon 
         % (which is f*d).  Should maybe use f/d here and assert no
         % remainder.
-        n_filt = n_filters(m, f, nw);
+        n_filt = n_filters(m, n_di, nw);
 
         % Rearrange as one sequence for each filter and convert
         % back to cell array
         seq = reshape((ic - 1)', [], n_filt)';
-        seq = mat2cell(seq, ones(n_filt, 1), f);
+        seq = mat2cell(seq, ones(n_filt, 1), n_di);
 
         % Generate required Q matrices
         Q = cell(1, nj);

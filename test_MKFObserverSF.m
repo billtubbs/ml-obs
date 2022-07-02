@@ -13,9 +13,59 @@ seed = 0;
 rng(seed)
 
 
+%% Test sequence generation 1
+
+% Load SISO system and disturbance model from file
+sys_rodin_step
+
+% Define sequence fusion observer
+% This example is used in methods section of thesis report
+P0 = eye(n);
+Q0 = diag([0.01 0]);
+R = sigma_M^2;
+f = 9;  % fusion horizon
+m = 1;  % maximum number of shocks
+d = 3;  % spacing parameter
+MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,"MKF_SF95");
+
+seq_test = { ...
+    [0 0 0 0 0 0 0 0 0]; ...
+    [1 0 0 0 0 0 0 0 0]; ...
+    [0 0 0 1 0 0 0 0 0]; ...
+    [0 0 0 0 0 0 1 0 0] ...
+};
+assert(isequal(MKF_SF95.seq, seq_test))
+
+
+%% Test sequence generation 2
+
+% Load SISO system and disturbance model from file
+sys_rodin_step
+
+% Define sequence fusion observer
+% This example is used in methods section of thesis report
+P0 = eye(n);
+Q0 = diag([0.01 0]);
+R = sigma_M^2;
+f = 10;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 5;  % spacing parameter
+MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,"MKF_SF95");
+
+seq_test = { ...
+    [0 0 0 0 0 0 0 0 0 0]; ...
+    [1 0 0 0 0 0 0 0 0 0]; ...
+    [0 0 0 0 0 1 0 0 0 0]; ...
+    [1 0 0 0 0 1 0 0 0 0] ...
+};
+assert(isequal(MKF_SF95.seq, seq_test))
+
+
 %% Test observers for SISO system
 
-% Load system and disturbance model from file
+% Load SISO system and disturbance model from file
 sys_rodin_step
 
 % Simulation settings
@@ -40,10 +90,10 @@ alpha(t == t_shock) = 1;  % this is used by the SKF observer
 Wp = du0 .* alpha;
 
 % Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
+% Bu = B(:, u_meas);
+% Du = D(:, u_meas);
+% nu = sum(u_meas);
+% nw = sum(~u_meas);
 
 % Set noise variances for observer design
 sigma_M = 0.1;
@@ -52,11 +102,18 @@ sigma_W = [0; 0];
 % Load observers from file
 obs_rodin_step
 
+test_seq = { ...
+    [0 0 0]; ...
+    [1 0 0]; ...
+    [0 1 0]; ...
+    [0 0 1] ...
+};
+
 % Check observer attributes
 assert(strcmp(MKF_SF1.type, "MKF_SF"))
 assert(MKF_SF1.epsilon == epsilon)
 assert(isequal(MKF_SF1.sigma_wp, sigma_wp))
-assert(MKF_SF1.n_filt == 7)
+assert(MKF_SF1.n_filt == 4)
 assert(isequaln(MKF_SF1.i, [0 0]))
 assert(MKF_SF1.n == 2)
 assert(MKF_SF1.nu == 1)
@@ -76,18 +133,42 @@ assert(isequal(MKF_SF1.R{1}, R) && isequal(MKF_SF1.R{2}, R))
 assert(numel(MKF_SF1.filters) == MKF_SF1.n_filt)
 assert(isequal(size(MKF_SF1.seq), [MKF_SF1.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SF1.seq)), [MKF_SF1.n_filt MKF_SF1.f]))
+assert(isequal(MKF_SF1.seq, test_seq))
 assert(MKF_SF1.beta == sum(MKF_SF1.p_seq))
 assert(MKF_SF1.f == size(MKF_SF1.seq{1}, 2))
 assert(isequal(MKF_SF1.xkp1_est, zeros(n,1)))
 assert(isequal(MKF_SF1.P, 1000*eye(2)))
 assert(isequal(MKF_SF1.ykp1_est, zeros(ny,1)))
-assert(isequal(round(MKF_SF1.alpha, 4), 0.0490))
-assert(isequal(round(MKF_SF1.p_gamma, 4), [0.9510; 0.0490]))
+alpha = (1 - (1 - MKF_SF1.epsilon).^MKF_SF1.d);  % prob. over detection interval 
+p_gamma = [1-alpha'; alpha'];
+assert(isequal(round(alpha, 4), 0.0490))
+assert(isequal(round(p_gamma, 4), [0.9510; 0.0490]))
+assert(isequal(round(MKF_SF1.alpha, 4), round(alpha, 4)))
+assert(isequal(round(MKF_SF1.p_gamma, 4), round(p_gamma, 4)))
+
+test_seq = { ...
+    [0 0 0 0 0]; ...
+    [1 0 0 0 0]; ...
+    [0 1 0 0 0]; ...
+    [0 0 1 0 0]; ...
+    [0 0 0 1 0]; ...
+    [0 0 0 0 1]; ...
+    [1 1 0 0 0]; ...
+    [1 0 1 0 0]; ...
+    [1 0 0 1 0]; ...
+    [1 0 0 0 1]; ...
+    [0 1 1 0 0]; ...
+    [0 1 0 1 0]; ...
+    [0 1 0 0 1]; ...
+    [0 0 1 1 0]; ...
+    [0 0 1 0 1]; ...
+    [0 0 0 1 1] ...
+};
 
 assert(strcmp(MKF_SF2.type, "MKF_SF"))
 assert(MKF_SF2.epsilon == epsilon)
 assert(isequal(MKF_SF2.sigma_wp, sigma_wp))
-assert(MKF_SF2.n_filt == 11)
+assert(MKF_SF2.n_filt == 16)
 assert(isequaln(MKF_SF1.i, [0 0]))
 assert(MKF_SF2.n == 2)
 assert(MKF_SF2.nu == 1)
@@ -107,16 +188,26 @@ assert(isequal(MKF_SF2.R{1}, R) && isequal(MKF_SF2.R{2}, R))
 assert(numel(MKF_SF2.filters) == MKF_SF2.n_filt)
 assert(isequal(size(MKF_SF2.seq), [MKF_SF2.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SF2.seq)), [MKF_SF2.n_filt MKF_SF2.f]))
+assert(isequal(MKF_SF2.seq, test_seq))
 assert(MKF_SF2.beta == sum(MKF_SF2.p_seq))
 assert(MKF_SF2.f == size(MKF_SF2.seq{1}, 2))
 assert(isequal(MKF_SF2.xkp1_est, zeros(n,1)))
 assert(isequal(MKF_SF2.P, 1000*eye(2)))
 assert(isequal(MKF_SF2.ykp1_est, zeros(ny,1)))
-assert(isequal(round(MKF_SF2.alpha, 4), MKF_SF2.epsilon))
-assert(isequal(round(MKF_SF2.p_gamma, 4), [1-MKF_SF2.epsilon; MKF_SF2.epsilon]))
+alpha = (1 - (1 - MKF_SF2.epsilon).^MKF_SF2.d);  % prob. over detection interval 
+p_gamma = [1-alpha'; alpha'];
+assert(isequal(round(MKF_SF2.alpha, 4), round(alpha, 4)))
+assert(isequal(round(MKF_SF2.p_gamma, 4), round(p_gamma, 4)))
 
-% Check optional definition with an initial state estimate works
+% Check optional definition with an initial state estimate
+label = 'MKF_testx0';
 x0 = [0.1; 0.5];
+P0 = 1000*eye(n);
+Q0 = diag([q1 0]);
+R = sigma_M^2;
+f = 15;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 3;  % spacing parameter
 MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
@@ -477,9 +568,9 @@ label = 'MKF_SF1';
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
-f = 3;  % 5 fusion horizon
-m = 1;  % 1 maximum number of shocks
-d = 2;  % 10 spacing parameter
+f = 6;  % fusion horizon
+m = 1;  % maximum number of shocks
+d = 2;  % spacing parameter
 MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
@@ -488,9 +579,9 @@ label = 'MKF_SF2';
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
-f = 5;  % 10 fusion horizon
-m = 2;  % 2 maximum number of shocks
-d = 2;  % 5 spacing parameter
+f = 10;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 2;  % spacing parameter
 MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 

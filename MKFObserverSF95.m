@@ -83,11 +83,16 @@ classdef MKFObserverSF95 < MKFObserver
             Bw = B(:, ~u_meas);
             Du = D(:, u_meas);
 
+            % Convert fusion horizon to number of detection intervals
+            assert(rem(f, d) == 0, "ValueError: Fusion horizon and " ...
+                + "detection interval not compatible")
+            n_di = f / d;
+
             % Construct process noise covariance matrices and switching
             % sequences over the fusion horizon, and the prior 
             % probabilities of each sequence.
             [Q, p_gamma, S] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
-                sigma_wp, f, m, d, nw);
+                sigma_wp, n_di, m, d, nw);
 
             % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
@@ -104,10 +109,12 @@ classdef MKFObserverSF95 < MKFObserver
             % when shocks occur.
             seq = cell(n_filt, 1);
             for i = 1:n_filt
-                % Length of sequences before expansion
-                f = size(S{i}, 2);
-                seq{i} = zeros(size(S{i}, 1), f*d);
-                seq{i}(:, (1:f) * d) = S{i};
+                seq{i} = int16(zeros(size(S{i}, 1), f));
+                % Add shock indications at start of each detection
+                % interval
+                seq{i}(:, 1:d:f) = S{i};
+                % Alternatively, at end of each detection interval
+                %seq{i}(:, d:d:f) = S{i};
             end
 
             % Sequence probabilities Pr(Gamma(k))

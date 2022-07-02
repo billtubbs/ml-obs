@@ -94,11 +94,16 @@ classdef MKFObserverSF < MKFObserverDI
             % interval (see (16) on p.264 of Robertson et al. 1998)
             var_wp = sigma_wp.^2 ./ d;
 
+            % Convert fusion horizon to number of detection intervals
+            assert(rem(f, d) == 0, "ValueError: Fusion horizon and " ...
+                + "detection interval not compatible")
+            n_di = f / d;
+
             % Construct process noise covariance matrices and switching
             % sequences over the fusion horizon, and the prior 
             % probabilities of each sequence.
             [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
-                var_wp, f, m, nw);
+                var_wp, n_di, m, nw);
 
             % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
