@@ -98,6 +98,9 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
             sim_results.K_obs_j = K_obs_j;
             sim_results.trP_obs_j = trP_obs_j;
         case 'MKF_SP'
+            sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
+            sim_results.K_obs_j = K_obs_j;
+            sim_results.trP_obs_j = trP_obs_j;
             sim_results.MKF_SP_f_main = MKF_SP_f_main;
             sim_results.MKF_SP_f_hold = MKF_SP_f_hold;
     end

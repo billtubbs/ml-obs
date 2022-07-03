@@ -2,13 +2,6 @@
 
 clear all
 
-% This is only needed for plotting
-addpath("~/ml-plot-utils/")
-plot_dir = 'plots';
-if ~isfolder(plot_dir)
-    mkdir(plot_dir)
-end
-
 seed = 0;
 rng(seed)
 
@@ -185,8 +178,17 @@ assert(isequal(MKF_testx0.ykp1_est, C * x0))
 
 %% Test observer on SISO system with 1 shock
 
+% This test is a copy of that used for the test simulations in
+% thesis report but without plot generation. See this script for
+% the latest version:
+%  - disturb-models/robertson-1995/rod_obs_test_sim.m
+
 % Load SISO system and disturbance model from file
 sys_rodin_step
+
+% Simulation settings
+nT = 100;
+t = Ts*(0:nT)';
 
 % Multiple model observer with sequence fusion
 P0 = eye(n);
@@ -204,9 +206,18 @@ label = 'MKF_SF95';
 MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
-% Simulation settings
-nT = 100;
-t = Ts*(0:nT)';
+% MKF_SF95 with same parameters as MKF_SF98
+label = 'MKF_SF95';
+MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,label);
+
+% Multiple model observer with sequence pruning
+f = nT;  % sequence history length
+n_filt = 5;  % number of filters
+n_min = 2;  % minimum life of cloned filters
+label = 'MKF_SP';
+MKF_SP = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,n_filt,f,n_min,label);
 
 % Choose time and amplitude of input disturbance
 t_shock = 9.5;
@@ -268,7 +279,7 @@ MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
 SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
-observers = {MKF3, MKF4, SKF, MKF_SF95, MKF_SF98};
+observers = {MKF3, MKF4, SKF, MKF_SF95, MKF_SF98, MKF_SP};
 
 % Note: KF1 is too slow to pass static error test here
 
@@ -345,153 +356,6 @@ for i = 1:n_obs
 
 end
 
-% Select simulation results to display and plot
-obs_label = "MKF_SF98";
-obs_i = find(cellfun(@(x) x.label, observers) == obs_label);
-obs = observers{obs_i};
-sim_result = sim_results.(obs_label);
-
-X_est = sim_result.X_est;
-E_obs = sim_result.E_obs;
-trP_obs = sim_result.trP_obs;
-trP_obs_j = sim_result.trP_obs_j;
-K_obs_j = sim_result.K_obs_j;
-table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs,trP_obs)
-
-% Display gains and trace of covariance matrices of each filter
-table(t, cell2mat(K_obs_j), cell2mat(trP_obs_j), ...
-    'VariableNames',{'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'});
-
-% Show table of mean-squared errors
-disp(RMSE_results)
-
-% Plot of inputs and outputs
-
-set(groot,'defaultAxesTickLabelInterpreter','latex');
-set(groot,'defaulttextinterpreter','latex');
-set(groot,'defaultLegendInterpreter','latex');
-
-figure(1); clf
-colors = get(gca,'colororder');
-ax1 = subplot(4,1,1);
-stairs(t,Y_m); hold on
-stairs(t,Y_est,'Linewidth',2);
-ax1.ColorOrder = colors(1:size(Y_m,2),:);
-max_min = [min(min([Y_m Y_est])) max(max([Y_m Y_est]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-ylabel('$y_M(k),\hat{y}(k)$')
-title_text = 'Outputs and output estimates';
-title(escape_latex_chars(title_text))
-legend('$y_M(k)$','$\hat{y}(k)$')
-grid on
-
-ax2 = subplot(4,1,2);
-stairs(t,X); hold on
-stairs(t,X_est,'Linewidth',2);
-ax2.ColorOrder = colors(size(Y,2)+1:size(Y,2)+size(X,2),:);
-max_min = [min(min([X X_est])) max(max([X X_est]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-ylabel('$x_i(k),\hat{x}_i(k)$')
-labels = repmat({''}, 1, n*2);
-for i=1:n
-    labels{i} = sprintf("$x_{%d}(k)$", i);
-end
-for i=1:n
-    labels{i+n} = sprintf("$%s{x}_{%d}(k)$", '\hat', i);
-end
-legend(labels)
-title('States and state estimates')
-grid on
-
-ax3 = subplot(4,1,3);
-stairs(t,U,'Linewidth',2); hold on;
-stairs(t,Wp,'Linewidth',2)
-max_min = [min(min([U Wp])) max(max([U Wp]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-ylabel('$u(k),w_p(k)$')
-legend('$u(k)$', '$w_p(k)$')
-title('Process inputs')
-grid on
-
-ax4 = subplot(4,1,4);
-stairs(t,alpha,'Color',colors(end,:),'Linewidth',2)
-max_min = [min(min(alpha)) max(max(alpha))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('Time ($t$)', 'Interpreter', 'latex')
-ylabel('$\gamma(k)$')
-title('Random shock sequence')
-grid on
-
-linkaxes([ax1, ax2 ax3 ax4], 'x')
-set(gcf,'Position',[100 200 448 560]);
-filename = sprintf('rod_MKF_SF_test_sim_%s_ioplot', obs_label);
-save_fig_to_pdf(fullfile(plot_dir, filename));
-
-% Plot of conditional filter probabilities
-%view_angle = [0 82];
-view_angle = [0 42];
-
-% Plot of trace of filter covariance matrices
-
-switch obs.type
-    case {'MKF_SF', 'MKF_SF95'}
-
-        t = Ts*(0:nT)';
-        trP_obs_j = cell2mat(sim_result.trP_obs_j);
-        p_seq_g_Yk = sim_result.MKF_p_seq_g_Yk;
-
-        figure(11); clf
-        ax_labels = {'$t$', 'Filter $f$', '$\mathrm{Tr}(\mathrm{P}_f(k))$'};
-        subplot(2, 1, 1)
-        make_waterfall_plot(t, trP_obs_j, [0 2], ax_labels, view_angle);
-        title('Trace of error covariance matrices')
-
-        subplot(2, 1, 2)
-        ax_labels = {'Time ($t$)', 'Filter $f$', '$\mathrm{Pr}(\Gamma_f(k) \mid \mathbf{Y}(k))$'};
-        make_waterfall_plot(t, p_seq_g_Yk, [0 1], ...
-            ax_labels, view_angle);
-        title('Conditional probabilities of hypotheses')
-
-end
-
-set(gcf,'Position',[660 450 448 360]);
-filename = sprintf('rod_MKF_test_sim_%s_prob.png', obs_label);
-exportgraphics(gcf,fullfile(plot_dir, filename),'Resolution',600)
-%Waterfall plot does not seem to support pdfs
-%save_fig_to_pdf(fullfile(plot_dir, filename));
-
-% Plot of filter correction gains (k1)
-
-switch obs.type
-    case {'MKF_SF', 'MKF_SF95'}
-        K_obs_j = cell2mat(sim_result.K_obs_j);
-        % Two gain values
-        K1_obs = K_obs_j(:,1:2:end);
-        K2_obs = K_obs_j(:,2:2:end);
-
-        figure(12); clf
-
-        subplot(2, 1, 1)
-        t = Ts*(0:nT)';
-        ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$K_{1,1}(k)$'};
-        make_waterfall_plot(t, K1_obs, [0 5], ax_labels, view_angle);
-        title('Filter correction gain $K_{1,1}$', 'Interpreter', 'latex')
-
-        subplot(2, 1, 2)
-        ax_labels = {'$t$', 'MKF filter ($\Gamma(k)$)', '$K_{2,1}(k)$'};
-        make_waterfall_plot(t, K2_obs, [0 3], ax_labels, view_angle);
-        title('Filter correction gain $K_{2,1}$', 'Interpreter', 'latex')
-
-        set(gcf,'Position',[660 950 448 360]);
-        filename = sprintf('rod_MKF_test_sim_%s_K.png', obs_label);
-        exportgraphics(gcf,fullfile(plot_dir, filename),'Resolution',600)
-
-end
-
 % Earlier test results (with a shock of amplitude 1)
 % MSE_test_values = containers.Map(...
 %     {'KF2',   'KF3',   'MKF_SF1',  'MKF_SF2',  'MKF3',  'MKF4',  "SKF"}, ...
@@ -517,13 +381,14 @@ MSE_test_values = struct( ...
     'MKF_SF98', 0.010453, ...
     'MKF_SF2', 0.009017, ...
     'MKF_SF95', 0.006052, ...
+    'MKF_SP', 0.002677, ...
     'MKF3', 0.002709, ...
     'MKF4', 0.000929, ...
     'SKF', 0.000929 ...
 );
 
 for label = fieldnames(RMSE_results)'
-    fprintf("%s: %f (%f)\n", label{1}, RMSE_results.(label{1}), MSE_test_values.(label{1}))
+    %fprintf("%s: %f (%f)\n", label{1}, RMSE_results.(label{1}), MSE_test_values.(label{1}))
     assert(isequal(round(RMSE_results.(label{1}), 6), MSE_test_values.(label{1})))
 end
 
