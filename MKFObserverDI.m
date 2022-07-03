@@ -22,6 +22,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
         nj (1, 1) double {mustBeInteger, mustBeNonnegative}
         d (1, 1) double {mustBeInteger, mustBeNonnegative}
         f (1, 1) double {mustBeInteger, mustBeNonnegative}
+        n_di (1, 1) double 
         n_filt (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
@@ -110,8 +111,11 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             end
             obj.gamma0 = gamma0;
 
-            % Fusion horizon length
-            obj.f = size(cell2mat(obj.seq), 2);
+            % Number of detection intervals in horizon
+            obj.n_di = size(cell2mat(obj.seq), 2);
+
+            % Fusion horizon length in number of sample times
+            obj.f = obj.n_di * d;
 
             % Check transition probability matrix
             assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
@@ -208,7 +212,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             % reset to 1, and the sequence index obj.i(1) is incremented.
             obj.i = obj.i_next;
             obj.i_next = [mod(obj.i(1) - 1 + ...
-                          idivide(obj.i(2), obj.d), obj.f) + 1, ...
+                          idivide(obj.i(2), obj.d), obj.n_di) + 1, ...
                           mod(obj.i(2), obj.d) + 1];
 
             % Update model indicator values gamma(k) with the

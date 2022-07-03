@@ -93,7 +93,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     switch obs.type
         case {'KF', 'KFSS'}
             sim_results.K_obs = K_obs;
-        case {'MKF', 'MKF_SF'}
+        case {'MKF', 'MKF_SF', 'MKF_SF95'}
             sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
             sim_results.K_obs_j = K_obs_j;
             sim_results.trP_obs_j = trP_obs_j;
