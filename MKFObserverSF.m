@@ -92,7 +92,8 @@ classdef MKFObserverSF < MKFObserverDI
 
             % Modified variances of shock signal over detection
             % interval (see (16) on p.264 of Robertson et al. 1998)
-            var_wp = sigma_wp.^2 ./ d;
+            var_wp = sigma_wp;
+            var_wp(~u_meas) = sigma_wp(~u_meas).^2 ./ d;
 
             % Convert fusion horizon to number of detection intervals
             assert(rem(f, d) == 0, "ValueError: Fusion horizon and " ...

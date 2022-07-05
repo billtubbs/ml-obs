@@ -92,7 +92,7 @@ classdef MKFObserverSF95 < MKFObserver
             % sequences over the fusion horizon, and the prior 
             % probabilities of each sequence.
             [Q, p_gamma, S] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
-                sigma_wp, n_di, m, d, nw);
+                sigma_wp, n_di, m, nw);
 
             % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);

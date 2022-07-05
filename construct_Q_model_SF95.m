@@ -1,5 +1,5 @@
 function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
-    sigma_wp, n_di, m, d, nw)
+    sigma_wp, n_di, m, nw)
 % [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
 %     sigma_wp, f, m, d, nw)
 % Constructs the parameters needed to model the sub-optimal
@@ -20,7 +20,6 @@ function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
 %   n_di : number of detection intervals within the fusion 
 %       horizon.
 %   m : maximum number of disturbances over fusion horizon.
-%   d : detection interval length in number of sample periods.
 %   nw : number of independent input disturbances.
 %
 

@@ -260,9 +260,10 @@ end
 mse_MKF2 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
 
 % Check MSE values
+% Note: 2022-07-04 Updated result after fixing MKFObserverSF sigma_wp
 assert(round(mse_KFSS, 4) == 0.0873)
 assert(round(mse_KF1, 4) == 0.0917)
-assert(round(mse_MKF1, 4) == 0.1029)
+assert(round(mse_MKF1, 4) == 0.0917)  % prev. 0.1029
 assert(round(mse_MKF2, 4) == 0.0602)
 
 % Store results
