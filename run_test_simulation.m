@@ -1,8 +1,8 @@
-% Function to run simulations of MKF_SF and MKF_SP
-% observers for unit testing.
-
 function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     obs)
+% Function to run test simulations of MKF_SF and MKF_SP
+% observers. Records values of various internal variables
+% for unit testing, analysis, and debugging.
 
     k = (0:nT)';
     t = Ts*k;
@@ -12,13 +12,24 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     
     % Arrays to store observer variables
     switch obs.type
-        case {'KF', 'KFSS'}
+        case {'KF', 'KFSS', 'SKF'}
             K_obs = cell(nT+1, 1);
         case {'MKF', 'MKF_SF', 'MKF_SF95', 'MKF_SP'}
             n_filt = obs.n_filt;
             MKF_p_seq_g_Yk = nan(nT+1, n_filt);
-            K_obs_j = cell(nT+1, n_filt);
-            trP_obs_j = cell(nT+1, n_filt);
+            K_obs_f = cell(nT+1, n_filt);
+            trP_obs_f = cell(nT+1, n_filt);
+            MKF_X_est_f = cell(nT+1, n_filt);
+        case {'MKF_SP'}
+            n_filt = obs.n_filt;
+            MKF_p_seq_g_Yk = nan(nT+1, n_filt);
+            K_obs_f = cell(nT+1, n_filt);
+            trP_obs_f = cell(nT+1, n_filt);
+            MKF_X_est_f = cell(nT+1, n_filt);
+            MKF_SP_f_main(i, :) = int16(zeros(nT+1, obs.f_main));
+            MKF_SP_f_hold(i, :) = int16(zeros(nT+1, obs.f_hold));
+        otherwise
+            error("Observer type not recognized")
     end
     trP_obs = cell(nT+1, 1);
 
@@ -47,11 +58,12 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 
             case {'MKF', 'MKF_SF', 'MKF_SF95'}
 
-                % Record filter gains and covariance matrices of
-                % each model filter
+                % Record filter gains, trace of covariance matrices
+                % and state estimates of each model filter
                 for j = 1:obs.n_filt
-                    K_obs_j{i, j} = obs.filters{j}.K';
-                    trP_obs_j{i, j} = trace(obs.filters{j}.P);
+                    K_obs_f{i, j} = reshape(obs.filters{j}.K, 1, []);
+                    trP_obs_f{i, j} = trace(obs.filters{j}.P);
+                    MKF_X_est_f{i, j} = obs.filters{j}.xkp1_est';
                 end
 
                 % Record filter conditional probabilities
@@ -59,11 +71,12 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 
             case {'MKF_SP'}
 
-                % Record filter gains and covariance matrices of
-                % each model filter
+                % Record filter gains, trace of covariance matrices
+                % and state estimates of each model filter
                 for j = 1:obs.n_filt
-                    K_obs_j{i, j} = obs.filters{j}.K';
-                    trP_obs_j{i, j} = trace(obs.filters{j}.P);
+                    K_obs_f{i, j} = obs.filters{j}.K';
+                    trP_obs_f{i, j} = trace(obs.filters{j}.P);
+                    MKF_X_est_f{i, j} = obs.filters{j}.xkp1_est';
                 end
 
                 % Record filter conditional probabilities
@@ -95,12 +108,14 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
             sim_results.K_obs = K_obs;
         case {'MKF', 'MKF_SF', 'MKF_SF95'}
             sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
-            sim_results.K_obs_j = K_obs_j;
-            sim_results.trP_obs_j = trP_obs_j;
+            sim_results.K_obs_f = K_obs_f;
+            sim_results.trP_obs_f = trP_obs_f;
+            sim_results.MKF_X_est_f = MKF_X_est_f;
         case 'MKF_SP'
             sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
-            sim_results.K_obs_j = K_obs_j;
-            sim_results.trP_obs_j = trP_obs_j;
+            sim_results.K_obs_f = K_obs_f;
+            sim_results.trP_obs_f = trP_obs_f;
+            sim_results.MKF_X_est_f = MKF_X_est_f;
             sim_results.MKF_SP_f_main = MKF_SP_f_main;
             sim_results.MKF_SP_f_hold = MKF_SP_f_hold;
     end
