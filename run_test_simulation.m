@@ -1,9 +1,13 @@
 function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
-    obs)
+    obs,show_plots)
 % Function to run test simulations of MKF_SF and MKF_SP
 % observers. Records values of various internal variables
 % for unit testing, analysis, and debugging.
+%
 
+    if nargin < 8
+        show_plots = false;
+    end
     k = (0:nT)';
     t = Ts*k;
     X_est = nan(nT+1,n);
@@ -89,11 +93,38 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
             otherwise
                 error('Observer type not valid')
 
+        end
 
+        if show_plots
+            for f = 1:min(obs.n_filt, 8)
+                figure(50+f); clf
+                make_MKF_pdf_plot(obs, f, yk_m, [0 5])
+                title(sprintf('Filter %d',f))
+                legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$','Interpreter','Latex')
+                set(gcf, 'Position', [f*250-150 100 250 150])
+            end
         end
 
         % Update observer and estimates
         obs.update(yk_m, uk_m);
+
+        if show_plots
+            % Plot gamma_k, p_yk_g_seq_Ykm1 and 
+            figure(50)
+            subplot(3,1,1)
+            bar(1:obs.n_filt, obs.p_yk_g_seq_Ykm1)
+            title('$p(y(k)|\Gamma(k),Y(k-1))$','Interpreter','Latex')
+            subplot(3,1,2)
+            bar(1:obs.n_filt, obs.p_gamma_k)
+            ylim([0, 1])
+            title('Shock probabilities $\gamma(k)$','Interpreter','Latex')
+            subplot(3,1,3)
+            bar(1:obs.n_filt, obs.p_seq_g_Yk)
+            xlabel('Filter')
+            title('$p(\Gamma(k)|Y(k))$','Interpreter','Latex')
+            fprintf("t(%d): %g\n", k(i), t(i))
+            disp('Resume after debugging')
+        end
 
     end
 

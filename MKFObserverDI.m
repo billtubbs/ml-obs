@@ -13,6 +13,8 @@
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
 
+% TODO: This should inherit from MKFObserver to avoid duplication.
+
 classdef MKFObserverDI < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
@@ -73,8 +75,9 @@ classdef MKFObserverDI < matlab.mixin.Copyable
         %   d : detection interval length in number of sample periods.
         %   label : string name.
         %   x0 : intial state estimates (optional, default zeros)
-        %   gamma0 : initial model indicator value (zero-based)
-        %       (optional, default zeros).
+        %   gamma0 : (optional, default zeros)
+        %       Initial prior model indicator value at time k-1 
+        %       (zero-based, i.e. 0 is for first model).
 
             % Number of switching systems
             nj = numel(A);
@@ -162,8 +165,9 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             obj.p_yk_g_seq_Ykm1 = zeros(obj.n_filt, 1);
             % Pr(gamma(k)|Y(k-1))
             obj.p_gammak_g_Ykm1 = zeros(obj.n_filt, 1);
-            % Pr(gamma(k))
-            obj.p_gamma_k = zeros(obj.n_filt, 1);
+            % Pr(Gamma(k))
+            obj.p_gamma_k = prob_gamma(obj.gamma_k, ...
+                obj.T(obj.gamma_k+1, :)');
             % Pr(Gamma(k)|Y(k-1))
             obj.p_seq_g_Ykm1 = zeros(obj.n_filt, 1);
 

@@ -211,7 +211,7 @@ assert(MKF1.ykp1_est == 0)
 assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_yk_g_seq_Ykm1, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_gammak_g_Ykm1, zeros(n_filt, 1)))
-assert(isequal(MKF1.p_gamma_k, zeros(n_filt, 1)))
+assert(isequal(MKF1.p_gamma_k, [0.95 0.95 0.95 0.95]'))
 assert(isequal(MKF1.p_seq_g_Ykm1, zeros(n_filt, 1)))
 
 % Redefine this time with initial conditions
@@ -306,7 +306,7 @@ assert(MKF1.ykp1_est == 0)
 assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_yk_g_seq_Ykm1, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_gammak_g_Ykm1, zeros(n_filt, 1)))
-assert(isequal(MKF1.p_gamma_k, zeros(n_filt, 1)))
+assert(isequal(MKF1.p_gamma_k, [0.95 0.95 0.95 0.95]'))
 assert(isequal(MKF1.p_seq_g_Ykm1, zeros(n_filt, 1)))
 
 % Redefine a new observer (identical to above)

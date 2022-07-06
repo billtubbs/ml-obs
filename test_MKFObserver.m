@@ -206,23 +206,25 @@ assert(MKF1.nj == 2)
 assert(isequal(MKF1.T, T))
 assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
 assert(MKF1.ykp1_est == 0)
+assert(isequal(MKF1.gamma0, zeros(n_filt, 1)))
 assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_yk_g_seq_Ykm1, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_gammak_g_Ykm1, zeros(n_filt, 1)))
-assert(isequal(MKF1.p_gamma_k, zeros(n_filt, 1)))
+assert(isequal(MKF1.p_gamma_k, [0.95 0.95 0.95 0.95]'))
 assert(isequal(MKF1.p_seq_g_Ykm1, zeros(n_filt, 1)))
 
 % Redefine this time with initial conditions
 MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF1',x0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
+
+% With initial prior shock indicator values
 gamma0 = 0;
 MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF1',x0,gamma0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
 assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
-gamma0 = zeros(n_filt, 1);
-gamma0(end) = 1;
+gamma0 = [zeros(MKF1.n_filt-1, 1); 1];
 MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF1',x0,gamma0);
 assert(isequal(MKF1.xkp1_est, x0))
 assert(isequal(MKF1.ykp1_est, C{1} * x0))
@@ -304,7 +306,7 @@ assert(MKF1.ykp1_est == 0)
 assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_yk_g_seq_Ykm1, zeros(n_filt, 1)))
 assert(isequal(MKF1.p_gammak_g_Ykm1, zeros(n_filt, 1)))
-assert(isequal(MKF1.p_gamma_k, zeros(n_filt, 1)))
+assert(isequal(MKF1.p_gamma_k, [0.95 0.95 0.95 0.95]'))
 assert(isequal(MKF1.p_seq_g_Ykm1, zeros(n_filt, 1)))
 
 % Redefine a new observer (identical to above)

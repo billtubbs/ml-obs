@@ -88,7 +88,7 @@ assert(isequal(MKF_SF1.D{1}, Du) && isequal(MKF_SF1.D{2}, Du))
 assert(MKF_SF1.Ts == Ts)
 assert(isequaln(MKF_SF1.u_meas, u_meas))
 assert(isequal(size(MKF_SF1.Q), [1 2]))
-assert(isequal(MKF_SF1.Q{1}, [0.01 0; 0 sigma_wp(1)]))
+assert(isequal(MKF_SF1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
 assert(isequal(MKF_SF1.Q{2}, [0.01 0; 0 sigma_wp(2)^2/MKF_SF1.d]))
 assert(isequal(size(MKF_SF1.R), [1 2]))
 assert(isequal(MKF_SF1.R{1}, R) && isequal(MKF_SF1.R{2}, R))
@@ -143,7 +143,7 @@ assert(isequal(MKF_SF2.D{1}, Du) && isequal(MKF_SF2.D{2}, Du))
 assert(MKF_SF2.Ts == Ts)
 assert(isequaln(MKF_SF2.u_meas, u_meas))
 assert(isequal(size(MKF_SF2.Q), [1 2]))
-assert(isequal(MKF_SF2.Q{1}, [0.01 0; 0 sigma_wp(1)]))
+assert(isequal(MKF_SF2.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
 assert(isequal(MKF_SF2.Q{2}, [0.01 0; 0 sigma_wp(2)^2/MKF_SF2.d]))
 assert(isequal(size(MKF_SF1.R), [1 2]))
 assert(isequal(MKF_SF2.R{1}, R) && isequal(MKF_SF2.R{2}, R))
@@ -375,13 +375,12 @@ end
 % Note: performance of MKF3 increases if shock amplitude is increased.
 
 % Results on 2022-07-04 after fixing sigma_wp in MKF_SF
-% Previously,
-%  - MKF_SF98: 0.010453
+% Previously, MKF_SF98: 0.010453 (was better before)
 MSE_test_values = struct( ...
     'KF2', 0.000934, ...
     'KF3', 0.003524, ...
-    'MKF_SF98', 0.003524, ...
     'MKF_SF95', 0.006052, ...
+    'MKF_SF98', 0.011586, ...
     'MKF_SP', 0.002677, ...
     'MKF3', 0.002709, ...
     'MKF4', 0.000929, ...
@@ -497,11 +496,11 @@ assert(MKF_SF1.Ts == Ts)
 assert(isequaln(MKF_SF1.u_meas, u_meas))
 assert(isequal(size(MKF_SF1.Q), [1 3]))
 assert(isequal(MKF_SF1.Q{1}, ...
-    diag([0.01 0.01 sigma_wp(:, 1)'])))
+    diag([0.01 0.01 sigma_wp(:, 1)'.^2])))
 assert(isequal(MKF_SF1.Q{2}, ...
-    diag([0.01 0.01 sigma_wp(1, 1) sigma_wp(2, 2)^2/MKF_SF1.d])))
+    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 2)^2/MKF_SF1.d])))
 assert(isequal(MKF_SF1.Q{3}, ...
-    diag([0.01 0.01 sigma_wp(1, 2)^2/MKF_SF1.d sigma_wp(2, 1)])))
+    diag([0.01 0.01 sigma_wp(1, 2)^2/MKF_SF1.d sigma_wp(2, 1).^2])))
 assert(isequal(size(MKF_SF1.R), [1 3]))
 assert(isequal(MKF_SF1.R{1}, R) && isequal(MKF_SF1.R{2}, R) && isequal(MKF_SF1.R{3}, R))
 assert(numel(MKF_SF1.filters) == MKF_SF1.n_filt)
@@ -538,11 +537,11 @@ assert(MKF_SF2.Ts == Ts)
 assert(isequaln(MKF_SF2.u_meas, u_meas))
 assert(isequal(size(MKF_SF2.Q), [1 4]))
 assert(isequal(MKF_SF2.Q{1}, ...
-    diag([0.01 0.01 sigma_wp(:, 1)'])))
+    diag([0.01 0.01 sigma_wp(:, 1)'.^2])))
 assert(isequal(MKF_SF2.Q{2}, ...
-    diag([0.01 0.01 sigma_wp(1, 1) sigma_wp(2, 2)^2/MKF_SF2.d])))
+    diag([0.01 0.01 sigma_wp(1, 1).^2 sigma_wp(2, 2)^2/MKF_SF2.d])))
 assert(isequal(MKF_SF2.Q{3}, ...
-    diag([0.01 0.01 sigma_wp(1, 2)^2/MKF_SF2.d sigma_wp(2, 1)])))
+    diag([0.01 0.01 sigma_wp(1, 2)^2/MKF_SF2.d sigma_wp(2, 1).^2])))
 assert(isequal(MKF_SF2.Q{4}, ...
     diag([0.01 0.01 sigma_wp(:, 2)'.^2/MKF_SF2.d])))
 assert(isequal(size(MKF_SF2.R), [1 4]))
@@ -731,12 +730,12 @@ end
 
 % Results on 2022-07-04 after fixing sigma_wp in MKF_SF
 % Previously,
-%  - MKF_SF1: 0.001826, 0.006518
-%  - MKF_SF2: 0.002042, 0.003289
+%  - MKF_SF1: 0.001826, 0.006518 (slightly worse)
+%  - MKF_SF2: 0.002042, 0.003289 (slightly worse)
 RMSE_test_values = containers.Map(...
  {'KF3',               'MKF_SF1',           'MKF_SF2', ...
   'MKF3',              'MKF4',              'SKF'}, ...
- {[0.000676 0.000936], [0.000676 0.000936], [0.000673 0.000936], ...
+ {[0.000676 0.000936], [0.001781 0.005705], [0.001901 0.003211], ...
   [0.001538 0.001718], [0.000123 0.000132], [0.000123 0.000132]} ...
 );
 

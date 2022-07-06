@@ -76,7 +76,7 @@ function obs = update_MKF(obs, uk, yk, show_plots)
             p_yk = normpdf(yk, yk_est, sqrt(diag(yk_cov)));
             plot(yk, p_yk, 'ok', 'MarkerFaceColor', 'k')
             xlim([yk_est-s3 yk_est+s3])
-            ylim([0 5])  % Specify max prob.
+            ylim([0 5])  % Specify max prob. density
             grid on
             title(sprintf('Filter %d',f))
             legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$','Interpreter','Latex')

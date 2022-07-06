@@ -61,8 +61,9 @@ classdef MKFObserver < matlab.mixin.Copyable
         %       process.
         %   label : string name.
         %   x0 : intial state estimates (optional, default zeros)
-        %   gamma0 : initial model indicator value (zero-based)
-        %       (optional, default zeros).
+        %   gamma0 : (optional, default zeros)
+        %       Initial prior model indicator value at time k-1 
+        %       (zero-based, i.e. 0 is for first model).
 
             % Number of switching systems
             nj = numel(A);
@@ -144,8 +145,9 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.p_yk_g_seq_Ykm1 = zeros(obj.n_filt, 1);
             % Pr(gamma(k)|Y(k-1))
             obj.p_gammak_g_Ykm1 = zeros(obj.n_filt, 1);
-            % Pr(gamma(k))
-            obj.p_gamma_k = zeros(obj.n_filt, 1);
+            % Pr(Gamma(k))
+            obj.p_gamma_k = prob_gamma(obj.gamma_k, ...
+                obj.T(obj.gamma_k+1, :)');
             % Pr(Gamma(k)|Y(k-1))
             obj.p_seq_g_Ykm1 = zeros(obj.n_filt, 1);
 
