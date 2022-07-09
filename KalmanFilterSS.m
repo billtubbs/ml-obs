@@ -41,15 +41,9 @@ classdef KalmanFilterSS < AbstractLinearFilter
                 obj.label = obj.type;
             end
 
-            % Model
-            N = zeros(n, ny);
-            G = eye(n);  % apply process noises to all states
-            H = zeros(ny, n);  % no direct transmission of noises
-            Gmodel = ss(A, [B G], C, [D H], Ts);
-
-            % Use MATLAB's Kalman filter function to compute the
-            % steady-state gain and covariance matrix
-            [~, obj.K, obj.P] = kalman(Gmodel, Q, R, N, 'delayed');
+            % Compute the steady-state gain and error covariance matrix
+            [obj.P,K,~,~] = idare(A',C',Q,R,[],[]);
+            obj.K = K';
 
             % Initialize estimates
             obj.reset()

@@ -84,7 +84,8 @@ classdef (Abstract) AbstractLinearFilter < matlab.mixin.Copyable
         %       System inputs at current time k.
         %
 
-            % Update state and output estimates for next timestep
+            % Update and prediction of state and output estimates
+            % in next timestep
             obj.xkp1_est = obj.A * obj.xkp1_est + obj.B * uk + ...
                 obj.K * (yk - obj.C * obj.xkp1_est);
             obj.ykp1_est = obj.C * obj.xkp1_est;

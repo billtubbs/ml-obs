@@ -38,6 +38,12 @@ assert(isequal(KFSS.D, D))
 assert(isequal(KFSS.Ts, Ts))
 assert(isequal(KFSS.Q, Q))
 assert(isequal(KFSS.R, R))
+assert(max(abs(KFSS.K - KFSS_old.K), [], [1 2]) < 1e-12)
+assert(max(abs(KFSS.P - KFSS_old.P), [], [1 2]) < 1e-12)
+K_calc = KFSS.A * KFSS.P * KFSS.C' * (KFSS.C * KFSS.P * KFSS.C' + KFSS.R)^-1;
+assert(max(abs(KFSS.K - K_calc)) < 1e-12)
+assert(isequal(round(KFSS.K, 6), [0.772750; 0.755731]))
+assert(isequal(round(KFSS.P, 6), [1.509786 1.216953; 1.216953 1.219071]))
 assert(isequal(KFSS.label, label))
 assert(isequal(KFSS.xkp1_est, x0))
 assert(KFSS.ykp1_est == C * x0)
@@ -236,7 +242,9 @@ x = x0;
 %warnId = 'Controllib:estimation:initialPRBSSequence';
 warnId = 'Ident:dataprocess:idinput7';
 warnStruct = warning('off',warnId);
+warning('off')
 U = idinput(nT+1, 'PRBS', [0 0.5]);
+warning('on')
 warning(warnStruct);
 
 % Matrices to collect simulation data
