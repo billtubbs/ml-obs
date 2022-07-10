@@ -1,4 +1,6 @@
 % Test classes MKFObserverDI and MKFObserverSched
+% TODO: At the moment this just replicates tests in MKFObserver.m
+% Need to setup additional tests to check when d > 1.
 
 clear all
 
@@ -236,10 +238,7 @@ MKF1 = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,'MKF1');
 % Choose observers to include in simulation
 observers = {KF1, KF2, MKF1, SKF};
 n_obs = numel(observers);
-obs_labels = cell(1, n_obs);
-for f  = 1:n_obs
-    obs_labels{f} = observers{f}.label;
-end
+obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
 % Identify which observer to log MKF data for
 f_mkf = 3;
@@ -321,12 +320,8 @@ MKF1_copy.label = "MKF1_copy";
 
 % Choose observers to include in simulation
 observers = {KF1, KF2, SKF, MKF1, MKF1_new, MKF1_copy};
-
 n_obs = numel(observers);
-obs_labels = cell(1, n_obs);
-for f  = 1:n_obs
-    obs_labels{f} = observers{f}.label;
-end
+obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
 % Identify which observer to log MKF data for
 f_mkf = 4;
@@ -358,6 +353,16 @@ writetable(sim_results_MKF, "results/test_MKFO_sim_results_MKF.csv");
 
 % figure(3); clf
 % plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
+
+% Check final state estimates
+test_X_est = [0.202984  9.838603  9.838607  9.838607  9.854841  9.807889];
+assert(isequal(round(X_est(t == t(end), :), 6), test_X_est))
+% TODO: Why do the copies not produce identical simulation results?
+% (see plot figure).
+
+% Check final error covariance estimates
+test_DiagP = [0.017355  0.028238  0.028238  0.037030  0.031316  0.059197];
+assert(isequal(round(DiagP(t == t(end), :), 6), test_DiagP))
 
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
@@ -496,6 +501,7 @@ SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
 % Choose observers to test
 observers = {MKF3, MKF4, SKF};
 n_obs = numel(observers);
+obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
 % Simulate system
 X = zeros(nT+1,n);
@@ -528,12 +534,27 @@ assert(isequal(Y, Y2))
 sigma_MP = [0; 0];  % Set to zero for testing
 Y_m = Y + sigma_MP'.*randn(nT+1, ny);
 
-% Simulate observers
+% Identify which observer to log MKF data for
 f_mkf = 1;
 
 % Simulate observers
 [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
     run_simulation_obs(Y_m,U,observers,f_mkf);
+
+% Plot observer estimates
+% figure(5); clf
+% plot_obs_estimates(t,X,Xkp1_est,Y,Ykp1_est,obs_labels)
+
+% Check final state estimates
+test_X_est = [-1.801802  9.009008  1.000000  1.000000 -1.801802 ...
+    9.009008  1.000000  1.000000 -1.801802  9.009008  1.000000  1.000000];
+assert(isequal(round(Xkp1_est(t == t(end), :), 6), test_X_est))
+
+% Check final error covariance estimates
+% TODO: Haven't checked if these are correct.
+test_DiagP = [ 0.092947  0.092947  0.002086  0.002086  0.092947 ...
+    0.092947  0.002086  0.002086  0.092947  0.092947  0.002086  0.002086];
+assert(isequal(round(DiagP(t == t(end), :), 6), test_DiagP))
 
 % Compute mean-squared errors
 MSE = containers.Map();
@@ -706,7 +727,7 @@ function [X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT)
     end
 end
 
-
+% TODO: Can't the function run_test_simulation.m be used here?
 function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
     run_simulation_obs(Ym,U,observers,f_mkf)
 % Simulate observers
@@ -755,44 +776,4 @@ function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = 
         DiagP(i, :) = diagP;
 
     end
-end
-
-
-function plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
-% Display plots of observer estimates compared to
-% true values.
-    n_obs = numel(obs_labels);
-    n = size(X_est, 2) / n_obs;
-    axs = nan(1, 1+n);
-
-    axs(1) = subplot(1+n,1,1);
-    plot(t,Y_est,'Linewidth',2); hold on
-    plot(t,Y,'k--');
-    max_min = [min(min([Y Y_est])) max(max([Y Y_est]))];
-    bd = max([0.1 diff(max_min)*0.1]);
-    ylim(max_min + [-bd bd])
-    xlabel('t')
-    ylabel('y(k)')
-    title('Output measurements')
-    legend([obs_labels {'true'}],'Interpreter','none')
-    grid on
-
-    for i = 1:n
-        axs(1+i) = subplot(1+n,1,1+i);
-        data = [X(:,i) X_est(:, i:n:(n*n_obs+i-1))];
-        max_min = [min(min(data)) max(max(data))];
-        bd = max([0.1 diff(max_min)*0.1]);
-        plot(t, X_est(:, i:n:(n*n_obs+i-1)),'Linewidth',2); hold on
-        plot(t, X(:,i),'k--'); 
-        ylim(max_min + [-bd bd])
-        xlabel('t')
-        y_label = sprintf('x_%d(k)',i);
-        ylabel(y_label)
-        legend([obs_labels {'true'}],'Interpreter','none')
-        title(strcat('States - ', y_label))
-        grid on
-    end
-
-    linkaxes(axs, 'x')
-
 end

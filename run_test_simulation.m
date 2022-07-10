@@ -95,10 +95,10 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 
         end
 
-        if show_plots
+        if show_plots && t(i) >= 34.5
             for f = 1:min(obs.n_filt, 8)
                 figure(50+f); clf
-                make_MKF_pdf_plot(obs, f, yk_m, [0 5])
+                make_MKF_pdf_plot(obs, f, yk_m, [-2 2], 5)
                 title(sprintf('Filter %d',f))
                 legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$','Interpreter','Latex')
                 set(gcf, 'Position', [f*250-150 100 250 150])
@@ -108,22 +108,33 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
         % Update observer and estimates
         obs.update(yk_m, uk_m);
 
-        if show_plots
+        if show_plots && t(i) >= 34.5
             % Plot gamma_k, p_yk_g_seq_Ykm1 and 
             figure(50)
-            subplot(3,1,1)
-            bar(1:obs.n_filt, obs.p_yk_g_seq_Ykm1)
-            title('$p(y(k)|\Gamma(k),Y(k-1))$','Interpreter','Latex')
-            subplot(3,1,2)
+            subplot(4,1,1)
             bar(1:obs.n_filt, obs.p_gamma_k)
             ylim([0, 1])
-            title('Shock probabilities $\gamma(k)$','Interpreter','Latex')
-            subplot(3,1,3)
+            title('Shock probabilities $Pr(\gamma(k) \mid \gamma(k-1))$','Interpreter','Latex')
+            subplot(4,1,2)
+            bar(1:obs.n_filt, obs.p_seq_g_Ykm1)
+            title('$p(\Gamma(k) \mid Y(k-1))$','Interpreter','Latex')
+            ylim([0, 1])
+            subplot(4,1,3)
+            bar(1:obs.n_filt, obs.p_yk_g_seq_Ykm1)
+            title('$p(y_M(k) \mid \Gamma(k),Y(k-1))$','Interpreter','Latex')
+            subplot(4,1,4)
             bar(1:obs.n_filt, obs.p_seq_g_Yk)
             xlabel('Filter')
-            title('$p(\Gamma(k)|Y(k))$','Interpreter','Latex')
+            title('$p(\Gamma(k) \mid Y(k))$','Interpreter','Latex')
             fprintf("t(%d): %g\n", k(i), t(i))
-            disp('Resume after debugging')
+            if t(i) >= 34.5
+                txt = input("Paused. Enter 'd' to debug, 'q' to quit: ", "s");
+                if strcmpi(txt,"D")
+                    dbstop if true
+                elseif strcmpi(txt,"Q")
+                    return
+                end
+            end
         end
 
     end

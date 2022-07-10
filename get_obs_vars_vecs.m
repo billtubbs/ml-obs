@@ -24,7 +24,7 @@ vars = get_obs_vars(obs);
 
 switch obs.type
 
-    case {'KFSS', 'LB'}  % steady-state filters
+    case {"KFSS", "LB"}  % steady-state filters
 
         vars_double = {vars.xkp1_est, vars.ykp1_est};
 
@@ -32,7 +32,7 @@ switch obs.type
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
-    case 'KF'  % standard Kalman filter
+    case "KF"  % standard Kalman filter
 
         vars_double = {vars.xkp1_est, vars.ykp1_est, vars.P};
 
@@ -40,7 +40,7 @@ switch obs.type
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
-    case {'MKF', 'MKF_SP', 'MKF_SF'}  % multi-model Kalman filters
+    case {"MKF_SF95", "MKF_SF", "MKF_SP"}  % multi-model Kalman filters
 
         vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
             vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};

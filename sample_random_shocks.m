@@ -10,7 +10,7 @@ function [x, a] = sample_random_shocks(sz, p, sigma1, sigma2)
 %       the size of the output array [nT na] where nT is the
 %       number of samples and na is the number of indepedent
 %       random variables (na >= 1). If s is a scalar then it
-%       is assumed that na = 1 and s = nT.
+%       is assumed that na = 1 and sz = nT.
 %   p : scalar (if na == 1) or vector (na > 1)
 %       p(i) is the probability of a shock occuring for x(k,i) 
 %       (a(k,i) = 1) (0 < p < 1).

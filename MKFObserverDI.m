@@ -225,7 +225,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             gamma_km1 = obj.gamma_k;
             obj.gamma_k = cellfun(@(x) x(:, obj.i(1)), obj.seq);
 
-            % Compute Pr(gamma(k)) based on Markov transition
+            % Compute Pr(gamma(k)|gamma(k-1)) based on Markov transition
             % probability matrix
             % TODO: This doesn't need to be a property since gamma_k
             % and p_gamma are properties.
@@ -283,7 +283,9 @@ classdef MKFObserverDI < matlab.mixin.Copyable
 
                 % Save state and output estimates for next timestep
                 Xkf_est(f, :) = obj.filters{f}.xkp1_est';
-                Pkf_est(f, :) = reshape(obj.filters{f}.P, 1, obj.n.^2);
+                Xkf_dev = obj.xkp1_est - obj.filters{f}.xkp1_est;
+                Pkf_est(f, :) = reshape(obj.filters{f}.P ...
+                    + Xkf_dev * Xkf_dev', 1, obj.n.^2);
                 Ykf_est(f, :) = obj.filters{f}.ykp1_est';
 
             end

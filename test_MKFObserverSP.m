@@ -236,7 +236,7 @@ assert(isequaln(obs.f_main, [1 2 3]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0 0 0 0 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.99]'))
 assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0]'))
 assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0]'))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 4)]'))
@@ -632,7 +632,7 @@ assert(isequaln(obs.f_main, [1 2 3 4]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0 0 0 0 0]'))
+assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.99]'))
 assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0]'))
 assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0]'))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 4)]'))
@@ -1315,7 +1315,7 @@ assert(MKF_SP1.f == size(MKF_SP1.seq{1}, 2))
 assert(isequal(MKF_SP1.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_SP1.P, 1000*eye(4)))
 assert(isequal(MKF_SP1.ykp1_est, zeros(ny, 1)))
-assert(isequal(round(MKF_SP1.p_gamma, 6), [0.990050; 0.004975; 0.004975]))
+assert(isequal(round(MKF_SP1.p_gamma, 6), [0.990025; 0.004975; 0.004975]))
 
 % Check observer initialization
 assert(isequal(MKF_SP2.epsilon, epsilon))
@@ -1348,7 +1348,7 @@ assert(MKF_SP2.f == size(MKF_SP2.seq{1}, 2))
 assert(isequal(MKF_SP2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_SP2.P, 1000*eye(4)))
 assert(isequal(MKF_SP2.ykp1_est, zeros(ny, 1)))
-assert(isequal(round(MKF_SP2.p_gamma, 6), [0.990050; 0.004975; 0.004975]))
+assert(isequal(round(MKF_SP2.p_gamma, 6), [0.990025; 0.004975; 0.004975]))
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
@@ -1425,7 +1425,8 @@ assert(isequaln(obs.f_main, [1 2 3 4]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0 0 0 0 0 0 0 0 0 0]'))
+assert(isequal(round(obs.p_gamma_k, 4), ...
+    [0.99 0.99 0.99 0.99 0.99 0.99 0.99 0.99 0.99 0.99]'))
 assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0 0 0 0 0 0]'))
 assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0 0 0 0 0 0]'))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 9)]'))
@@ -1726,7 +1727,7 @@ assert(isequal(round(obs.p_gamma_k, 4), ...
 assert(isequal(round(obs.p_yk_g_seq_Ykm1, 4), ...
     [6.4234 4.9777 5.4971 6.3022 6.4234 6.4234 6.4234 6.4234 5.5241 5.0106]'))
 assert(isequal(round(obs.p_seq_g_Ykm1, 4), ...
-    [0.9545 0.0048 0.0048 0.0036 0.0048 0.0048 0.0048 0.0048 0.0036 0.0036]'))
+    [0.9544 0.0048 0.0048 0.0036 0.0048 0.0048 0.0048 0.0048 0.0036 0.0036]'))
 assert(isequal(round(obs.p_seq_g_Yk, 4), ...
     [0.9633 0.0038 0.0041 0.0035 0.0048 0.0048 0.0048 0.0048 0.0031 0.0028]'))
 

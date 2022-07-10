@@ -30,11 +30,11 @@ classdef MKFObserver < matlab.mixin.Copyable
         i (1, 1) {mustBeInteger, mustBeNonnegative}
         i_next (1, 1) {mustBeInteger, mustBeNonnegative}
         gamma_k double
+        p_seq_g_Ykm1 double
         p_seq_g_Yk double
         p_yk_g_seq_Ykm1 double
         p_gammak_g_Ykm1 double
         p_gamma_k double
-        p_seq_g_Ykm1 double
         filters  cell
         xkp1_est (:, 1) double
         P double
@@ -103,7 +103,12 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.f = size(cell2mat(obj.seq), 2);
 
             % Check transition probability matrix
-            assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
+            % TODO: Is this necessary? If all possible hypotheses 
+            % are not modelled (as is the case with some observers)
+            % then perhaps T should not be whole?
+            % assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
+            % TODO: Could calculate beta parameter here, i.e. total 
+            % probability measured?
 
             % Check all other system matrix dimensions have same 
             % input/output dimensions and number of states.
@@ -199,7 +204,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             gamma_km1 = obj.gamma_k;
             obj.gamma_k = cellfun(@(x) x(:, obj.i), obj.seq);
 
-            % Compute Pr(gamma(k)) based on Markov transition
+            % Compute Pr(gamma(k)|gamma(k-1)) based on Markov transition
             % probability matrix
             % TODO: This doesn't need to be a property since gamma_k
             % and p_gamma are properties.
@@ -249,7 +254,9 @@ classdef MKFObserver < matlab.mixin.Copyable
 
                 % Save state and output estimates for next timestep
                 Xkf_est(f, :) = obj.filters{f}.xkp1_est';
-                Pkf_est(f, :) = reshape(obj.filters{f}.P, 1, obj.n.^2);
+                Xkf_dev = obj.xkp1_est - obj.filters{f}.xkp1_est;
+                Pkf_est(f, :) = reshape(obj.filters{f}.P ...
+                    + Xkf_dev * Xkf_dev', 1, obj.n.^2);
                 Ykf_est(f, :) = obj.filters{f}.ykp1_est';
 
             end
@@ -272,9 +279,9 @@ classdef MKFObserver < matlab.mixin.Copyable
             % and estimated state error covariance using the weighted-
             % averages based on the conditional probabilities.
             obj.xkp1_est = sum(Xkf_est .* obj.p_seq_g_Yk, 1)';
+            obj.ykp1_est = sum(Ykf_est .* obj.p_seq_g_Yk, 1)';
             obj.P = reshape(sum(Pkf_est .* obj.p_seq_g_Yk, 1)', ...
                 obj.n, obj.n);
-            obj.ykp1_est = sum(Ykf_est .* obj.p_seq_g_Yk, 1)';
             assert(~any(isnan(obj.xkp1_est)))
             assert(~any(isnan(obj.ykp1_est)))
 

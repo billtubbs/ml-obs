@@ -65,7 +65,10 @@ function [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw)
 
         % Normalize so that sum(Pr(gamma(k))) = 1
         % TODO: Is this the right thing to do for sub-optimal approach?
-        p_gamma = p_gamma ./ sum(p_gamma);
+        % No I don't think so. If hypotheses don't represent all
+        % possible combinations then this is good to know. However,
+        % the transition probability matrix must be normalized?
+        % p_gamma = p_gamma ./ sum(p_gamma);
 
     end
 

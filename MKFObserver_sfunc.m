@@ -122,7 +122,7 @@ switch obs.type
         block.Dwork(1).Complexity      = 'Real'; % real
         block.Dwork(1).UsedAsDiscState = true;
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}  % obs with double and int16
+    case {'MKF', 'MKF_SF95', 'MKF_SF', 'MKF_SP'}  % obs with double and int16
 
         % Make data vectors containing all variables
         [vec_double, vec_int16] = get_obs_vars_vecs(obs);
@@ -224,7 +224,7 @@ switch obs.type
         vec_double = block.Dwork(1).Data;
         obs = set_obs_vars_vecs(obs, vec_double);
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}
+    case {'MKF', 'MKF_SF95', 'MKF_SF', 'MKF_SP'}
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
@@ -284,7 +284,7 @@ switch obs.type
         % Update Dwork memory vectors
         block.Dwork(1).Data = vec_double;
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}
+    case {'MKF', 'MKF_SF95', 'MKF_SF', 'MKF_SP'}
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;

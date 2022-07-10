@@ -31,20 +31,7 @@ function obs = set_obs_vars(obs, vars)
             obs.ykp1_est = vars.ykp1_est;
             obs.P = vars.P;
 
-        case 'MKF'  % general multi-model Kalman filter
-
-            % Set variables
-            obs.xkp1_est = vars.xkp1_est;
-            obs.ykp1_est = vars.ykp1_est;
-            obs.p_seq_g_Yk = vars.p_seq_g_Yk;
-            obs.gamma_k = vars.gamma_k;
-            for f = 1:obs.n_filt
-               obs.filters{f}.xkp1_est = vars.xkp1_est_f{f};
-               obs.filters{f}.ykp1_est = vars.ykp1_est_f{f};
-               obs.filters{f}.P = vars.P_f{f};
-            end
-
-        case 'MKF_SF'  % MMKF observer with sequence fusion
+        case {'MKF','MKF_SF95', 'MKF_SF'}  % Multi-model Kalman filters
 
             % Set double variables
             obs.xkp1_est = vars.xkp1_est;
@@ -60,7 +47,7 @@ function obs = set_obs_vars(obs, vars)
             obs.i = vars.int16.i;
             obs.i_next = vars.int16.i_next;
 
-        case 'MKF_SP'  % MMKF observer with sequence pruning
+        case 'MKF_SP'  % MKF observer with sequence pruning
 
             % Set double variables
             obs.xkp1_est = vars.xkp1_est;

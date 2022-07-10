@@ -45,7 +45,7 @@ function vars = get_obs_vars(obs)
                vars.P_f{f} = obs.filters{f}.P;
             end
 
-        case {"MKF_SP", "MKF_SF"}  % multi-model Kalman filters
+        case {"MKF_SF95", "MKF_SF", "MKF_SP"}  % multi-model Kalman filters
 
             % Vars to return
             vars.xkp1_est = obs.xkp1_est;
