@@ -359,7 +359,7 @@ assert(isequal(round(X_est(t == t(end), :), 6), test_X_est))
 % (see plot figure).
 
 % Check final error covariance estimates
-test_DiagP = [0.017355  0.028238  0.028238  0.037030  0.031316  0.059197];
+test_DiagP = [0.017355  0.028238  0.028238  0.028238  0.028238  0.028238];
 assert(isequal(round(DiagP(t == t(end), :), 6), test_DiagP))
 
 % Compute mean-squared error

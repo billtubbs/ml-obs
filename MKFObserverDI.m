@@ -232,9 +232,9 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             obj.p_gamma_k = prob_gamma(obj.gamma_k, obj.T(gamma_km1+1, :)');
 
             % Arrays to collect estimates from each filter
-            Xkf_est = zeros(obj.n_filt, obj.n);
-            Pkf_est = zeros(obj.n_filt, obj.n.^2);
-            Ykf_est = zeros(obj.n_filt, obj.ny);
+            Xkf_est = zeros(obj.n, 1, obj.n_filt);
+            Pkf_est = zeros(obj.n, obj.n, obj.n_filt);
+            Ykf_est = zeros(obj.ny, 1, obj.n_filt);
 
             % Bayesian update to conditional probabilities
             for f = 1:obj.n_filt
@@ -282,11 +282,9 @@ classdef MKFObserverDI < matlab.mixin.Copyable
                 assert(~any(isnan(obj.filters{f}.xkp1_est)))
 
                 % Save state and output estimates for next timestep
-                Xkf_est(f, :) = obj.filters{f}.xkp1_est';
-                Xkf_dev = obj.xkp1_est - obj.filters{f}.xkp1_est;
-                Pkf_est(f, :) = reshape(obj.filters{f}.P ...
-                    + Xkf_dev * Xkf_dev', 1, obj.n.^2);
-                Ykf_est(f, :) = obj.filters{f}.ykp1_est';
+                Xkf_est(:, :, f) = obj.filters{f}.xkp1_est';
+                Pkf_est(:, :, f) = obj.filters{f}.P;
+                Ykf_est(:, :, f) = obj.filters{f}.ykp1_est';
 
             end
 
@@ -307,10 +305,12 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             % Compute multi-model observer state and output estimates
             % and estimated state error covariance using the weighted-
             % averages based on the conditional probabilities.
-            obj.xkp1_est = sum(Xkf_est .* obj.p_seq_g_Yk, 1)';
-            obj.P = reshape(sum(Pkf_est .* obj.p_seq_g_Yk, 1)', ...
-                obj.n, obj.n);
-            obj.ykp1_est = sum(Ykf_est .* obj.p_seq_g_Yk, 1)';
+            weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
+            obj.xkp1_est = sum(weights .* Xkf_est, 3);
+            obj.ykp1_est = sum(weights .* Ykf_est, 3);
+            Xkf_devs = obj.xkp1_est - Xkf_est;
+            obj.P = sum(weights .* (Pkf_est + ...
+                pagemtimes(Xkf_devs, pagetranspose(Xkf_devs))), 3);
             assert(~any(isnan(obj.xkp1_est)))
             assert(~any(isnan(obj.ykp1_est)))
 
