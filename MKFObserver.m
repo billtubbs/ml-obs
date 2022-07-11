@@ -3,6 +3,27 @@
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system.
 %
+% obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0,gamma0)
+%
+% Arguments:
+%	A, B, C, D : Cell arrays containing discrete-time system
+%       matrices for each switching system modelled.
+%   Ts : Sample period.
+%   P0 : Initial covariance matrix of the state estimates
+%       (same for each filter).
+%   Q : Cell array of process noise covariance matrices for
+%       each switching system.
+%   R : Cell array of output measurement noise covariance
+%       matrices for each switching system.
+%   seq : model indicator sequences for each filter (in rows).
+%   T : Transition probabity matrix of the Markov switching
+%       process.
+%   label : string name.
+%   x0 : Initial state estimates (optional, default zeros).
+%   gamma0 : (optional, default zeros)
+%       Initial prior model indicator value at time k-1 
+%       (zero-based, i.e. 0 is for first model).
+%
 
 classdef MKFObserver < matlab.mixin.Copyable
     properties (SetAccess = immutable)
@@ -44,26 +65,6 @@ classdef MKFObserver < matlab.mixin.Copyable
     methods
         function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0, ...
                 gamma0)
-        % obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0,gamma0)
-        %
-        % Arguments:
-        %	A, B, C, D : cell arrays containing discrete-time system
-        %       matrices for each switching system modelled.
-        %   Ts : sample period.
-        %   P0 : Initial covariance matrix of the state estimates
-        %       (same for each filter).
-        %   Q : cell array of process noise covariance matrices for
-        %       each switching system.
-        %   R : cell array of output measurement noise covariance
-        %       matrices for each switching system.
-        %   seq : model indicator sequences for each filter (in rows).
-        %   T : transition probabity matrix of the Markov switching
-        %       process.
-        %   label : string name.
-        %   x0 : intial state estimates (optional, default zeros)
-        %   gamma0 : (optional, default zeros)
-        %       Initial prior model indicator value at time k-1 
-        %       (zero-based, i.e. 0 is for first model).
 
             % Number of switching systems
             nj = numel(A);
@@ -92,15 +93,15 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Number of filters required
             obj.n_filt = size(obj.seq, 1);
 
+            % Fusion horizon length
+            obj.f = size(cell2mat(obj.seq), 2);
+
             % Assumption about initial model indicator
             if isscalar(gamma0)
                 % In case single value specified
                 gamma0 = gamma0 * ones(obj.n_filt, 1);
             end
             obj.gamma0 = gamma0;
-
-            % Fusion horizon length
-            obj.f = size(cell2mat(obj.seq), 2);
 
             % Check transition probability matrix
             % TODO: Is this necessary? If all possible hypotheses 
@@ -121,7 +122,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Initialize all variables
             obj.reset()
 
-            % Add other useful variables
+            % Store other useful variables
             obj.n = n;
             obj.nu = nu;
             obj.ny = ny;
@@ -222,7 +223,7 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % using posterior PDF (normal distribution) and
                 % estimates computed in previous timestep
 
-                % Get y_est(k/k-1) estimated in previous time step
+                % Get y_f_est(k/k-1) estimated in previous time step
                 yk_est = obj.filters{f}.ykp1_est;
 
                 % Calculate covariance of the output estimation errors

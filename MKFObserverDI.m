@@ -6,6 +6,28 @@
 % algorithms to reduce the number of filters required. This
 % is used by MKFObserverSF.m.
 %
+% obs = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
+%
+% Arguments:
+%	A, B, C, D : cell arrays containing discrete-time system
+%       matrices for each switching system modelled.
+%   Ts : sample period.
+%   P0 : Initial covariance matrix of the state estimates
+%       (same for each filter).
+%   Q : Cell array of process noise covariance matrices for
+%       each switching system.
+%   R : Cell array of output measurement noise covariance
+%       matrices for each switching system.
+%   seq : Model indicator sequences for each filter (in rows).
+%   T : Transition probabity matrix of the Markov switching
+%       process.
+%   d : Detection interval length in number of sample periods.
+%   label : string name.
+%   x0 : Initial state estimates (optional, default zeros).
+%   gamma0 : (optional, default zeros)
+%       Initial prior model indicator value at time k-1 
+%       (zero-based, i.e. 0 is for first model).
+%
 % References:
 %  -  Robertson, D. G., & Lee, J. H. (1998). A method for the
 %     estimation of infrequent abrupt changes in nonlinear 
@@ -57,27 +79,6 @@ classdef MKFObserverDI < matlab.mixin.Copyable
     methods
         function obj = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,label, ...
                 x0,gamma0)
-        % obs = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
-        %
-        % Arguments:
-        %	A, B, C, D : cell arrays containing discrete-time system
-        %       matrices for each switching system modelled.
-        %   Ts : sample period.
-        %   P0 : Initial covariance matrix of the state estimates
-        %       (same for each filter).
-        %   Q : cell array of process noise covariance matrices for
-        %       each switching system.
-        %   R : cell array of output measurement noise covariance
-        %       matrices for each switching system.
-        %   seq : model indicator sequences for each filter (in rows).
-        %   T : transition probabity matrix of the Markov switching
-        %       process.
-        %   d : detection interval length in number of sample periods.
-        %   label : string name.
-        %   x0 : intial state estimates (optional, default zeros)
-        %   gamma0 : (optional, default zeros)
-        %       Initial prior model indicator value at time k-1 
-        %       (zero-based, i.e. 0 is for first model).
 
             % Number of switching systems
             nj = numel(A);

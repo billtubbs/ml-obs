@@ -133,5 +133,5 @@ p_gamma_test = [
     epsilon(2)*prod(1-epsilon([1, 3]));
     epsilon(3)*prod(1-epsilon(1:2));
 ];
-p_gamma_test = p_gamma_test / sum(p_gamma_test);
-assert(max(abs(p_gamma - p_gamma_test)) < 1e-15)
+p_gamma_test = [0.990031 0.004975 0.002481 0.002481]';
+assert(isequal(round(p_gamma, 6), p_gamma_test))

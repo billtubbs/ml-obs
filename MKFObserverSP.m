@@ -20,6 +20,39 @@
 %   Let there be a certain minimum life length for all 
 %   branches.
 %
+% obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+%     sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
+%
+% Creates a struct for simulating a multi-model observer
+% using the adaptive forgetting through multiple models 
+% (AFMM) method for state estimation in the presence of 
+% infrequently-occurring deterministic disturbances, as 
+% described in Eriksson and Isaksson (1996).
+%
+% Arguments:
+%   A, B, C, D : Matrices of the discrete time state-space
+%       system representing the augmented system (including
+%       disturbances and unmeasured inputs).
+%   Ts : Sample period.
+%   u_meas : Binary vector indicating measured inputs.
+%   P0 : Initial value of covariance matrix of the state
+%       estimates.
+%   epsilon : Probability of a shock disturbance.
+%   sigma_wp : Standard deviation of shock disturbances.
+%   Q0 : Process noise covariance matrix (n, n) with 
+%        variances for each state on the diagonal. The  
+%        values for states impacted by the unmeasured
+%        input disturbances should be set to zero as the
+%        appropriate variances will be added by the
+%        algorithm during observer updates.
+%   R : Output measurement noise covariance matrix (ny, ny).
+%   n_filt : Number of models (Kalman filters) to utilise.
+%   f : Length of disturbance sequences to record.
+%   n_min : Minimum life of cloned filters in number of
+%       sample periods.
+%   label : String name.
+%   x0 : Initial state estimates (optional, default zeros)
+%
 % NOTE:
 % - The adaptive forgetting component of the AFMM
 %   (Andersson, 1985) is not yet implemented.
@@ -53,39 +86,6 @@ classdef MKFObserverSP < MKFObserver
     methods
         function obj = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
             sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
-        % obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
-        %     sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
-        %
-        % Creates a struct for simulating a multi-model observer
-        % using the adaptive forgetting through multiple models 
-        % (AFMM) method for state estimation in the presence of 
-        % infrequently-occurring deterministic disturbances, as 
-        % described in Eriksson and Isaksson (1996).
-        %
-        % Arguments:
-        %   A, B, C, D : matrices of the discrete time state-space
-        %       system representing the augmented system (including
-        %       disturbances and unmeasured inputs).
-        %   Ts : sample period.
-        %   u_meas : binary vector indicating measured inputs.
-        %   P0 : Initial value of covariance matrix of the state
-        %       estimates.
-        %   epsilon : probability of a shock disturbance.
-        %   sigma_wp : standard deviation of shock disturbances.
-        %   Q0 : Process noise covariance matrix (n, n) with 
-        %        variances for each state on the diagonal. The  
-        %        values for states impacted by the unmeasured
-        %        input disturbances should be set to zero as the
-        %        appropriate variances will be added by the
-        %        algorithm during observer updates.
-        %   R : output measurement noise covariance matrix (ny, ny).
-        %   n_filt : number of models (Kalman filters) to utilise.
-        %   f : length of disturbance sequences to record.
-        %   n_min : minimum life of cloned filters in number of
-        %       sample periods.
-        %   label : string name.
-        %   x0 : intial state estimates (optional).
-        %
 
             % TODO: Expose spacing parameter d as an argument
             % Number of states

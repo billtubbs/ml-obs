@@ -5,6 +5,32 @@
 % deterministic disturbances (RODDs) as described in 
 % Robertson et al. (1995, 1998).
 %
+% obs = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+%     sigma_wp,Q0,R,f,m,d,label,x0)
+%
+% Arguments:
+%   A, B, C, D : Matrices of the discrete time state-space
+%       system representing the augmented system (including
+%       disturbances and unmeasured inputs).
+%   Ts : Sample period.
+%   u_meas : binary vector indicating measured inputs.
+%   P0 : Initial value of covariance matrix of the state
+%       estimates.
+%   epsilon : probability of a shock disturbance.
+%   sigma_wp : standard deviation of shock disturbances.
+%   Q0 : Process noise covariance matrix (n, n) with 
+%        variances for each state on the diagonal. The  
+%        values for states impacted by the unmeasured
+%        input disturbances should be set to zero as the
+%        appropriate variances will be added by the
+%        algorithm during observer updates.
+%   R : Output measurement noise covariance matrix (ny, ny).
+%   f : Fusion horizon (length of disturbance sequences).
+%   m : Maximum number of disturbances over fusion horizon.
+%   d : Detection interval length in number of sample periods.
+%   label : String name.
+%   x0 : Initial state estimates (optional, default zeros)
+%
 % References:
 %  -  Robertson, D. G., Kesavan, P., & Lee, J. H. (1995). 
 %     Detection and estimation of randomly occurring 
@@ -34,32 +60,6 @@ classdef MKFObserverSF < MKFObserverDI
     methods
         function obj = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
-        % obs = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
-        %     sigma_wp,Q0,R,f,m,d,label,x0)
-        %
-        % Arguments:
-        %   A, B, C, D : matrices of the discrete time state-space
-        %       system representing the augmented system (including
-        %       disturbances and unmeasured inputs).
-        %   Ts : sample period.
-        %   u_meas : binary vector indicating measured inputs.
-        %   P0 : Initial value of covariance matrix of the state
-        %       estimates.
-        %   epsilon : probability of a shock disturbance.
-        %   sigma_wp : standard deviation of shock disturbances.
-        %   Q0 : Process noise covariance matrix (n, n) with 
-        %        variances for each state on the diagonal. The  
-        %        values for states impacted by the unmeasured
-        %        input disturbances should be set to zero as the
-        %        appropriate variances will be added by the
-        %        algorithm during observer updates.
-        %   R : output measurement noise covariance matrix (ny, ny).
-        %   f : fusion horizon (length of disturbance sequences).
-        %   m : maximum number of disturbances over fusion horizon.
-        %   d : detection interval length in number of sample periods.
-        %   label : string name.
-        %   x0 : intial state estimates (optional).
-        %
 
             % Number of states
             n = check_dimensions(A, B, C, D);
