@@ -1,13 +1,14 @@
 % Multi-model Kalman Filter class definition
 %
-% Class for simulating a multi-model Kalman filter for state
-% estimation of a Markov jump linear system.
+% Class for simulating the generalised pseudo-Bayes multi-
+% model Kalman filter for state estimation of Markov jump
+% linear systems.
 %
-% obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0,gamma_init, ...
+% obs = MKFObserverGPB1(A,B,C,D,Ts,P0,Q,R,T,label,x0,gamma_init, ...
 %     p_seq_g_Yk_init)
 %
 % Arguments:
-%   A, B, C, D : Cell arrays containing discrete-time system
+%	A, B, C, D : Cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : Sample period.
 %   P0 : Initial covariance matrix of the state estimates
@@ -16,11 +17,10 @@
 %       each switching system.
 %   R : Cell array of output measurement noise covariance
 %       matrices for each switching system.
-%   seq : model indicator sequences for each filter (in rows).
 %   T : Transition probabity matrix of the Markov switching
 %       process.
-%   label : string name.
-%   x0 : Initial state estimates (optional, default zeros).
+%   label : String name.
+%   x0 : Intial state estimates (optional, default zeros)
 %   gamma_init : (optional, default zeros)
 %       Initial prior model indicator value at time k-1 
 %       (zero-based, i.e. 0 is for first model).
@@ -30,7 +30,7 @@
 %       probability assigned to each hypothesis.
 %
 
-classdef MKFObserver < matlab.mixin.Copyable
+classdef MKFObserverGPB1 < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         n (1, 1) double {mustBeInteger, mustBeNonnegative}
@@ -55,7 +55,6 @@ classdef MKFObserver < matlab.mixin.Copyable
         gamma_init double {mustBeInteger, mustBeNonnegative}
         p_seq_g_Yk_init double
         i (1, 1) {mustBeInteger, mustBeNonnegative}
-        i_next (1, 1) {mustBeInteger, mustBeNonnegative}
         gamma_k double
         p_seq_g_Ykm1 double
         p_seq_g_Yk double
@@ -69,8 +68,8 @@ classdef MKFObserver < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0, ...
-                gamma_init,p_seq_g_Yk_init)
+        function obj = MKFObserverGPB1(A,B,C,D,Ts,P0,Q,R,T,label,x0, ...
+                gamma_init, p_seq_g_Yk_init)
 
             % System dimensions
             [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
@@ -79,19 +78,19 @@ classdef MKFObserver < matlab.mixin.Copyable
             nj = numel(A);
 
             % Number of filters required
-            n_filt = size(seq, 1);
+            n_filt = nj;
 
-            if nargin < 14
+            if nargin < 13
                 % Initial values of prior conditional probabilities at 
                 % k = -1. In absence of prior knowledge, assume all 
                 % equally likely
                 p_seq_g_Yk_init = ones(n_filt, 1) ./ double(n_filt);
             end
-            if nargin < 13
+            if nargin < 12
                 % Default assumption about model indicator values at k = -1
                 gamma_init = 0;
             end
-            if nargin < 12
+            if nargin < 11
                 x0 = zeros(n,1);
             end
             obj.A = A;
@@ -101,14 +100,26 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.Ts = Ts;
             obj.Q = Q;
             obj.R = R;
-            obj.seq = seq;
             obj.T = T;
             obj.label = label;
             obj.P0 = P0;
             obj.x0 = x0;
 
+            % Model indicator values gamma(k) are static - there is
+            % one filter for each model
+            obj.gamma_k = (0:nj-1)';
+
+            % Mode sequences (length 1 for GPB1)
+            % For compatibility with other MKF observers.
+            % TODO: Could eliminate seq, i and maybe f and make this a 
+            % parent class of the other observers?
+            obj.seq = num2cell(obj.gamma_k);
+
+            % Sequence index starts at 0 but then remains 1 thereafter.
+            obj.i = int16(0);
+
             % Fusion horizon length
-            obj.f = size(cell2mat(obj.seq), 2);
+            obj.f = 1;
 
             % Prior assumptions at initialization
             if isscalar(gamma_init)
@@ -140,7 +151,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.ny = ny;
             obj.nj = nj;
             obj.n_filt = n_filt;
-            obj.type = "MKF";
+            obj.type = "MKF_GPB1";
 
             % Initialize all variables
             obj.reset()
@@ -154,10 +165,6 @@ classdef MKFObserver < matlab.mixin.Copyable
 
             % Switching variable at previous time instant
             obj.gamma_k = obj.gamma_init;
-
-            % Reset sequence index
-            obj.i = int16(0);
-            obj.i_next = int16(1);
 
             % Initial values of prior conditional probabilities at k = -1 
             obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
@@ -210,21 +217,15 @@ classdef MKFObserver < matlab.mixin.Copyable
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-            % Increment sequence index
-            obj.i = obj.i_next;
-            obj.i_next = mod(obj.i, obj.f) + 1;
+            % Sequence index does not change
+            % TODO: Do we need it?
+            obj.i = 1;
 
-            % Update model indicator values gamma(k) with the
-            % current values from the filter's sequence and keep a
-            % copy of the previous values
-            gamma_km1 = obj.gamma_k;
-            obj.gamma_k = cellfun(@(x) x(:, obj.i), obj.seq);
-
-            % Compute Pr(gamma(k)|gamma(k-1)) based on Markov transition
-            % probability matrix
-            % TODO: This doesn't need to be a property since gamma_k
-            % and p_gamma are properties.
-            obj.p_gamma_k = prob_gamma(obj.gamma_k, obj.T(gamma_km1+1, :)');
+            % Compute Pr(gamma(k)|gamma(k-1)). For GPB1, this is
+            % simply Pr(gamma(k)) which is not changed from the
+            % previous time. I.e.
+            % obj.gamma_km1 = obj.p_gamma_k;
+            % obj.p_gamma_k = obj.gamma_km1;
 
             % Arrays to collect estimates from each filter
             Xkf_est = zeros(obj.n, 1, obj.n_filt);
@@ -237,6 +238,10 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % Compute posterior probability density of y(k)
                 % using posterior PDF (normal distribution) and
                 % estimates computed in previous timestep
+
+                % In GPB1 algorithm, all filters are initialized
+                % with the overall estimates calculated at the 
+                % previous time step.
 
                 % Get y_f_est(k/k-1) estimated in previous time step
                 yk_est = obj.filters{f}.ykp1_est;

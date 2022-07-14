@@ -56,6 +56,8 @@ assert(MKF_SP1.f == size(MKF_SP1.seq{1}, 2))
 assert(isequal(MKF_SP1.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_SP1.P, 1000*eye(2)))
 assert(isequal(MKF_SP1.ykp1_est, zeros(ny, 1)))
+assert(isequal(MKF_SP1.gamma_init, zeros(MKF_SP1.n_filt, 1)))
+assert(isequal(MKF_SP1.p_seq_g_Yk_init, [1; zeros(MKF_SP1.n_filt-1, 1)]))
 assert(isequal(MKF_SP1.p_gamma, [1-MKF_SP1.epsilon; MKF_SP1.epsilon]))
 
 % Check initialization of filters
@@ -98,6 +100,8 @@ assert(MKF_SP2.f == size(MKF_SP2.seq{1}, 2))
 assert(isequal(MKF_SP2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_SP2.P, 1000*eye(2)))
 assert(isequal(MKF_SP2.ykp1_est, zeros(ny, 1)))
+assert(isequal(MKF_SP2.gamma_init, zeros(MKF_SP2.n_filt, 1)))
+assert(isequal(MKF_SP2.p_seq_g_Yk_init, [1; zeros(MKF_SP2.n_filt-1, 1)]))
 assert(isequal(MKF_SP2.p_gamma, [1-MKF_SP2.epsilon; MKF_SP2.epsilon]))
 
 % Check initialization of filters
@@ -117,6 +121,8 @@ assert(isequal(MKF_SP_testx0.ykp1_est, C * x0))
 for i = 1:MKF_SP_testx0.n_filt
     assert(isequal(MKF_SP_testx0.filters{i}.x0, MKF_SP_testx0.x0))
 end
+assert(isequal(MKF_SP_testx0.gamma_init, zeros(MKF_SP_testx0.n_filt, 1)))
+assert(isequal(MKF_SP_testx0.p_seq_g_Yk_init, [1; zeros(MKF_SP_testx0.n_filt-1, 1)]))
 
 
 %% Test convergence to steady-state
@@ -234,11 +240,11 @@ assert(isequal(obs.n_main, 3))
 assert(isequaln(obs.f_hold, [4 5]))
 assert(isequaln(obs.f_main, [1 2 3]))
 
-% Check probabilities
+% Check initialization of probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.99]'))
-assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0]'))
-assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0]'))
+assert(isequaln(obs.p_gamma_k, nan(5, 1)))
+assert(isequaln(obs.p_yk_g_seq_Ykm1, nan(5, 1)))
+assert(isequaln(obs.p_seq_g_Ykm1, nan(5, 1)))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 4)]'))
 
 % Check initialization of filters
@@ -632,9 +638,9 @@ assert(isequaln(obs.f_main, [1 2 3 4]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 0]'))
-assert(isequal(obs.p_gamma_k, [0.99 0.99 0.99 0.99 0.99]'))
-assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0]'))
-assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0]'))
+assert(isequaln(obs.p_gamma_k, nan(5, 1)))
+assert(isequaln(obs.p_yk_g_seq_Ykm1, nan(5, 1)))
+assert(isequaln(obs.p_seq_g_Ykm1, nan(5, 1)))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 4)]'))
 
 % Check initialization of filters
@@ -1315,6 +1321,8 @@ assert(MKF_SP1.f == size(MKF_SP1.seq{1}, 2))
 assert(isequal(MKF_SP1.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_SP1.P, 1000*eye(4)))
 assert(isequal(MKF_SP1.ykp1_est, zeros(ny, 1)))
+assert(isequal(MKF_SP1.gamma_init, zeros(MKF_SP1.n_filt, 1)))
+assert(isequal(MKF_SP1.p_seq_g_Yk_init, [1; zeros(MKF_SP1.n_filt-1, 1)]))
 assert(isequal(round(MKF_SP1.p_gamma, 6), [0.990025; 0.004975; 0.004975]))
 
 % Check observer initialization
@@ -1348,6 +1356,8 @@ assert(MKF_SP2.f == size(MKF_SP2.seq{1}, 2))
 assert(isequal(MKF_SP2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_SP2.P, 1000*eye(4)))
 assert(isequal(MKF_SP2.ykp1_est, zeros(ny, 1)))
+assert(isequal(MKF_SP2.gamma_init, zeros(MKF_SP2.n_filt, 1)))
+assert(isequal(MKF_SP2.p_seq_g_Yk_init, [1; zeros(MKF_SP2.n_filt-1, 1)]))
 assert(isequal(round(MKF_SP2.p_gamma, 6), [0.990025; 0.004975; 0.004975]))
 
 % Check optional definition with an initial state estimate works
@@ -1356,6 +1366,8 @@ MKF_SP_testx0 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal(MKF_SP_testx0.ykp1_est, C * x0))
+assert(isequal(MKF_SP_testx0.gamma_init, zeros(MKF_SP_testx0.n_filt, 1)))
+assert(isequal(MKF_SP_testx0.p_seq_g_Yk_init, [1; zeros(MKF_SP_testx0.n_filt-1, 1)]))
 
 
 %% Test sequence on 2x2 system
@@ -1425,10 +1437,9 @@ assert(isequaln(obs.f_main, [1 2 3 4]))
 
 % Check probabilities
 assert(isequal(obs.gamma_k, [0 0 0 0 0 0 0 0 0 0]'))
-assert(isequal(round(obs.p_gamma_k, 4), ...
-    [0.99 0.99 0.99 0.99 0.99 0.99 0.99 0.99 0.99 0.99]'))
-assert(isequal(obs.p_yk_g_seq_Ykm1, [0 0 0 0 0 0 0 0 0 0]'))
-assert(isequal(obs.p_seq_g_Ykm1, [0 0 0 0 0 0 0 0 0 0]'))
+assert(isequaln(round(obs.p_gamma_k, 4), nan(10,1)))
+assert(isequaln(obs.p_yk_g_seq_Ykm1, nan(10,1)))
+assert(isequaln(obs.p_seq_g_Ykm1, nan(10,1)))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 9)]'))
 
 % Check initialization of filters

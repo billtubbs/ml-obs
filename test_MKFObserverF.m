@@ -1,4 +1,4 @@
-% Test classes MKFObserver and MKFObserverSched
+% Test classes MKFObserverF and MKFObserverSchedF
 
 clear all
 

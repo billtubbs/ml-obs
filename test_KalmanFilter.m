@@ -78,8 +78,8 @@ assert(all(isnan(KFF.Kf)))
 assert(isequal(KFF.P, P0))
 assert(isequal(KFF.xkp1_est, zeros(2, 1)))
 assert(KFF.ykp1_est == 0)
-assert(isempty(KFF.xk_est))
-assert(isempty(KFF.yk_est))
+assert(all(isnan(KFF.xk_est)))
+assert(all(isnan(KFF.yk_est)))
 
 % number of points to simulate
 nT = 100;
@@ -124,6 +124,10 @@ for i = 1:nT
     % Process states in next timestep
     x = A*x + B*U(i) + w(:,i);
 
+    % Check predictions in next time step
+    % KFF.predict();
+    % assert(all(abs(A * KFF.xk_est + B * U(i) - KFF.xkp1_est) < 1e-14))
+
     % Update Kalman filters
     KFSS.update(y, U(i));
     KF.update(y, U(i));
@@ -139,7 +143,6 @@ for i = 1:nT
 
     % Check updated states and predictions match
     assert(all(abs(C * KFF.xk_est - KFF.yk_est) < 1e-14))
-    assert(all(abs(A * KFF.xk_est + B * U(i) - KFF.xkp1_est) < 1e-14))
     assert(all(abs(C * KFF.xkp1_est - KFF.ykp1_est) < 1e-14))
 
     % Check predictions are the same
@@ -254,8 +257,8 @@ assert(isequal(KFF.P, P0))
 assert(isequal(KFF.label, label))
 assert(isequal(KFF.xkp1_est, x0))
 assert(KFF.ykp1_est == C*x0)
-assert(isempty(KFF.xk_est))
-assert(isempty(KFF.yk_est))
+assert(all(isnan(KFF.xk_est)))
+assert(all(isnan(KFF.yk_est)))
 assert(KFF.n == n)
 assert(KFF.nu == nu)
 assert(KFF.ny == ny)
@@ -273,8 +276,8 @@ assert(all(isnan(KFF.Kf)))
 assert(isequal(KFF.P, P0))
 assert(isequal(KFF.xkp1_est, zeros(n, 1)))
 assert(KFF.ykp1_est == 0)
-assert(isempty(KFF.xk_est))
-assert(isempty(KFF.yk_est))
+assert(all(isnan(KFF.xk_est)))
+assert(all(isnan(KFF.yk_est)))
 
 % number of points to simulate
 nT = 100;

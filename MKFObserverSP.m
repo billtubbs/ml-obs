@@ -152,12 +152,16 @@ classdef MKFObserverSP < MKFObserver
             % Initial covariance matrix is the same for all filters
             %P0_init = repmat({P0}, 1, n_filt);
 
-            % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,label,x0);
-
             % Sequence pruning algorithm initialization
-            % Assign all probability to first filter
-            obj.p_seq_g_Yk = [1; zeros(obj.n_filt-1, 1)];
+            % Assume initial transitions at k = -1 all start from model 0
+            % (i.e. no shock)
+            gamma_init = zeros(n_filt, 1);
+            % Assign all probability to first filter.
+            p_seq_g_Yk_init = [1; zeros(n_filt-1, 1)];
+
+            % Create MKF super-class observer instance
+            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,label,x0, ...
+                gamma_init, p_seq_g_Yk_init);
 
             % Set estimate covariances to high values for the
             % rest of the filters
