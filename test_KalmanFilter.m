@@ -68,14 +68,28 @@ assert(KFSS.ykp1_est == 0)
 P0 = diag([1e-4 1e-4]);
 
 KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
-assert(all(isnan(KF.K)))
+assert(isequal(KF.A, A))
+assert(isequal(KF.B, B))
+assert(isequal(KF.C, C))
+assert(isequal(KF.D, D))
+assert(isequal(KF.Ts, Ts))
 assert(isequal(KF.P, P0))
+assert(isequal(KF.Q, Q))
+assert(isequal(KF.R, R))
+assert(all(isnan(KF.K)))
 assert(isequal(KF.xkp1_est, zeros(2, 1)))
 assert(KF.ykp1_est == 0)
 
 KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,"KF");
-assert(all(isnan(KFF.Kf)))
+assert(isequal(KFF.A, A))
+assert(isequal(KFF.B, B))
+assert(isequal(KFF.C, C))
+assert(isequal(KFF.D, D))
+assert(isequal(KFF.Ts, Ts))
 assert(isequal(KFF.P, P0))
+assert(isequal(KFF.Q, Q))
+assert(isequal(KFF.R, R))
+assert(all(isnan(KFF.Kf)))
 assert(isequal(KFF.xkp1_est, zeros(2, 1)))
 assert(KFF.ykp1_est == 0)
 assert(all(isnan(KFF.xk_est)))
@@ -244,7 +258,7 @@ assert(KF.ny == ny)
 
 label = 'KFF';
 KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,label,x0);
-assert(strcmp(KFF.type, "KF"))
+assert(strcmp(KFF.type, "KFF"))
 assert(isequal(KFF.A, A))
 assert(isequal(KFF.B, B))
 assert(isequal(KFF.C, C))

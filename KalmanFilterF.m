@@ -11,6 +11,13 @@
 %  x_hat(k|k) : estimate of states at time k
 %  y_hat(k|k) : estimate of outputs at time k
 %
+% Prior estimates of the states and outputs at the next
+% time instant given the data at the current time are
+% also calculated:
+%
+%  xkp1_hat(k+1|k) : estimate of states at time k + 1
+%  ykp1_hat(k+1|k) : estimate of outputs at time k + 1
+%
 % Arguments:
 %   A, B, C, D : matrices
 %       Discrete-time system model matrices.
@@ -35,7 +42,6 @@ classdef KalmanFilterF < AbstractLinearFilter
         ykp1_est (:, 1) double
         xk_est (:, 1) double
         yk_est (:, 1) double
-        yk_cov (:, :) double
         Kf double
         P double
         Q double
@@ -57,7 +63,7 @@ classdef KalmanFilterF < AbstractLinearFilter
             assert(isequal(size(Q), [n n]))
             obj.R = R;
             assert(isequal(size(R), [ny ny]))
-            obj.type = "KF";
+            obj.type = "KFF";
             if nargin < 9
                 obj.label = obj.type;
             end
@@ -108,10 +114,10 @@ classdef KalmanFilterF < AbstractLinearFilter
         %
 
             % Error covariance of output prediction
-            obj.yk_cov = obj.C * obj.P * obj.C' + obj.R;
+            S = obj.C * obj.P * obj.C' + obj.R;
 
             % Update correction gain
-            obj.Kf = obj.P * obj.C' / obj.yk_cov;
+            obj.Kf = obj.P * obj.C' / S;
 
             % Update of prior state estimates using measurements 
             % from current time step to produce 'a posteriori' 
@@ -123,7 +129,7 @@ classdef KalmanFilterF < AbstractLinearFilter
             obj.yk_est = obj.C * obj.xk_est;
 
             % Update error covariance of state estimates
-            obj.P = obj.P - obj.Kf * obj.yk_cov * obj.Kf';
+            obj.P = obj.P - obj.Kf * S * obj.Kf';
 
             % Make predictions of states and outputs in next time step
             % x(k+1|k) and y(k+1|k) i.e. based on the data up to time k.

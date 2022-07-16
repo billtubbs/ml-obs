@@ -4,7 +4,19 @@
 % state estimation with prescribed schedule to determine which 
 % system is active at each time step. Although it is a multi-
 % model observer because it has more than one possible system 
-% model, it only uses one Kalman Filter (n_filt = 1).
+% model, it only uses one Kalman Filter (n_filt = 1). This is
+% the filtering form, which produces posterior estimates of
+% the states and outputs at the current time:
+%
+%  x_hat(k|k) : estimate of states at time k
+%  y_hat(k|k) : estimate of outputs at time k
+%
+% Prior estimates of the states and outputs at the next
+% time instant given the data at the current time are
+% also calculated:
+%
+%  xkp1_hat(k+1|k) : estimate of states at time k + 1
+%  ykp1_hat(k+1|k) : estimate of outputs at time k + 1
 %
 % This scheduled KF is useful as a benchmark to compare other 
 % multi-model observers with.
@@ -13,7 +25,7 @@
 % TODO: Could this be inherited from MKFObserver?
 %   or vice versa? SKF is an MKF without probability updates.
 
-classdef MKFObserverSched < matlab.mixin.Copyable
+classdef MKFObserverSchedF < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         n (1, 1) double {mustBeInteger, mustBeNonnegative}
@@ -32,7 +44,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         P0 double
         Q cell
         R cell
-        K double
+        Kf double
         P double
         seq (1, :) double
         label (1, 1) string
@@ -40,13 +52,15 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         i (1, 2) {mustBeInteger, mustBeNonnegative}
         i_next (1, 2) {mustBeInteger, mustBeNonnegative}
         gamma_k double
-        filter  KalmanFilter
+        filter  KalmanFilterF
+        xk_est (:, 1) double
+        yk_est (:, 1) double
         xkp1_est (:, 1) double
         ykp1_est (:, 1) double
         type (1, 1) string
     end
     methods
-        function obj = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
+        function obj = MKFObserverSchedF(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
         % obs = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
         %
         % Arguments:
@@ -105,7 +119,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             end
 
             % Initialize Kalman filter
-            obj.filter = KalmanFilter(A{1},B{1},C{1},D{1},Ts,P0,Q{1}, ...
+            obj.filter = KalmanFilterF(A{1},B{1},C{1},D{1},Ts,P0,Q{1}, ...
                 R{1},"KF",x0);
 
             % System model indicator sequence
@@ -128,7 +142,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             obj.n = obj.filter.n;
             obj.nu = obj.filter.nu;
             obj.ny = obj.filter.ny;
-            obj.type = "SKF";
+            obj.type = "SKFF";
 
         end
         function reset(obj)
@@ -212,10 +226,12 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             obj.filter.update(yk, uk);
 
             % Copy gain and covariance matrix
-            obj.K = obj.filter.K;
+            obj.Kf = obj.filter.Kf;
             obj.P = obj.filter.P;
 
             % Copy filter estimates
+            obj.xk_est = obj.filter.xk_est;
+            obj.yk_est = obj.filter.yk_est;
             obj.xkp1_est = obj.filter.xkp1_est;
             obj.ykp1_est = obj.filter.ykp1_est;
 

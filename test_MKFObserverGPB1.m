@@ -122,8 +122,8 @@ assert(isequal(size(Q1), size(Q2)))
 assert(isequal(size(R1), size(R2)))
 
 % Standard Kalman filters
-KF1 = KalmanFilter(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
-KF2 = KalmanFilter(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
+KF1 = KalmanFilterF(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
+KF2 = KalmanFilterF(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
 
 % Define observers with a switching system
 Q = {Q1,Q2};
@@ -131,9 +131,9 @@ R = {R1,R2};
 
 % Define scheduled MKF filter
 seq = Gamma';
-SKF = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,"SKF1",x0);
+SKF = MKFObserverSchedF(A,B,C,D,Ts,P0,Q,R,seq,"SKF1",x0);
 
-assert(strcmp(SKF.type, "SKF"))
+assert(strcmp(SKF.type, "SKFF"))
 assert(isequal(SKF.A, A))
 assert(isequal(SKF.B, B))
 assert(isequal(SKF.C, C))
@@ -146,8 +146,8 @@ assert(isequal(SKF.R, R))
 assert(isequal(SKF.seq, seq))
 assert(strcmp(SKF.label, "SKF1"))
 assert(SKF.n_filt == 1)
-assert(isa(SKF.filter, 'KalmanFilter'))
-assert(strcmp(SKF.filter.label, 'SKF1'))
+assert(isa(SKF.filter, 'KalmanFilterF'))
+assert(strcmp(SKF.filter.label, 'KF'))
 assert(SKF.n == n)
 assert(SKF.nu == nu)
 assert(SKF.ny == ny)
@@ -242,7 +242,7 @@ obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 f_mkf = 3;
 
 % Simulate observers - without measurement noise (Y)
-[Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
+[Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
     run_simulation_obs(Y,U,observers,f_mkf);
 
 % Move estimates to correct time instants
@@ -325,8 +325,8 @@ obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 f_mkf = 4;
 
 % Simulate observers - with measurement noise (Ym)
-[Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Ym,U,observers,f_mkf);
+[Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
+    run_simulation_obs(Y,U,observers,f_mkf);
 
 % Move estimates to correct time instants
 X_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
@@ -533,8 +533,8 @@ Y_m = Y + sigma_MP'.*randn(nT+1, ny);
 f_mkf = 1;
 
 % Simulate observers
-[Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Y_m,U,observers,f_mkf);
+[Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
+    run_simulation_obs(Y,U,observers,f_mkf);
 
 % Plot observer estimates
 % figure(5); clf
@@ -721,9 +721,9 @@ function [X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT)
     end
 end
 
-% TODO: Can't the function run_test_simulation.m be used here?
-function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Ym,U,observers,f_mkf)
+
+function [Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs, ...
+    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf)
 % Simulate observers
 
     nT = size(Ym, 1) - 1;
@@ -734,6 +734,8 @@ function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = 
     obs_mkf = observers{f_mkf};
     n_filters = size(obs_mkf.seq, 1);
 
+    Xk_est = zeros(nT+1, n*n_obs);
+    Yk_est = zeros(nT+1, ny*n_obs);
     Xkp1_est = zeros(nT+1, n*n_obs);
     Ykp1_est = zeros(nT+1, ny*n_obs);
     DiagP = zeros(nT+1, n*n_obs);
@@ -755,9 +757,21 @@ function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = 
                 MKF_i(i, :) = obs.i;
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
                 for j = 1:obs.n_filt
-                    MKF_K_obs{i, j} = obs.filters{j}.K';
+                    switch obs.type
+                        case {"KF", "SKF", "MKF"}
+                            MKF_K_obs{i, j} = obs.filters{j}.K';
+                        case {"KFF", "SKFF", "MKFF"}
+                            MKF_K_obs{i, j} = obs.filters{j}.Kf';
+                    end
                     MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
                 end
+            end
+            if isprop(obs,'xk_est')
+                xk_est(1, (f-1)*n+1:f*n) = obs.xk_est';
+                yk_est(1, (f-1)*ny+1:f*ny) = obs.yk_est';
+            else
+                xk_est(1, (f-1)*n+1:f*n) = nan;
+                yk_est(1, (f-1)*ny+1:f*ny) = nan;
             end
             xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
             ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
@@ -765,6 +779,8 @@ function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = 
         end
 
         % Record observer estimates
+        Xk_est(i, :) = xk_est;
+        Yk_est(i, :) = yk_est;
         Xkp1_est(i, :) = xkp1_est;
         Ykp1_est(i, :) = ykp1_est;
         DiagP(i, :) = diagP;

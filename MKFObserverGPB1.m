@@ -1,14 +1,26 @@
 % Multi-model Kalman Filter class definition
 %
+% obs = MKFObserverF(A,B,C,D,Ts,P0,Q,R,T,label,x0,gamma_init, ...
+%     p_seq_g_Yk_init)
 % Class for simulating the generalised pseudo-Bayes multi-
 % model Kalman filter for state estimation of Markov jump
-% linear systems.
+% linear systems. This is the filtering form of the 
+% MKFObserver, which produces posterior estimates of the 
+% states and outputs at the current time instant given the
+% data at the current time:
 %
-% obs = MKFObserverGPB1(A,B,C,D,Ts,P0,Q,R,T,label,x0,gamma_init, ...
-%     p_seq_g_Yk_init)
+%  x_hat(k|k) : estimate of states at time k
+%  y_hat(k|k) : estimate of outputs at time k
+%
+% Prior estimates of the states and outputs at the next
+% time instant given the data at the current time are
+% also calculated:
+%
+%  xkp1_hat(k+1|k) : estimate of states at time k + 1
+%  ykp1_hat(k+1|k) : estimate of outputs at time k + 1
 %
 % Arguments:
-%	A, B, C, D : Cell arrays containing discrete-time system
+%   A, B, C, D : Cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : Sample period.
 %   P0 : Initial covariance matrix of the state estimates
@@ -19,8 +31,8 @@
 %       matrices for each switching system.
 %   T : Transition probabity matrix of the Markov switching
 %       process.
-%   label : String name.
-%   x0 : Intial state estimates (optional, default zeros)
+%   label : string name.
+%   x0 : Initial state estimates (optional, default zeros).
 %   gamma_init : (optional, default zeros)
 %       Initial prior model indicator value at time k-1 
 %       (zero-based, i.e. 0 is for first model).
@@ -62,8 +74,10 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
         p_gammak_g_Ykm1 double
         p_gamma_k double
         filters  cell
-        xkp1_est (:, 1) double
+        xk_est (:, 1) double
         P double
+        yk_est (:, 1) double
+        xkp1_est (:, 1) double
         ykp1_est (:, 1) double
         type (1, 1) string
     end
@@ -188,15 +202,25 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
                 label_i = sprintf(fmt,obj.label,i);
                 % Index of system model
                 ind = obj.gamma_k(i) + 1;
-                obj.filters{i} = KalmanFilter(obj.A{ind},obj.B{ind}, ...
+                obj.filters{i} = KalmanFilterF(obj.A{ind},obj.B{ind}, ...
                     obj.C{ind},obj.D{ind},obj.Ts,obj.P0, obj.Q{ind}, ...
                     obj.R{ind},label_i,obj.x0);
             end
 
-            % Initialize estimates
+            % Initialize state and output estimates
+            % Note: At initialization at time k = 0, xkp1_est and
+            % ykp1_est represent prior estimates of the states,
+            % i.e. x_est(k|k-1) and y_est(k|k-1).
             obj.xkp1_est = obj.x0;
-            obj.P = obj.P0;
             obj.ykp1_est = obj.C{1} * obj.xkp1_est;
+
+            % At initialization at time k = 0, x_est(k|k)
+            % and y_est(k|k) have not yet been computed.
+            obj.xk_est = nan(obj.n, 1);
+            obj.yk_est = nan(obj.ny, 1);
+
+            % Initialize error covariance at k = 0
+            obj.P = obj.P0;
 
         end
         function update(obj, yk, uk)
@@ -225,12 +249,15 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             % simply Pr(gamma(k)) which is not changed from the
             % previous time. I.e.
             % obj.gamma_km1 = obj.p_gamma_k;
-            % obj.p_gamma_k = obj.gamma_km1;
+            %TODO: is this correct?
+            obj.p_gamma_k = sum(obj.T, 1)';
 
             % Arrays to collect estimates from each filter
             Xkf_est = zeros(obj.n, 1, obj.n_filt);
             Pkf_est = zeros(obj.n, obj.n, obj.n_filt);
             Ykf_est = zeros(obj.ny, 1, obj.n_filt);
+            Xkp1f_est = zeros(obj.n, 1, obj.n_filt);
+            Ykp1f_est = zeros(obj.ny, 1, obj.n_filt);
 
             % Bayesian update to conditional probabilities
             for f = 1:obj.n_filt
@@ -242,6 +269,9 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
                 % In GPB1 algorithm, all filters are initialized
                 % with the overall estimates calculated at the 
                 % previous time step.
+                obj.filters{f}.xkp1_est = obj.xkp1_est;
+                obj.filters{f}.P = obj.P;
+                obj.filters{f}.ykp1_est = obj.ykp1_est;  % TODO: is this needed?
 
                 % Get y_f_est(k/k-1) estimated in previous time step
                 yk_est = obj.filters{f}.ykp1_est;
@@ -273,10 +303,12 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
                 obj.filters{f}.update(yk, uk);
                 assert(~any(isnan(obj.filters{f}.xkp1_est)))
 
-                % Save state and output estimates for next timestep
-                Xkf_est(:, :, f) = obj.filters{f}.xkp1_est';
+                % Save state and output estimates
+                Xkf_est(:, :, f) = obj.filters{f}.xk_est';
                 Pkf_est(:, :, f) = obj.filters{f}.P;
-                Ykf_est(:, :, f) = obj.filters{f}.ykp1_est';
+                Ykf_est(:, :, f) = obj.filters{f}.yk_est';
+                Xkp1f_est(:, :, f) = obj.filters{f}.xkp1_est';
+                Ykp1f_est(:, :, f) = obj.filters{f}.ykp1_est';
 
             end
 
@@ -298,13 +330,19 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             % and estimated state error covariance using the weighted-
             % averages based on the conditional probabilities.
             weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
-            obj.xkp1_est = sum(weights .* Xkf_est, 3);
-            obj.ykp1_est = sum(weights .* Ykf_est, 3);
-            Xkf_devs = obj.xkp1_est - Xkf_est;
+            obj.xk_est = sum(weights .* Xkf_est, 3);
+            obj.yk_est = sum(weights .* Ykf_est, 3);
+            Xkf_devs = obj.xk_est - Xkf_est;
             obj.P = sum(weights .* (Pkf_est + ...
                 pagemtimes(Xkf_devs, pagetranspose(Xkf_devs))), 3);
-            assert(~any(isnan(obj.xkp1_est)))
-            assert(~any(isnan(obj.ykp1_est)))
+            assert(~any(isnan(obj.xk_est)))
+            assert(~any(isnan(obj.yk_est)))
+
+            % Weighted averages
+            obj.xk_est = sum(weights .* Xkf_est, 3);
+            obj.yk_est = sum(weights .* Ykf_est, 3);
+            obj.xkp1_est = sum(weights .* Xkp1f_est, 3);
+            obj.ykp1_est = sum(weights .* Ykp1f_est, 3);
 
         end
     end
