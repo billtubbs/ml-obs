@@ -38,12 +38,13 @@
 
 classdef KalmanFilterF < AbstractLinearFilter
     properties
-        xkp1_est (:, 1) double
-        ykp1_est (:, 1) double
         xk_est (:, 1) double
         yk_est (:, 1) double
+        xkp1_est (:, 1) double
+        ykp1_est (:, 1) double
         Kf double
-        P double
+        Pk double
+        Pkp1 double
         Q double
         R double
         P0 double
@@ -85,13 +86,14 @@ classdef KalmanFilterF < AbstractLinearFilter
             obj.xkp1_est = obj.x0; 
             obj.ykp1_est = obj.C * obj.xkp1_est;
 
+            % Initialize error covariance P(k|k-1)
+            obj.Pkp1 = obj.P0;
+
             % At initialization at time k = 0, x_est(k|k)
             % and y_est(k|k) have not yet been computed.
             obj.xk_est = nan(obj.n, 1);
             obj.yk_est = nan(obj.ny, 1);
-
-            % Initialize error covariance at k = 0
-            obj.P = obj.P0;
+            obj.Pk = nan(obj.n);
 
             % Gain will be calculated at first update
             obj.Kf = nan(obj.n, 1);
@@ -114,10 +116,10 @@ classdef KalmanFilterF < AbstractLinearFilter
         %
 
             % Error covariance of output prediction
-            S = obj.C * obj.P * obj.C' + obj.R;
+            S = obj.C * obj.Pkp1 * obj.C' + obj.R;
 
             % Update correction gain
-            obj.Kf = obj.P * obj.C' / S;
+            obj.Kf = obj.Pkp1 * obj.C' / S;
 
             % Update of prior state estimates using measurements 
             % from current time step to produce 'a posteriori' 
@@ -129,7 +131,7 @@ classdef KalmanFilterF < AbstractLinearFilter
             obj.yk_est = obj.C * obj.xk_est;
 
             % Update error covariance of state estimates
-            obj.P = obj.P - obj.Kf * S * obj.Kf';
+            obj.Pk = obj.Pkp1 - obj.Kf * S * obj.Kf';
 
             % Make predictions of states and outputs in next time step
             % x(k+1|k) and y(k+1|k) i.e. based on the data up to time k.
@@ -138,7 +140,7 @@ classdef KalmanFilterF < AbstractLinearFilter
             obj.ykp1_est = obj.C * obj.xkp1_est + obj.D * uk;
 
             % Error covariance of predicted state estimates
-            obj.P = obj.A * obj.P * obj.A' + obj.Q;
+            obj.Pkp1 = obj.A * obj.Pk * obj.A' + obj.Q;
 
         end
     end

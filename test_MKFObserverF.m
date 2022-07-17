@@ -165,7 +165,6 @@ assert(isequal(SKF2.C, C))
 assert(isequal(SKF2.D, D))
 assert(isequal(SKF2.Ts, Ts))
 assert(isequal(SKF2.P0, P0))
-assert(isequal(SKF2.P, P0))
 assert(isequal(SKF2.Q, Q))
 assert(isequal(SKF2.R, R))
 assert(isequal(SKF2.seq, seq))
@@ -179,7 +178,11 @@ assert(SKF2.ny == ny)
 assert(SKF2.f == size(SKF2.seq, 2))
 assert(SKF2.nj == 2)
 assert(isequal(SKF2.xkp1_est, x0))
+assert(isequal(SKF2.Pkp1, P0))
 assert(SKF2.ykp1_est == C{1}*x0)
+assert(isequaln(SKF2.xk_est, nan(1, 1)))
+assert(isequaln(SKF2.Pk, nan(1)))
+assert(isequaln(SKF2.yk_est, nan(1, 1)))
 assert(isequal(SKF2.gamma_k, 0))
 
 % Transition probabilities
@@ -250,7 +253,6 @@ assert(isequal(MKF2.C, C))
 assert(isequal(MKF2.D, D))
 assert(isequal(MKF2.Ts, Ts))
 assert(isequal(MKF2.P0, P0))
-assert(isequal(MKF2.P, P0))
 assert(isequal(MKF2.Q, Q))
 assert(isequal(MKF2.R, R))
 assert(isequal(MKF2.seq, seq))
@@ -268,8 +270,10 @@ assert(MKF2.f == size(MKF2.seq{1}, 2))
 assert(MKF2.nj == 2)
 assert(isequal(MKF2.T, T))
 assert(all(isnan(MKF2.xk_est)))
+assert(isequaln(MKF2.Pk, nan))
 assert(all(isnan(MKF2.yk_est)))
 assert(isequal(MKF2.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF2.Pkp1, P0))
 assert(MKF2.ykp1_est == 0)
 assert(isequal(MKF2.gamma_init, zeros(n_filt, 1)))
 assert(isequal(MKF2.p_seq_g_Yk_init, ones(n_filt, 1) ./ n_filt))
@@ -314,8 +318,8 @@ obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 f_mkf = 3;
 
 % Simulate observers - without measurement noise (Y)
-[Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Y,U,observers,f_mkf);
+[Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
+    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Y,U,observers,f_mkf);
 
 % Move prior estimates to correct time instants
 Xkp1_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
@@ -337,20 +341,31 @@ assert(max(abs(E_obs(t < 10, 1))) < 1e-5)
 KF1_xkp1_est = Xkp1_est(t == 9.5, 1);
 assert(isequal(abs(Xkp1_est(t == 9.5, :) - KF1_xkp1_est) < 0.0001, ...
     [true false true true true true]))
-KF1_diagP = sum(DiagP(t == 9.5, 1));
-assert(isequal(abs(DiagP(t == 9.5, :) - KF1_diagP) < 0.0001, ...
-    [true false true true true true]))
+KF1_diagPk = sum(DiagPk(t == 9.5, 1));
+KF1_diagPkp1 = sum(DiagPkp1(t == 9.5, 1));
+assert(isequal(abs(DiagPk(t == 9.5, :) - KF1_diagPk) < 0.0001, ...
+    [true false false true false true]))
+assert(isequal(abs(DiagPkp1(t == 9.5, :) - KF1_diagPkp1) < 0.0001, ...
+    [true false true false true true]))
+
 
 % Check KF2 was accurate after system switched
 assert(mean(E_obs(t > 12, 2).^2) < 0.001)
 
 % Check MKF and SKF match KF2 after system switched
-KF2_x_est = Xk_est(t == 30, 2);
-assert(isequal(abs(Xk_est(t == 30, :) - KF2_x_est) < 0.0001, ...
+KF2_xk_est = Xk_est(t == 30, 2);
+assert(isequal(abs(Xk_est(t == 30, :) - KF2_xk_est) < 0.0001, ...
     [false true false true false true]))
-KF2_diagP = sum(DiagP(t == 30, 2));
-assert(isequal(abs(DiagP(t == 30, :) - KF2_diagP) < 0.0001, ...
-    [false true true true true true]))
+KF2_xkp1_est = Xk_est(t == 30, 2);
+assert(isequal(abs(Xk_est(t == 30, :) - KF2_xkp1_est) < 0.0001, ...
+    [false true false true false true]))
+KF2_diagPk = sum(DiagPk(t == 30, 2));
+assert(isequal(abs(DiagPk(t == 30, :) - KF2_diagPk) < 0.0001, ...
+    [false true false true false true]))
+KF2_diagPkp1 = sum(DiagPkp1(t == 30, 2));
+% TODO: This is wrong
+assert(isequal(abs(DiagPkp1(t == 30, :) - KF2_diagPkp1) < 0.0001, ...
+    [false true true false true true]))
 
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
@@ -380,11 +395,14 @@ assert(isequaln(MKF1.p_gamma_k, nan(n_filt, 1)))
 assert(isequaln(MKF1.p_seq_g_Ykm1, nan(n_filt, 1)))
 
 assert(isequal(MKF2.P0, P0))
-assert(isequal(MKF2.P, P0))
 assert(isequal(MKF2.seq, seq))
 assert(isequaln(MKF2.i, 0))
 assert(isequal(MKF2.i_next, 1))
+assert(isequaln(MKF2.xk_est, nan(n, 1)))
+assert(isequaln(MKF2.Pk, nan(1)))
+assert(isequaln(MKF2.yk_est, nan))
 assert(isequal(MKF2.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF2.Pkp1, P0))
 assert(MKF2.ykp1_est == 0)
 assert(isequal(MKF2.gamma_k, zeros(n_filt, 1)))
 assert(isequaln(MKF2.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
@@ -411,8 +429,9 @@ obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 f_mkf = 4;
 
 % Simulate observers - with measurement noise (Ym)
-[Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Ym,U,observers,f_mkf);
+[Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
+    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Y,U,observers,f_mkf);
+
 
 % Move estimates to correct time instants
 X_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
@@ -622,8 +641,8 @@ Y_m = Y + sigma_MP'.*randn(nT+1, ny);
 f_mkf = 1;
 
 % Simulate observers
-[Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Y_m,U,observers,f_mkf);
+[Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
+    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Y,U,observers,f_mkf);
 
 % Plot observer estimates
 % figure(5); clf
@@ -813,7 +832,7 @@ function [X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT)
 end
 
 
-function [Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs, ...
+function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
     MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf)
 % Simulate observers
 
@@ -829,7 +848,8 @@ function [Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs, ...
     Yk_est = zeros(nT+1, ny*n_obs);
     Xkp1_est = zeros(nT+1, n*n_obs);
     Ykp1_est = zeros(nT+1, ny*n_obs);
-    DiagP = zeros(nT+1, n*n_obs);
+    DiagPk = zeros(nT+1, n*n_obs);
+    DiagPkp1 = zeros(nT+1, n*n_obs);
     MKF_K_obs = cell(nT+1, n*n_filters);
     MKF_trP_obs = nan(nT+1, n_filters);
     MKF_i = nan(nT+1, 2);
@@ -851,22 +871,26 @@ function [Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs, ...
                     switch obs.type
                         case {"KF", "SKF", "MKF"}
                             MKF_K_obs{i, j} = obs.filters{j}.K';
+                            MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
                         case {"KFF", "SKFF", "MKFF"}
                             MKF_K_obs{i, j} = obs.filters{j}.Kf';
+                            MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
                     end
-                    MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
                 end
             end
             if isprop(obs,'xk_est')
                 xk_est(1, (f-1)*n+1:f*n) = obs.xk_est';
                 yk_est(1, (f-1)*ny+1:f*ny) = obs.yk_est';
+                diagPk(1, (f-1)*n+1:f*n) = diag(obs.Pk)';
+                diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.Pkp1)';
             else
-                xk_est(1, (f-1)*n+1:f*n) = nan;
-                yk_est(1, (f-1)*ny+1:f*ny) = nan;
+                xk_est(1, (f-1)*n+1:f*n) = nan(obs.n, 1);
+                yk_est(1, (f-1)*ny+1:f*ny) = nan(obs.ny, 1);
+                diagPk(1, (f-1)*n+1:f*n) = nan(obs.n);
+                diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.P)';
             end
             xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
             ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
-            diagP(1, (f-1)*n+1:f*n) = diag(obs.P)';
         end
 
         % Record observer estimates
@@ -874,7 +898,8 @@ function [Xk_est,Yk_est,Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs, ...
         Yk_est(i, :) = yk_est;
         Xkp1_est(i, :) = xkp1_est;
         Ykp1_est(i, :) = ykp1_est;
-        DiagP(i, :) = diagP;
+        DiagPk(i, :) = diagPk;
+        DiagPkp1(i, :) = diagPkp1;
 
     end
 end

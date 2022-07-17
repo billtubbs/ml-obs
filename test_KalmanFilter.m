@@ -86,14 +86,15 @@ assert(isequal(KFF.B, B))
 assert(isequal(KFF.C, C))
 assert(isequal(KFF.D, D))
 assert(isequal(KFF.Ts, Ts))
-assert(isequal(KFF.P, P0))
 assert(isequal(KFF.Q, Q))
 assert(isequal(KFF.R, R))
 assert(all(isnan(KFF.Kf)))
 assert(isequal(KFF.xkp1_est, zeros(2, 1)))
 assert(KFF.ykp1_est == 0)
+assert(isequal(KFF.Pkp1, P0))
 assert(all(isnan(KFF.xk_est)))
 assert(all(isnan(KFF.yk_est)))
+assert(all(isequaln(KFF.Pk, nan(2))))
 
 % number of points to simulate
 nT = 100;
@@ -267,11 +268,12 @@ assert(isequal(KFF.Ts, Ts))
 assert(isequal(KFF.P0, P0))
 assert(isequal(KFF.Q, Q))
 assert(isequal(KFF.R, R))
-assert(isequal(KFF.P, P0))
 assert(isequal(KFF.label, label))
 assert(isequal(KFF.xkp1_est, x0))
 assert(KFF.ykp1_est == C*x0)
+assert(isequal(KFF.Pkp1, P0))
 assert(all(isnan(KFF.xk_est)))
+assert(all(isequaln(KFF.Pk, nan(2))))
 assert(all(isnan(KFF.yk_est)))
 assert(KFF.n == n)
 assert(KFF.nu == nu)
@@ -287,10 +289,11 @@ assert(KF.ykp1_est == 0)
 % Re-define with no initial state specified (should be set to zero)
 KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R);
 assert(all(isnan(KFF.Kf)))
-assert(isequal(KFF.P, P0))
 assert(isequal(KFF.xkp1_est, zeros(n, 1)))
+assert(isequaln(KFF.Pkp1, P0))
 assert(KFF.ykp1_est == 0)
 assert(all(isnan(KFF.xk_est)))
+assert(isequaln(KFF.Pk, nan(2)))
 assert(all(isnan(KFF.yk_est)))
 
 % number of points to simulate
@@ -363,7 +366,7 @@ for i = 1:nT
     KNkalman1(:, i) = KF.K;
     diagPNkalman1(:, i) = diag(KF.P);
     KNkalman2(:, i) = KFF.Kf;
-    diagPNkalman2(:, i) = diag(KFF.P);
+    diagPNkalman2(:, i) = diag(KFF.Pk);
 
     % Process states in next timestep
     x = A*x + B*U(i) + W(i,:)';
@@ -584,7 +587,12 @@ for i = 1:nT
     for j = 1:n_obs
         Xkp1_est(i, (j-1)*n+1:j*n) = observers{j}.xkp1_est';
         Ykp1_est(i, (j-1)*ny+1:j*ny) = observers{j}.ykp1_est';
-        trP_obs(i, j) = trace(observers{j}.P);
+        switch observers{j}.type
+            case {"KF", "KFSS"}
+                trP_obs(i, j) = trace(observers{j}.P);
+            case {"KFF"}
+                trP_obs(i, j) = trace(observers{j}.Pk);
+        end
     end
 
     % Update observer gains and covariance matrix
@@ -604,7 +612,7 @@ for i = 1:nT
         Xk_est(i, (j-1)*n+1:j*n) = observers{j}.xk_est';
         Yk_est(i, (j-1)*ny+1:j*ny) = observers{j}.yk_est';
         E_obs(i, (j-1)*ny+1:j*ny) = yk' - observers{j}.yk_est';
-        trP_obs(i, j) = trace(observers{j}.P);
+        trP_obs(i, j) = trace(observers{j}.Pk);
     end
 
     % Calculate estimation errors
@@ -717,7 +725,7 @@ KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS",x0);
 KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
 
 % Redefine dynamic Kalman filter
-KFF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KFF");
+KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,"KFF");
 
 % Test true copy
 KFSS_copy = KFSS.copy();

@@ -76,9 +76,10 @@ classdef MKFObserverF < matlab.mixin.Copyable
         p_gamma_k double
         filters  cell
         xk_est (:, 1) double
-        P double
+        Pk double
         yk_est (:, 1) double
         xkp1_est (:, 1) double
+        Pkp1 double
         ykp1_est (:, 1) double
         type (1, 1) string
     end
@@ -213,7 +214,8 @@ classdef MKFObserverF < matlab.mixin.Copyable
             obj.yk_est = nan(obj.ny, 1);
 
             % Initialize error covariance at k = 0
-            obj.P = obj.P0;
+            obj.Pk = nan(obj.n);
+            obj.Pkp1 = obj.P0;
 
         end
         function update(obj, yk, uk)
@@ -269,7 +271,7 @@ classdef MKFObserverF < matlab.mixin.Copyable
 
                 % Calculate covariance of the output estimation errors
                 C = obj.filters{f}.C;
-                yk_cov = C * obj.filters{f}.P * C' + obj.filters{f}.R;
+                yk_cov = C * obj.filters{f}.Pkp1 * C' + obj.filters{f}.R;
 
                 % Make sure covariance matrix is symmetric
                 if ~isscalar(yk_cov)
@@ -296,9 +298,10 @@ classdef MKFObserverF < matlab.mixin.Copyable
 
                 % Save state and output estimates
                 Xkf_est(:, :, f) = obj.filters{f}.xk_est';
-                Pkf_est(:, :, f) = obj.filters{f}.P;
+                Pkf_est(:, :, f) = obj.filters{f}.Pk;
                 Ykf_est(:, :, f) = obj.filters{f}.yk_est';
                 Xkp1f_est(:, :, f) = obj.filters{f}.xkp1_est';
+                Pkp1f_est(:, :, f) = obj.filters{f}.Pk;
                 Ykp1f_est(:, :, f) = obj.filters{f}.ykp1_est';
 
             end
@@ -324,7 +327,11 @@ classdef MKFObserverF < matlab.mixin.Copyable
             obj.xk_est = sum(weights .* Xkf_est, 3);
             obj.yk_est = sum(weights .* Ykf_est, 3);
             Xkf_devs = obj.xk_est - Xkf_est;
-            obj.P = sum(weights .* (Pkf_est + ...
+            obj.Pk = sum(weights .* (Pkf_est + ...
+                pagemtimes(Xkf_devs, pagetranspose(Xkf_devs))), 3);
+            % TODO: is this correct, how to calculate Pkp1?
+            Xkf_devs = obj.xkp1_est - Xkp1f_est;
+            obj.Pkp1 = sum(weights .* (Pkp1f_est + ...
                 pagemtimes(Xkf_devs, pagetranspose(Xkf_devs))), 3);
             assert(~any(isnan(obj.xk_est)))
             assert(~any(isnan(obj.yk_est)))
