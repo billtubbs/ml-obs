@@ -348,9 +348,8 @@ assert(isequal(abs(DiagPk(t == 9.5, :) - KF1_diagPk) < 0.0001, ...
 assert(isequal(abs(DiagPkp1(t == 9.5, :) - KF1_diagPkp1) < 0.0001, ...
     [true false true false true true]))
 
-
 % Check KF2 was accurate after system switched
-assert(mean(E_obs(t > 12, 2).^2) < 0.001)
+assert(max(E_obs(t > 15, 2).^2) < 1e-3)
 
 % Check MKF and SKF match KF2 after system switched
 KF2_xk_est = Xk_est(t == 30, 2);
@@ -430,8 +429,7 @@ f_mkf = 4;
 
 % Simulate observers - with measurement noise (Ym)
 [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
-    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Y,U,observers,f_mkf);
-
+    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf);
 
 % Move estimates to correct time instants
 X_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
@@ -441,7 +439,7 @@ Y_est = [nan(1,ny*n_obs); Ykp1_est(1:end-1,:)];
 E_obs = Y - Y_est;
 
 % Combine and display results
-sim_results = table(t,Gamma,U,X,Y,Ym,X_est,Y_est,E_obs);
+sim_results = table(t,Gamma,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
 writetable(sim_results, "results/test_MKFO_sim_results.csv");
 
 % Display results from MKF observer
@@ -458,8 +456,8 @@ writetable(sim_results_MKF, "results/test_MKFO_sim_results_MKF.csv");
 % plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
 
 % Check final state estimates
-test_X_est = [0.202984  9.838603  9.838607  9.838607  9.854841  9.807889];
-assert(isequal(round(X_est(t == t(end), :), 6), test_X_est))
+test_Xk_est = [0.202984  9.838603  9.838607  9.838607  9.854841  9.807889];
+assert(isequal(round(Xk_est(t == t(end), :), 6), test_Xk_est))
 % TODO: Why do the copies not produce identical simulation results?
 % (see plot figure).
 
@@ -575,10 +573,10 @@ seq{3}(t == t_shock(2)) = 2;  % shock 2
 seq{4}(t == t_shock(1)) = 1;  % both
 seq{4}(t == t_shock(2)) = 2;
 p_gamma = [1-epsilon epsilon]';
-Z = [0 0; 1 0; 0 1];  % combinations
+Z = [0 0; 1 0; 0 1; 1 1];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
-T = repmat(p_gamma', 3, 1);
+T = repmat(p_gamma', 4, 1);
 MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
 assert(MKF3.n_filt == 4)
 MKF3F = MKFObserverF(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3F');
@@ -886,7 +884,7 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
             else
                 xk_est(1, (f-1)*n+1:f*n) = nan(obs.n, 1);
                 yk_est(1, (f-1)*ny+1:f*ny) = nan(obs.ny, 1);
-                diagPk(1, (f-1)*n+1:f*n) = nan(obs.n);
+                diagPk(1, (f-1)*n+1:f*n) = nan(obs.n,1);
                 diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.P)';
             end
             xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';

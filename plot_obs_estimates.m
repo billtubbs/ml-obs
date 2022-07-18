@@ -15,7 +15,7 @@ function plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
         ylim(max_min + [-bd bd])
         y_label = sprintf('y_%d(k)',i);
         ylabel(y_label)
-        title(strcat('Output ', y_label))
+        title(strjoin(["Output" y_label]))
         legend([obs_labels {'true'}],'Interpreter','none')
         grid on
     end

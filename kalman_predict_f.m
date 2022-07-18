@@ -1,5 +1,5 @@
-function [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,D,Q,xk_est,Pk,uk)
-% [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,D,Pk,uk)
+function [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,Q,xk_est,Pk,uk)
+% [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,Pk,uk)
 % computes the predicted, states, outputs, and state error 
 % covariance of a Kalman filter (filtering form) in the next
 % time instant given the model parameters, the current error
@@ -10,8 +10,8 @@ function [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,D,Q,xk_est,Pk,uk)
 %   P(k+1|k) = A(k) * P(k|k) * A'(k) + Q(k)
 %
 % Arguments:
-%   A, B, C, D : matrices
-%       Discrete-time system model matrices.
+%   A, B, C : matrices
+%       Discrete-time system model matrices (assumes D = 0).
 %   Q : matrix, size (n, n)
 %       State error covariance.
 %   xk_est : (n, 1) vector
@@ -35,7 +35,7 @@ function [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,D,Q,xk_est,Pk,uk)
     % x(k+1|k) and y(k+1|k) i.e. based on the data up to time k.
     % (These will be used as priors in the next time step.)
     xkp1_est = A * xk_est + B * uk;
-    ykp1_est = C * xkp1_est + D * uk;
+    ykp1_est = C * xkp1_est;
 
     % Error covariance of predicted state estimates
     Pkp1 = A * Pk * A' + Q;

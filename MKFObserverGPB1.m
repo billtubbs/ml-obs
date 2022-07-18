@@ -1,6 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverF(A,B,C,D,Ts,P0,Q,R,T,label,x0,gamma_init, ...
+% obs = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,label,x0,gamma_init, ...
 %     p_seq_g_Yk_init)
 % Class for simulating the generalised pseudo-Bayes multi-
 % model Kalman filter for state estimation of Markov jump
@@ -12,15 +12,8 @@
 %  x_hat(k|k) : estimate of states at time k
 %  y_hat(k|k) : estimate of outputs at time k
 %
-% Prior estimates of the states and outputs at the next
-% time instant given the data at the current time are
-% also calculated:
-%
-%  xkp1_hat(k+1|k) : estimate of states at time k + 1
-%  ykp1_hat(k+1|k) : estimate of outputs at time k + 1
-%
 % Arguments:
-%   A, B, C, D : Cell arrays containing discrete-time system
+%   A, B, C : Cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : Sample period.
 %   P0 : Initial covariance matrix of the state estimates
@@ -42,6 +35,17 @@
 %       probability assigned to each hypothesis.
 %
 
+
+% TODO: Add these arguments:
+% Prior estimates of the states and outputs at the next
+% time instant given the data at the current time are
+% also calculated:
+%
+%  xkp1_hat(k+1|k) : estimate of states at time k + 1
+%  ykp1_hat(k+1|k) : estimate of outputs at time k + 1
+%
+
+
 classdef MKFObserverGPB1 < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
@@ -56,7 +60,6 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
         A cell
         B cell
         C cell
-        D cell
         Q cell
         R cell
         seq cell
@@ -75,18 +78,16 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
         p_gamma_k double
         filters  cell
         xk_est (:, 1) double
-        P double
+        Pk double
         yk_est (:, 1) double
-        xkp1_est (:, 1) double
-        ykp1_est (:, 1) double
         type (1, 1) string
     end
     methods
-        function obj = MKFObserverGPB1(A,B,C,D,Ts,P0,Q,R,T,label,x0, ...
-                gamma_init, p_seq_g_Yk_init)
+        function obj = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,label,x0, ...
+                gamma_init,p_seq_g_Yk_init)
 
             % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
+            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
 
             % Number of switching systems
             nj = numel(A);
@@ -94,23 +95,22 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             % Number of filters required
             n_filt = nj;
 
-            if nargin < 13
+            if nargin < 12
                 % Initial values of prior conditional probabilities at 
                 % k = -1. In absence of prior knowledge, assume all 
                 % equally likely
                 p_seq_g_Yk_init = ones(n_filt, 1) ./ double(n_filt);
             end
-            if nargin < 12
+            if nargin < 11
                 % Default assumption about model indicator values at k = -1
                 gamma_init = 0;
             end
-            if nargin < 11
+            if nargin < 10
                 x0 = zeros(n,1);
             end
             obj.A = A;
             obj.B = B;
             obj.C = C;
-            obj.D = D;
             obj.Ts = Ts;
             obj.Q = Q;
             obj.R = R;
@@ -148,13 +148,12 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             % are not modelled (as is the case with some observers)
             % then perhaps T should not be whole?
             % assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
-            % TODO: Could calculate beta parameter here, i.e. total 
-            % probability measured?
+            assert(isequal(size(obj.T), [nj nj]), "ValueError: size(T)")
 
             % Check all other system matrix dimensions have same 
             % input/output dimensions and number of states.
             for j = 2:nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
+                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
                     "ValueError: size of A, B, C, and D")
             end
@@ -177,50 +176,29 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
         % when observer object was created.
         %
 
-            % Switching variable at previous time instant
-            obj.gamma_k = obj.gamma_init;
+            % Sequence index does not change
+            % TODO: Do we need it?
+            obj.i = 0;
 
             % Initial values of prior conditional probabilities at k = -1 
             obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
-
-            % Empty vectors to store values for filter calculations
-            % p(y(k)|Gamma(k),Y(k-1))
-            obj.p_yk_g_seq_Ykm1 = nan(obj.n_filt, 1);
-            % Pr(gamma(k)|Y(k-1))
-            obj.p_gammak_g_Ykm1 = nan(obj.n_filt, 1);
-            % Pr(Gamma(k))
-            obj.p_gamma_k = nan(obj.n_filt, 1);
-            % Pr(Gamma(k)|Y(k-1))
-            obj.p_seq_g_Ykm1 = nan(obj.n_filt, 1);
-
-            % Create multi-model observer
-            obj.filters = cell(obj.n_filt, 1);
-            fmt = strcat('%s%0', ...
-                char(string(strlength(string(obj.n_filt)))), 'd');
-            % Initialize each filter
-            for i = 1:obj.n_filt
-                label_i = sprintf(fmt,obj.label,i);
-                % Index of system model
-                ind = obj.gamma_k(i) + 1;
-                obj.filters{i} = KalmanFilterF(obj.A{ind},obj.B{ind}, ...
-                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0, obj.Q{ind}, ...
-                    obj.R{ind},label_i,obj.x0);
-            end
 
             % Initialize state and output estimates
             % Note: At initialization at time k = 0, xkp1_est and
             % ykp1_est represent prior estimates of the states,
             % i.e. x_est(k|k-1) and y_est(k|k-1).
-            obj.xkp1_est = obj.x0;
-            obj.ykp1_est = obj.C{1} * obj.xkp1_est;
+            obj.xk_est = obj.x0;
+            obj.yk_est = obj.C{1} * obj.xk_est;
+
+            % Initialize error covariance at k = 0
+            obj.Pk = obj.P0;
 
             % At initialization at time k = 0, x_est(k|k)
             % and y_est(k|k) have not yet been computed.
-            obj.xk_est = nan(obj.n, 1);
-            obj.yk_est = nan(obj.ny, 1);
-
-            % Initialize error covariance at k = 0
-            obj.P = obj.P0;
+            % TODO: Provide these
+            %obj.xk_est = nan(obj.n, 1);
+            %obj.yk_est = nan(obj.ny, 1);
+            %obj.Pkp1 = obj.P0;
 
         end
         function update(obj, yk, uk)
@@ -238,122 +216,20 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
         %       at the current sample time.
         %
 
-            assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
-            assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
-
             % Sequence index does not change
             % TODO: Do we need it?
             obj.i = 1;
 
-            % Compute Pr(gamma(k)|gamma(k-1)). For GPB1, this is
-            % simply Pr(gamma(k)) which is not changed from the
-            % previous time. I.e.
-            % obj.gamma_km1 = obj.p_gamma_k;
-            %TODO: is this correct?
-            obj.p_gamma_k = sum(obj.T, 1)';
+            assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
+            assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-            % Arrays to collect estimates from each filter
-            Xkf_est = zeros(obj.n, 1, obj.n_filt);
-            Pkf_est = zeros(obj.n, obj.n, obj.n_filt);
-            Ykf_est = zeros(obj.ny, 1, obj.n_filt);
-            Xkp1f_est = zeros(obj.n, 1, obj.n_filt);
-            Ykp1f_est = zeros(obj.ny, 1, obj.n_filt);
-
-            % Bayesian update to conditional probabilities
-            for f = 1:obj.n_filt
-
-                % Compute posterior probability density of y(k)
-                % using posterior PDF (normal distribution) and
-                % estimates computed in previous timestep
-
-                % In GPB1 algorithm, all filters are initialized
-                % with the overall estimates calculated at the 
-                % previous time step.
-                obj.filters{f}.xkp1_est = obj.xkp1_est;
-                obj.filters{f}.P = obj.P;
-                obj.filters{f}.ykp1_est = obj.ykp1_est;  % TODO: is this needed?
-
-                % Get y_f_est(k/k-1) estimated in previous time step
-                yk_est = obj.filters{f}.ykp1_est;
-
-                % Calculate covariance of the output estimation errors
-                C = obj.filters{f}.C;
-                yk_cov = C * obj.filters{f}.P * C' + obj.filters{f}.R;
-
-                % Make sure covariance matrix is symmetric
-                if ~isscalar(yk_cov)
-                    yk_cov = triu(yk_cov.',1) + tril(yk_cov);
-                end
-
-                % Calculate normal probability density (multivariate)
-                obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
-
-                % Model index at current sample time
-                ind = obj.gamma_k(f) + 1;  % MATLAB indexing
-
-                % Set filter model according to current index value
-                obj.filters{f}.A = obj.A{ind};
-                obj.filters{f}.B = obj.B{ind};
-                obj.filters{f}.C = obj.C{ind};
-                obj.filters{f}.D = obj.D{ind};
-                obj.filters{f}.Q = obj.Q{ind};
-                obj.filters{f}.R = obj.R{ind};
-
-                % Update observer estimates, gain and covariance matrix
-                obj.filters{f}.update(yk, uk);
-                assert(~any(isnan(obj.filters{f}.xkp1_est)))
-
-                % Save state and output estimates
-                Xkf_est(:, :, f) = obj.filters{f}.xk_est';
-                Pkf_est(:, :, f) = obj.filters{f}.P;
-                Ykf_est(:, :, f) = obj.filters{f}.yk_est';
-                Xkp1f_est(:, :, f) = obj.filters{f}.xkp1_est';
-                Ykp1f_est(:, :, f) = obj.filters{f}.ykp1_est';
-
-            end
-
-            assert(~any(isnan(obj.p_yk_g_seq_Ykm1)))
-            assert(~all(obj.p_yk_g_seq_Ykm1 == 0))
-
-            % Compute Pr(Gamma(k)|Y(k-1)) in current timestep from
-            % previous estimate (Pr(Gamma(k-1)|Y(k-1))) and transition
-            % probabilities
-            obj.p_seq_g_Ykm1 = obj.p_gamma_k .* obj.p_seq_g_Yk;
-
-            % Bayesian update of Pr(Gamma(k)|Y(k))
-            cond_pds = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;
-            obj.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
-            % Note: above calculation normalizes p_seq_g_Yk so that
-            % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
-
-            % Compute multi-model observer state and output estimates
-            % and estimated state error covariance using the weighted-
-            % averages based on the conditional probabilities.
-            weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
-            obj.xk_est = sum(weights .* Xkf_est, 3);
-            obj.yk_est = sum(weights .* Ykf_est, 3);
-            Xkf_devs = obj.xk_est - Xkf_est;
-            obj.P = sum(weights .* (Pkf_est + ...
-                pagemtimes(Xkf_devs, pagetranspose(Xkf_devs))), 3);
-            assert(~any(isnan(obj.xk_est)))
-            assert(~any(isnan(obj.yk_est)))
-
-            % Weighted averages
-            obj.xk_est = sum(weights .* Xkf_est, 3);
-            obj.yk_est = sum(weights .* Ykf_est, 3);
-            obj.xkp1_est = sum(weights .* Xkp1f_est, 3);
-            obj.ykp1_est = sum(weights .* Ykp1f_est, 3);
+            % Update all variables based on current measurement
+            [obj.xk_est,obj.yk_est,obj.Pk,obj.p_seq_g_Yk] = ...
+                GPB1_update(obj.A,obj.B,obj.C,obj.Q,obj.R,obj.T, ...
+                obj.xk_est,obj.Pk,yk,uk,obj.p_seq_g_Yk);
 
         end
+
     end
-% TODO: Should do a deep copy automatically (i.e. without this)
-% - https://www.mathworks.com/help/matlab/matlab_oop/custom-copy-behavior.html
-%     methods (Access = protected)
-%         function cp = copyElement(obj)
-%             % Shallow copy object
-%             cp = copyElement@matlab.mixin.Copyable(obj);
-%            cp.Prop1 = obj.Prop1;
-%            cp.Prop2 = datestr(now);
-%         end
-%     end
+
 end

@@ -116,37 +116,15 @@ classdef KalmanFilterF < AbstractLinearFilter
         %   uk : vector, size (nu, 1), optional
         %       System inputs at current time k.
         %
+
+            % Update estimates based on current measurement
             [obj.Kf, obj.xk_est, obj.Pk, obj.yk_est, obj.Sk] = ...
                 kalman_update_f(obj.C, obj.R, obj.xkp1_est, obj.Pkp1, yk);
-%             % Error covariance of output prediction
-%             S = obj.C * obj.Pkp1 * obj.C' + obj.R;
-% 
-%             % Update correction gain
-%             obj.Kf = obj.Pkp1 * obj.C' / S;
-% 
-%             % Update of prior state estimates using measurements 
-%             % from current time step to produce 'a posteriori' 
-%             % state estimates
-%             obj.xk_est = obj.xkp1_est ...
-%                 + obj.Kf * (yk - obj.C * obj.xkp1_est);
-% 
-%             % Updated output estimate
-%             obj.yk_est = obj.C * obj.xk_est;
-% 
-%             % Update error covariance of state estimates
-%             obj.Pk = obj.Pkp1 - obj.Kf * S * obj.Kf';
-% 
+
+            % Make predictions at next time instant
             [obj.xkp1_est,obj.ykp1_est,obj.Pkp1] = ...
-                kalman_predict_f(obj.A,obj.B,obj.C,obj.D,obj.Q, ...
-                    obj.xk_est,obj.Pk,uk);
-%             % Make predictions of states and outputs in next time step
-%             % x(k+1|k) and y(k+1|k) i.e. based on the data up to time k.
-%             % (These will be used as priors in the next time step.)
-%             obj.xkp1_est = obj.A * obj.xk_est + obj.B * uk;
-%             obj.ykp1_est = obj.C * obj.xkp1_est + obj.D * uk;
-% 
-%             % Error covariance of predicted state estimates
-%             obj.Pkp1 = obj.A * obj.Pk * obj.A' + obj.Q;
+                kalman_predict_f(obj.A,obj.B,obj.C,obj.Q,obj.xk_est, ...
+                    obj.Pk,uk);
 
         end
     end
