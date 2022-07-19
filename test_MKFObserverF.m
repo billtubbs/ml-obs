@@ -53,7 +53,7 @@ sigma_w = 0;
 sigma_W = [0; 0];
 
 % Measurement noise std. dev.
-sigma_M = 0.1;
+sigma_M = 0.0;
 
 % Simulation settings
 nT = 60;
@@ -431,12 +431,12 @@ f_mkf = 4;
 [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
     MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf);
 
-% Move estimates to correct time instants
-X_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
-Y_est = [nan(1,ny*n_obs); Ykp1_est(1:end-1,:)];
+% Move prediction estimates to correct time instants
+Xk_km1_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
+Yk_km1_est = [nan(1,ny*n_obs); Ykp1_est(1:end-1,:)];
 
 % Output estimation errors
-E_obs = Y - Y_est;
+E_obs = Y - Yk_est;
 
 % Combine and display results
 sim_results = table(t,Gamma,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
@@ -453,28 +453,42 @@ sim_results_MKF = [ ...
 writetable(sim_results_MKF, "results/test_MKFO_sim_results_MKF.csv");
 
 % figure(3); clf
-% plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
+% plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
+
+% % Plot difference between Xk_est and Xkp1_est for KF1
+% figure(4); clf
+% plot(t,X,"k--",t,Xk_km1_est(:,1),t,Xk_est(:,1),"Linewidth",2)
+% grid on
+% title("KF1")
+% legend("x(k)","x(k|k-1)","x(k|k)",'Location','best')
+% 
+% % Plot difference between Xk_est and Xk_km1_est for KF2
+% figure(5); clf
+% plot(t,X,"k--",t,Xk_km1_est(:,2),t,Xk_est(:,2),"Linewidth",2)
+% grid on
+% title("KF2")
+% legend("x(k)","x(k|k-1)","x(k|k)",'Location','best')
 
 % Check final state estimates
-test_Xk_est = [0.202984  9.838603  9.838607  9.838607  9.854841  9.807889];
+test_Xk_est = [-1.191082  9.901224  9.901227  9.901227  9.915906  9.919637];
 assert(isequal(round(Xk_est(t == t(end), :), 6), test_Xk_est))
 % TODO: Why do the copies not produce identical simulation results?
 % (see plot figure).
 
 % Check final error covariance estimates
-test_DiagP = [0.017355  0.028238  0.028238  0.028238  0.028238  0.028238];
-assert(isequal(round(DiagP(t == t(end), :), 6), test_DiagP))
+test_DiagPk = [0.015011  0.022516  0.022516  0.022516  0.022516  0.022516];
+assert(isequal(round(DiagPk(t == t(end), :), 6), test_DiagPk))
 
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
 %array2table(mses,'VariableNames',obs_labels)
 
 % Check MKF observer estimation error
-assert(round(mses(f_mkf), 4) == 0.1335)
+assert(round(mses(f_mkf), 4) == 0.0461)
 
 % Check all observer estimation errors
 assert(isequal(round(mses, 4), ...
-    [5.1749  0.4074  0.0685  0.1335  0.1387  0.0877]))
+    [3.8062 0.2694 0.0000 0.0461 0.0521 0.0126]))
 
 % % Plot selected observers
 % figure(4); clf
@@ -642,27 +656,61 @@ f_mkf = 1;
 [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
     MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Y,U,observers,f_mkf);
 
-% Plot observer estimates
-% figure(5); clf
-% plot_obs_estimates(t,X,Xkp1_est,Y,Ykp1_est,obs_labels)
+% Move prediction estimates to correct time instants
+Xk_km1_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
+Yk_km1_est = [nan(1,ny*n_obs); Ykp1_est(1:end-1,:)];
 
-% Check final state estimates
+% Output estimation errors
+E_obs_ykm1 = repmat(Y,1,n_obs) - Yk_km1_est;
+E_obs_yk = repmat(Y,1,n_obs) - Yk_est;
+
+% Plot observer estimates
+% figure(7); clf
+% plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
+
+% Check final state predition estimates
 test_X_est = [-1.801802  9.009008  1.000000  1.000000 -1.801802 ...
     9.009008  1.000000  1.000000 -1.801802  9.009008  1.000000  1.000000];
 assert(isequal(round(Xkp1_est(t == t(end), :), 6), [test_X_est test_X_est]))
 
-% Check final error covariance estimates
+% Check final error covariance estimates - P(k+1|k)
 % TODO: Haven't checked if these are correct.
-test_DiagP = [ 0.092947  0.092947  0.002086  0.002086  0.092947 ...
+test_DiagPkp1 = [ 0.092947  0.092947  0.002086  0.002086  0.092947 ...
     0.092947  0.002086  0.002086  0.092947  0.092947  0.002086  0.002086];
-assert(isequal(round(DiagP(t == t(end), :), 6), [test_DiagP test_DiagP]))
+assert(isequal(round(DiagPkp1(t == t(end), 1:12), 6), test_DiagPkp1))
 
-% Compute mean-squared errors
-MSE = containers.Map();
-for i = 1:n_obs
-    MSE(observers{i}.label) = mean((Ykp1_est(:, i*ny-1:i*ny) - Y).^2);
-end
-%fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
+% Check final error covariance estimates - P(k+1|k)
+% TODO: Haven't checked if these are correct.
+test_DiagPkp1 = [ 0.083317  0.083317  0.001986  0.001986  0.083317 ...
+    0.083317  0.001986  0.001986  0.092947  0.092947  0.002086  0.002086];
+assert(isequal(round(DiagPkp1(t == t(end), 13:24), 6), test_DiagPkp1))
+
+% Check final error covariance estimates - P(k|k)
+% TODO: Haven't checked if these are correct.
+test_DiagPk = [ 0.083317  0.083317  0.001986  0.001986  0.083317 ...
+    0.083317  0.001986  0.001986  0.083317  0.083317  0.001986  0.001986];
+assert(isequal(round(DiagPk(t == t(end), 13:24), 6), test_DiagPk))
+
+% Compute mean-squared error (use prediction estimates y(k|k-1)
+% because all observers compute these)
+mses_y12 = nanmean(E_obs_ykm1.^2);
+mses_yi = array2table(nanmean(reshape(mses_y12,ny,n_obs)), ...
+    'VariableNames',obs_labels);
+
+% Check observer estimation errors
+assert(isequal(round(mses_yi.Variables, 6), ...
+    [0.000817 0.000128 0.000128 0.000817 0.000128 0.000128]))
+% Should be the same for both sets of observers
+
+% Compute mean-squared error with updated estimates y(k|k)
+mses_y12 = nanmean(E_obs_yk(:, 7:12).^2);
+mses_yi = array2table(nanmean(reshape(mses_y12,ny,3)), ...
+    'VariableNames',obs_labels(4:6));
+
+% Check observer estimation errors
+assert(isequal(round(mses_yi.Variables, 7), ...
+    [0.0003349  0.0000196  0.0000196]))
+% Should be the same for MKF4F and SKFF
 
 % % Display results of last simulation
 % 
@@ -681,18 +729,6 @@ end
 % table(MSE.keys', cell2mat(MSE.values'), ...
 %     'VariableNames', {'Observer', 'MSE'})
 
-% Results on Nov 8 after reverting back the Bayesian updating
-MSE_test_values = containers.Map(...
- {'MKF3',              'MKF4',              'SKF', ...
-  'MKF3F',             'MKF4F',             'SKFF'}, ...
- {[0.000707 0.000348], [0.000234 0.000083], [0.000234 0.000083], ...
-  [0.000707 0.000348], [0.000234 0.000083], [0.000234 0.000083]} ...
-);
-
-for label = MSE.keys
-    %fprintf("%s: %f, %f (%f, %f)\n", label{1}, MSE(label{1}), MSE_test_values(label{1}))
-    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
-end
 
 
 %% Test copy methods
@@ -842,12 +878,12 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
     obs_mkf = observers{f_mkf};
     n_filters = size(obs_mkf.seq, 1);
 
-    Xk_est = zeros(nT+1, n*n_obs);
-    Yk_est = zeros(nT+1, ny*n_obs);
-    Xkp1_est = zeros(nT+1, n*n_obs);
-    Ykp1_est = zeros(nT+1, ny*n_obs);
-    DiagPk = zeros(nT+1, n*n_obs);
-    DiagPkp1 = zeros(nT+1, n*n_obs);
+    Xk_est = nan(nT+1, n*n_obs);
+    Yk_est = nan(nT+1, ny*n_obs);
+    Xkp1_est = nan(nT+1, n*n_obs);
+    Ykp1_est = nan(nT+1, ny*n_obs);
+    DiagPk = nan(nT+1, n*n_obs);
+    DiagPkp1 = nan(nT+1, n*n_obs);
     MKF_K_obs = cell(nT+1, n*n_filters);
     MKF_trP_obs = nan(nT+1, n_filters);
     MKF_i = nan(nT+1, 2);
@@ -879,16 +915,17 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
             if isprop(obs,'xk_est')
                 xk_est(1, (f-1)*n+1:f*n) = obs.xk_est';
                 yk_est(1, (f-1)*ny+1:f*ny) = obs.yk_est';
+            end
+            if isprop(obs,'xkp1_est')
+                xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
+                ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
+            end
+            if isprop(obs,'P')
+                diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.P)';
+            else
                 diagPk(1, (f-1)*n+1:f*n) = diag(obs.Pk)';
                 diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.Pkp1)';
-            else
-                xk_est(1, (f-1)*n+1:f*n) = nan(obs.n, 1);
-                yk_est(1, (f-1)*ny+1:f*ny) = nan(obs.ny, 1);
-                diagPk(1, (f-1)*n+1:f*n) = nan(obs.n,1);
-                diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.P)';
             end
-            xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
-            ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
         end
 
         % Record observer estimates

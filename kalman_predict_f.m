@@ -1,12 +1,12 @@
 function [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,Q,xk_est,Pk,uk)
-% [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,Pk,uk)
-% computes the predicted, states, outputs, and state error 
+% [xkp1_est,ykp1_est,Pkp1] = kalman_predict_f(A,B,C,Q,xk_est,Pk,uk)
+% computes the predicted states, outputs, and state error 
 % covariance of a Kalman filter (filtering form) in the next
 % time instant given the model parameters, the current error
-% covariance, and a known inputs:
+% covariance, and known input:
 %
 %   x_est(k+1|k) = A(k) * x_est(k|k) + B(k) * u(k)
-%   y_est(k+1|k) = C(k) * x_est(k|k) + D(k) * u(k)
+%   y_est(k+1|k) = C(k) * x_est(k|k)
 %   P(k+1|k) = A(k) * P(k|k) * A'(k) + Q(k)
 %
 % Arguments:
