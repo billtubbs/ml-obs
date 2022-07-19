@@ -1,7 +1,7 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,label,x0,gamma_init, ...
-%     p_seq_g_Yk_init)
+% obs = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,label,x0,p_seq_g_Yk_init) 
+% 
 % Class for simulating the generalised pseudo-Bayes multi-
 % model Kalman filter for state estimation of Markov jump
 % linear systems. This is the filtering form of the 
@@ -26,9 +26,6 @@
 %       process.
 %   label : string name.
 %   x0 : Initial state estimates (optional, default zeros).
-%   gamma_init : (optional, default zeros)
-%       Initial prior model indicator value at time k-1 
-%       (zero-based, i.e. 0 is for first model).
 %   p_seq_g_Yk_init : (optional, default uniform)
 %       Initial prior hypothesis probabilities at time k-1.
 %       If not specified, default is equal, i.e. uniform,
@@ -67,7 +64,6 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
         label (1, 1) string
         P0 double
         x0 (:, 1) double
-        gamma_init double {mustBeInteger, mustBeNonnegative}
         p_seq_g_Yk_init double
         i (1, 1) {mustBeInteger, mustBeNonnegative}
         gamma_k double
@@ -84,7 +80,7 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
     end
     methods
         function obj = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,label,x0, ...
-                gamma_init,p_seq_g_Yk_init)
+                p_seq_g_Yk_init)
 
             % System dimensions
             [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
@@ -95,15 +91,11 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             % Number of filters required
             n_filt = nj;
 
-            if nargin < 12
+            if nargin < 11
                 % Initial values of prior conditional probabilities at 
                 % k = -1. In absence of prior knowledge, assume all 
                 % equally likely
                 p_seq_g_Yk_init = ones(n_filt, 1) ./ double(n_filt);
-            end
-            if nargin < 11
-                % Default assumption about model indicator values at k = -1
-                gamma_init = 0;
             end
             if nargin < 10
                 x0 = zeros(n,1);
@@ -129,18 +121,13 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             % parent class of the other observers?
             obj.seq = num2cell(obj.gamma_k);
 
-            % Sequence index starts at 0 but then remains 1 thereafter.
+            % Sequence index starts at 0 but is 1 thereafter.
             obj.i = int16(0);
 
             % Fusion horizon length
             obj.f = 1;
 
             % Prior assumptions at initialization
-            if isscalar(gamma_init)
-                % In case single value specified
-                gamma_init = gamma_init * ones(n_filt, 1);
-            end
-            obj.gamma_init = gamma_init;
             obj.p_seq_g_Yk_init = p_seq_g_Yk_init;
 
             % Check transition probability matrix

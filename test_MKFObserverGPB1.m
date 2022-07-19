@@ -202,7 +202,6 @@ assert(isequal(MKF1.T, T))
 assert(isequaln(MKF1.xk_est, zeros(n, 1)))
 assert(isequaln(MKF1.Pk, P0))
 assert(isequaln(MKF1.yk_est, 0))
-% assert(isequal(MKF1.gamma_init, zeros(MKF1.n_filt, 1)))
 % assert(isequal(MKF1.gamma_k, zeros(MKF1.n_filt, 1)))
 % assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(MKF1.n_filt, 1)))
 % assert(isequaln(MKF1.p_gammak_g_Ykm1, nan(MKF1.n_filt, 1)))
@@ -214,19 +213,11 @@ MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1',x0);
 assert(isequal(MKF1.xk_est, x0))
 assert(isequal(MKF1.yk_est, C{1} * x0))
 
-% With initial prior shock indicator values
-gamma_init = 0;
-MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1',x0,gamma_init);
-assert(isequal(MKF1.xk_est, x0))
-assert(isequal(MKF1.yk_est, C{1} * x0))
-%assert(isequal(MKF1.gamma_k, zeros(MKF1.n_filt, 1)))
-gamma_init = [zeros(MKF1.n_filt-1, 1); 1];
+% With initial prior probability values
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1',x0, ...
-    gamma_init,p_seq_g_Yk_init);
+MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1',x0,p_seq_g_Yk_init);
 assert(isequal(MKF1.xk_est, x0))
 assert(isequal(MKF1.yk_est, C{1} * x0))
-%assert(isequal(MKF1.gamma_k, gamma_init))
 assert(isequal(MKF1.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % With default initial conditions
@@ -447,8 +438,8 @@ Duj = repmat({Du}, 1, nj);
 P0 = 1000*eye(n);
 Qj = {diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]), ...
       diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
-      diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
-      diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2])};
+      diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2]), ...
+      diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,2)^2])};
 Rj = {diag(sigma_M.^2), diag(sigma_M.^2), diag(sigma_M.^2)};
 seq = {zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1)};
 seq{2}(t == t_shock(1)) = 1;  % shock 1
@@ -530,14 +521,14 @@ f_mkf = 1;
     MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf);
 
 % Plot observer estimates
-% figure(5); clf
-% plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
+figure(5); clf
+plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
 
 % Check final state estimates
 test_X_est = [
-    -1.813611  8.995518  0.997741  0.997597 ...
+    -1.802044  9.008530  0.999957  0.999956 ...
     -1.801814  9.008766  1.000000  1.000000 ...
-    -1.814518  8.994780  0.997579  0.997452];
+    -1.802044  9.008530  0.999957  0.999956];
 assert(isequal(round(Xk_est(t == t(end), :), 6), test_X_est))
 
 % Check final error covariance estimates
@@ -572,13 +563,12 @@ end
 % table(MSE.keys', cell2mat(MSE.values'), ...
 %     'VariableNames', {'Observer', 'MSE'})
 
-% Results on Nov 8 after reverting back the Bayesian updating
+% Results
 MSE_test_values = struct(...
-    'MKF1', [0.000831 0.009085], ...
+    'MKF1', [0.000660 0.000673], ...
     'GPB1', [0.000028 0.000020], ...
-    'SKF', [0.000426 0.008868] ...
+    'SKF', [0.000034 0.000044] ...
 );
-%TODO: Check why SKF is so far off.  See plots
 
 labels = fieldnames(MSE);
 for i = 1:numel(labels)
