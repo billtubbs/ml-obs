@@ -6,10 +6,10 @@
 % algorithms to reduce the number of filters required. This
 % is used by MKFObserverSF.m.
 %
-% obs = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
+% obs = MKFObserverDI(A,B,C,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
 %
 % Arguments:
-%	A, B, C, D : cell arrays containing discrete-time system
+%	A, B, C : cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : sample period.
 %   P0 : Initial covariance matrix of the state estimates
@@ -53,7 +53,6 @@ classdef MKFObserverDI < matlab.mixin.Copyable
         A cell
         B cell
         C cell
-        D cell
         Q cell
         R cell
         seq cell
@@ -77,24 +76,23 @@ classdef MKFObserverDI < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = MKFObserverDI(A,B,C,D,Ts,P0,Q,R,seq,T,d,label, ...
+        function obj = MKFObserverDI(A,B,C,Ts,P0,Q,R,seq,T,d,label, ...
                 x0,gamma0)
 
             % Number of switching systems
             nj = numel(A);
 
             % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
-            if nargin < 14
+            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
+            if nargin < 13
                 gamma0 = 0;
             end
-            if nargin < 13
+            if nargin < 12
                 x0 = zeros(n,1);
             end
             obj.A = A;
             obj.B = B;
             obj.C = C;
-            obj.D = D;
             obj.Ts = Ts;
             obj.Q = Q;
             obj.R = R;
@@ -127,7 +125,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             % Check all other system matrix dimensions have same 
             % input/output dimensions and number of states.
             for j = 2:nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
+                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
                     "ValueError: size of A, B, C, and D")
             end
@@ -182,8 +180,8 @@ classdef MKFObserverDI < matlab.mixin.Copyable
                 % Index of system model
                 ind = obj.gamma_k(i) + 1;
                 obj.filters{i} = KalmanFilter(obj.A{ind},obj.B{ind}, ...
-                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0, obj.Q{ind}, ...
-                    obj.R{ind},label_i,obj.x0);
+                    obj.C{ind},obj.Ts,obj.P0, obj.Q{ind},obj.R{ind}, ...
+                    label_i,obj.x0);
             end
 
             % Initialize estimates
@@ -274,7 +272,6 @@ classdef MKFObserverDI < matlab.mixin.Copyable
                 obj.filters{f}.A = obj.A{ind};
                 obj.filters{f}.B = obj.B{ind};
                 obj.filters{f}.C = obj.C{ind};
-                obj.filters{f}.D = obj.D{ind};
                 obj.filters{f}.Q = obj.Q{ind};
                 obj.filters{f}.R = obj.R{ind};
 

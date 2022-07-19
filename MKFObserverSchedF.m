@@ -1,5 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
+% obs = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,label,x0)
 % Object class for simulating a multi-model Kalman filter for 
 % state estimation with prescribed schedule to determine which 
 % system is active at each time step. Although it is a multi-
@@ -21,6 +22,29 @@
 % This scheduled KF is useful as a benchmark to compare other 
 % multi-model observers with.
 %
+% Arguments:
+%	A, B, C : cell arrays
+%       discrete-time system matrices for each switching
+%       system modelled.
+%   Ts : double
+%       Sampling period.
+%   P0 : matrix, size (n, n)
+%       Initial value of covariance matrix of the state
+%       estimates.
+%   Q : cell array
+%       Process noise covariance matrices for each switching
+%       system.
+%   R : cell array
+%       Output measurement noise covariance matrices for each
+%       switching system.
+%   seq : row vector, size (1, f)
+%       Model indicator sequence. If there is only one random
+%       random input variable.
+%   d : detection interval length in number of sample periods.
+%   label : string (optional)
+%       Name.
+%   x0 : vector, size(n, 1), (optional)
+%       Intial state estimates.
 
 % TODO: Could this be inherited from MKFObserver?
 %   or vice versa? SKF is an MKF without probability updates.
@@ -40,7 +64,6 @@ classdef MKFObserverSchedF < matlab.mixin.Copyable
         A cell
         B cell
         C cell
-        D cell
         P0 double
         Q cell
         R cell
@@ -61,41 +84,14 @@ classdef MKFObserverSchedF < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = MKFObserverSchedF(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
-        % obs = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
-        %
-        % Arguments:
-        %	A, B, C, D : cell arrays
-        %       discrete-time system matrices for each switching
-        %       system modelled.
-        %   Ts : double
-        %       Sampling period.
-        %   P0 : matrix, size (n, n)
-        %       Initial value of covariance matrix of the state
-        %       estimates.
-        %   Q : cell array
-        %       Process noise covariance matrices for each switching
-        %       system.
-        %   R : cell array
-        %       Output measurement noise covariance matrices for each
-        %       switching system.
-        %   seq : row vector, size (1, f)
-        %       Model indicator sequence. If there is only one random
-        %       random input variable.
-        %   d : detection interval length in number of sample periods.
-        %   label : string (optional)
-        %       Name.
-        %   x0 : vector, size(n, 1), (optional)
-        %       Intial state estimates.
-        %
+        function obj = MKFObserverSchedF(A,B,C,Ts,P0,Q,R,seq,label,x0)
 
             % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
+            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
 
             obj.A = A;
             obj.B = B;
             obj.C = C;
-            obj.D = D;
             obj.Ts = Ts;
             obj.P0 = P0;
             obj.Q = Q;
@@ -103,7 +99,7 @@ classdef MKFObserverSchedF < matlab.mixin.Copyable
             obj.seq = seq;
             obj.label = label;
 
-            if nargin < 11
+            if nargin < 10
                 x0 = zeros(n,1);
             end
             obj.x0 = x0;
@@ -114,13 +110,13 @@ classdef MKFObserverSchedF < matlab.mixin.Copyable
             % Check all other system matrix dimensions have same 
             % input/output dimensions and number of states.
             for j = 2:obj.nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
+                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: size of A, B, C, and D")
+                    "ValueError: size of A, B, and C")
             end
 
             % Initialize Kalman filter
-            obj.filter = KalmanFilterF(A{1},B{1},C{1},D{1},Ts,P0,Q{1}, ...
+            obj.filter = KalmanFilterF(A{1},B{1},C{1},Ts,P0,Q{1}, ...
                 R{1},"KF",x0);
 
             % System model indicator sequence
@@ -222,7 +218,6 @@ classdef MKFObserverSchedF < matlab.mixin.Copyable
             obj.filter.A = obj.A{ind};
             obj.filter.B = obj.B{ind};
             obj.filter.C = obj.C{ind};
-            obj.filter.D = obj.D{ind};
             obj.filter.Q = obj.Q{ind};
             obj.filter.R = obj.R{ind};
 

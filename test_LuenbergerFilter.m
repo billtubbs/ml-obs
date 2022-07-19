@@ -38,7 +38,7 @@ N = zeros(n,ny);
 label = "LB1";
 poles = [0.9; 0.9];
 x0 = [0.1; 0.5];
-LB = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0);
+LB = LuenbergerFilter(A,B,C,Ts,poles,label,x0);
 assert(strcmp(LB.type, "LB"))
 assert(isequal(LB.xkp1_est, x0))
 assert(LB.ykp1_est == C * x0)
@@ -48,7 +48,7 @@ assert(LB.nu == nu)
 assert(LB.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
-LB = LuenbergerFilter(A,B,C,D,Ts,poles,label);
+LB = LuenbergerFilter(A,B,C,Ts,poles,label);
 assert(isequal(LB.xkp1_est, zeros(n, 1)))
 assert(LB.ykp1_est == 0)
 K_test = [0.16; 0];

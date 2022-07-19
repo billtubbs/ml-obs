@@ -3,11 +3,11 @@
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system.
 %
-% obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0,gamma_init, ...
+% obs = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,label,x0,gamma_init, ...
 %     p_seq_g_Yk_init)
 %
 % Arguments:
-%   A, B, C, D : Cell arrays containing discrete-time system
+%   A, B, C : Cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : Sample period.
 %   P0 : Initial covariance matrix of the state estimates
@@ -44,7 +44,6 @@ classdef MKFObserver < matlab.mixin.Copyable
         A cell
         B cell
         C cell
-        D cell
         Q cell
         R cell
         seq cell
@@ -69,11 +68,11 @@ classdef MKFObserver < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0, ...
+        function obj = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,label,x0, ...
                 gamma_init,p_seq_g_Yk_init)
 
             % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
+            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
 
             % Number of switching systems
             nj = numel(A);
@@ -81,23 +80,22 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Number of filters required
             n_filt = size(seq, 1);
 
-            if nargin < 14
+            if nargin < 13
                 % Initial values of prior conditional probabilities at 
                 % k = -1. In absence of prior knowledge, assume all 
                 % equally likely
                 p_seq_g_Yk_init = ones(n_filt, 1) ./ double(n_filt);
             end
-            if nargin < 13
+            if nargin < 12
                 % Default assumption about model indicator values at k = -1
                 gamma_init = 0;
             end
-            if nargin < 12
+            if nargin < 11
                 x0 = zeros(n,1);
             end
             obj.A = A;
             obj.B = B;
             obj.C = C;
-            obj.D = D;
             obj.Ts = Ts;
             obj.Q = Q;
             obj.R = R;
@@ -129,7 +127,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Check all other system matrix dimensions have same 
             % input/output dimensions and number of states.
             for j = 2:nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
+                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
                     "ValueError: size of A, B, C, and D")
             end
@@ -182,8 +180,8 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % Index of system model
                 ind = obj.gamma_k(i) + 1;
                 obj.filters{i} = KalmanFilter(obj.A{ind},obj.B{ind}, ...
-                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0, obj.Q{ind}, ...
-                    obj.R{ind},label_i,obj.x0);
+                    obj.C{ind},obj.Ts,obj.P0, obj.Q{ind},obj.R{ind}, ...
+                    label_i,obj.x0);
             end
 
             % Initialize estimates
@@ -260,7 +258,6 @@ classdef MKFObserver < matlab.mixin.Copyable
                 obj.filters{f}.A = obj.A{ind};
                 obj.filters{f}.B = obj.B{ind};
                 obj.filters{f}.C = obj.C{ind};
-                obj.filters{f}.D = obj.D{ind};
                 obj.filters{f}.Q = obj.Q{ind};
                 obj.filters{f}.R = obj.R{ind};
 

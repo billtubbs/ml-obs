@@ -122,8 +122,8 @@ assert(isequal(size(Q1), size(Q2)))
 assert(isequal(size(R1), size(R2)))
 
 % Standard Kalman filters
-KF1 = KalmanFilterF(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
-KF2 = KalmanFilterF(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
+KF1 = KalmanFilterF(A1,B1,C1,Ts,P0,Q1,R1,'KF1',x0);
+KF2 = KalmanFilterF(A2,B2,C2,Ts,P0,Q2,R2,'KF2',x0);
 
 % Define observers with a switching system
 Q = {Q1,Q2};
@@ -131,13 +131,12 @@ R = {R1,R2};
 
 % Define scheduled MKF filter
 seq = Gamma';
-SKF = MKFObserverSchedF(A,B,C,D,Ts,P0,Q,R,seq,"SKF1",x0);
+SKF = MKFObserverSchedF(A,B,C,Ts,P0,Q,R,seq,"SKF1",x0);
 
 assert(strcmp(SKF.type, "SKFF"))
 assert(isequal(SKF.A, A))
 assert(isequal(SKF.B, B))
 assert(isequal(SKF.C, C))
-assert(isequal(SKF.D, D))
 assert(isequal(SKF.Ts, Ts))
 assert(isequal(SKF.P0, P0))
 assert(isequaln(SKF.Pk, nan))
@@ -451,7 +450,7 @@ Z = [0 0; 1 0; 0 1];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', nj, 1);
-MKF1 = MKFObserverF(Aj,Buj,Cj,Duj,Ts,P0,Qj,Rj,seq,T,'MKF1');
+MKF1 = MKFObserverF(Aj,Buj,Cj,Ts,P0,Qj,Rj,seq,T,'MKF1');
 assert(MKF1.n_filt == 4)
 
 % Define scheduled Kalman filter
@@ -462,7 +461,7 @@ assert(MKF1.n_filt == 4)
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSchedF(Aj,Buj,Cj,Duj,Ts,P0,Qj,Rj,seq{4},"SKF");
+SKF = MKFObserverSchedF(Aj,Buj,Cj,Ts,P0,Qj,Rj,seq{4},"SKF");
 
 % Define GPB1 observer
 nj = 2;
@@ -521,8 +520,8 @@ f_mkf = 1;
     MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf);
 
 % Plot observer estimates
-figure(5); clf
-plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
+% figure(5); clf
+% plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
 
 % Check final state estimates
 test_X_est = [

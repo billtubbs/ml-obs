@@ -5,11 +5,11 @@
 % deterministic disturbances (RODDs) as described in 
 % Robertson et al. (1995, 1998).
 %
-% obs = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+% obs = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon, ...
 %     sigma_wp,Q0,R,f,m,d,label,x0)
 %
 % Arguments:
-%   A, B, C, D : Matrices of the discrete time state-space
+%   A, B, C : Matrices of the discrete time state-space
 %       system representing the augmented system (including
 %       disturbances and unmeasured inputs).
 %   Ts : Sample period.
@@ -58,17 +58,17 @@ classdef MKFObserverSF < MKFObserverDI
         sigma_wp double
     end
     methods
-        function obj = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
 
             % Number of states
-            n = check_dimensions(A, B, C, D);
+            n = check_dimensions(A, B, C);
 
             % Check size of initial process covariance matrix
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
             % Initial state estimates
-            if nargin < 16
+            if nargin < 15
                 x0 = zeros(n,1);
             end
 
@@ -80,7 +80,6 @@ classdef MKFObserverSF < MKFObserverDI
             assert(nw > 0, "ValueError: u_meas");
             Bu = B(:, u_meas);
             Bw = B(:, ~u_meas);
-            Du = D(:, u_meas);
 
             % Probability of at least one shock in a detection interval
             % (Detection interval is d sample periods in length).
@@ -124,14 +123,13 @@ classdef MKFObserverSF < MKFObserverDI
             A = repmat({A}, 1, nj);
             Bu = repmat({Bu}, 1, nj);
             C = repmat({C}, 1, nj);
-            Du = repmat({Du}, 1, nj);
             R = repmat({R}, 1, nj);
 
             % Initial covariance matrix is the same for all filters
             %P0_init = repmat({P0}, 1, n_filt);
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserverDI(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,x0);
+            obj = obj@MKFObserverDI(A,Bu,C,Ts,P0,Q,R,seq,T,d,label,x0);
 
             % Add additional variables used by RODD observer
             obj.u_meas = u_meas;

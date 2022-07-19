@@ -122,8 +122,8 @@ assert(isequal(size(Q1), size(Q2)))
 assert(isequal(size(R1), size(R2)))
 
 % Standard Kalman filters
-KF1 = KalmanFilterF(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
-KF2 = KalmanFilterF(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
+KF1 = KalmanFilterF(A1,B1,C1,Ts,P0,Q1,R1,'KF1',x0);
+KF2 = KalmanFilterF(A2,B2,C2,Ts,P0,Q2,R2,'KF2',x0);
 
 % Define observers with a switching system
 Q = {Q1,Q2};
@@ -131,14 +131,13 @@ R = {R1,R2};
 
 % Define scheduled MKF filter
 seq = Gamma';
-SKF1 = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,"SKF1",x0);
-SKF2 = MKFObserverSchedF(A,B,C,D,Ts,P0,Q,R,seq,"SKF2",x0);
+SKF1 = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,"SKF1",x0);
+SKF2 = MKFObserverSchedF(A,B,C,Ts,P0,Q,R,seq,"SKF2",x0);
 
 assert(strcmp(SKF1.type, "SKF"))
 assert(isequal(SKF1.A, A))
 assert(isequal(SKF1.B, B))
 assert(isequal(SKF1.C, C))
-assert(isequal(SKF1.D, D))
 assert(isequal(SKF1.Ts, Ts))
 assert(isequal(SKF1.P0, P0))
 assert(isequal(SKF1.P, P0))
@@ -162,7 +161,6 @@ assert(strcmp(SKF2.type, "SKFF"))
 assert(isequal(SKF2.A, A))
 assert(isequal(SKF2.B, B))
 assert(isequal(SKF2.C, C))
-assert(isequal(SKF2.D, D))
 assert(isequal(SKF2.Ts, Ts))
 assert(isequal(SKF2.P0, P0))
 assert(isequal(SKF2.Q, Q))
@@ -206,13 +204,12 @@ n_filt = numel(seq);
 
 % First, define with no initial state specified (should be set to zero)
 % TODO: Allow independent P0 to be specified for each filter.
-MKF1 = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF1');
+MKF1 = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,'MKF1');
 
 assert(strcmp(MKF1.type, "MKF"))
 assert(isequal(MKF1.A, A))
 assert(isequal(MKF1.B, B))
 assert(isequal(MKF1.C, C))
-assert(isequal(MKF1.D, D))
 assert(isequal(MKF1.Ts, Ts))
 assert(isequal(MKF1.P0, P0))
 assert(isequal(MKF1.P, P0))
@@ -244,13 +241,12 @@ assert(isequaln(MKF1.p_seq_g_Ykm1, nan(n_filt, 1)))
 
 % First, define with no initial state specified (should be set to zero)
 % TODO: Allow independent P0 to be specified for each filter.
-MKF2 = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF2');
+MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2');
 
 assert(strcmp(MKF2.type, "MKFF"))
 assert(isequal(MKF2.A, A))
 assert(isequal(MKF2.B, B))
 assert(isequal(MKF2.C, C))
-assert(isequal(MKF2.D, D))
 assert(isequal(MKF2.Ts, Ts))
 assert(isequal(MKF2.P0, P0))
 assert(isequal(MKF2.Q, Q))
@@ -284,7 +280,7 @@ assert(isequaln(MKF2.p_gamma_k, nan(n_filt, 1)))
 assert(isequaln(MKF2.p_seq_g_Ykm1, nan(n_filt, 1)))
 
 % Redefine this time with initial conditions
-MKF2 = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF2',x0);
+MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2',x0);
 assert(all(isnan(MKF2.xk_est)))
 assert(all(isnan(MKF2.yk_est)))
 assert(isequal(MKF2.xkp1_est, x0))
@@ -293,13 +289,13 @@ assert(isequal(MKF2.p_seq_g_Yk_init, ones(n_filt, 1) ./ n_filt))
 
 % With initial prior shock values and probabilities
 gamma_init = 0;
-MKF2 = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF2',x0, gamma_init);
+MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2',x0, gamma_init);
 assert(isequal(MKF2.xkp1_est, x0))
 assert(isequal(MKF2.ykp1_est, C{1} * x0))
 assert(isequal(MKF2.gamma_k, zeros(n_filt, 1)))
 gamma_init = [zeros(MKF2.n_filt-1, 1); 1];
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF2 = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF2',x0, ...
+MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2',x0, ...
     gamma_init,p_seq_g_Yk_init);
 assert(isequal(MKF2.xkp1_est, x0))
 assert(isequal(MKF2.ykp1_est, C{1} * x0))
@@ -307,7 +303,7 @@ assert(isequal(MKF2.gamma_k, gamma_init))
 assert(isequal(MKF2.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % With default initial conditions
-MKF2 = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF2');
+MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2');
 
 % Choose observers to include in simulation
 observers = {KF1, KF2, MKF1, MKF2, SKF1, SKF2};
@@ -410,7 +406,7 @@ assert(isequaln(MKF2.p_gamma_k, nan(n_filt, 1)))
 assert(isequaln(MKF2.p_seq_g_Ykm1, nan(n_filt, 1)))
 
 % Redefine a new observer (identical to above)
-MKF2_new = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF2');
+MKF2_new = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2');
 assert(isequaln(MKF2_new, MKF2))
 MKF2_new.label = "MKF2_new";
 
@@ -591,16 +587,16 @@ Z = [0 0; 1 0; 0 1; 1 1];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 4, 1);
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
+MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
 assert(MKF3.n_filt == 4)
-MKF3F = MKFObserverF(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3F');
+MKF3F = MKFObserverF(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3F');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == t_shock(1)) = 1;
 seq{1}(t == t_shock(2)) = 2;
-MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
+MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
 assert(MKF4.n_filt == 1)
-MKF4F = MKFObserverF(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4F');
+MKF4F = MKFObserverF(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4F');
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -610,8 +606,8 @@ MKF4F = MKFObserverF(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4F');
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
-SKFF = MKFObserverSchedF(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKFF");
+SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKFF = MKFObserverSchedF(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKFF");
 
 % Choose observers to test
 observers = {MKF3, MKF4, SKF, MKF3F, MKF4F, SKFF};
@@ -802,7 +798,7 @@ n_filt = numel(seq);
 %P0j = repmat({P0}, n_filt, 1);
 
 % Define multi-model observer with initial conditions
-MKF = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,'MKF',x0);
+MKF = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF',x0);
 
 % Test handle copy
 MKF_hcopy = MKF;

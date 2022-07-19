@@ -6,11 +6,11 @@
 % Robertson et al. (1995). This version is slightly 
 % different to that described in Robertson et al. (1998).
 %
-% obs = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+% obs = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon, ...
 %     sigma_wp,Q0,R,f,m,d,label,x0)
 %
 % Arguments:
-%   A, B, C, D : matrices of the discrete time state-space
+%   A, B, C : matrices of the discrete time state-space
 %       system representing the augmented system (including
 %       disturbances and unmeasured inputs).
 %   Ts : sample period.
@@ -59,17 +59,17 @@ classdef MKFObserverSF95 < MKFObserver
         sigma_wp double
     end
     methods
-        function obj = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
 
             % Number of states
-            n = check_dimensions(A, B, C, D);
+            n = check_dimensions(A, B, C);
 
             % Check size of initial process covariance matrix
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
             % Initial state estimates
-            if nargin < 16
+            if nargin < 15
                 x0 = zeros(n,1);
             end
 
@@ -81,7 +81,6 @@ classdef MKFObserverSF95 < MKFObserver
             assert(nw > 0, "ValueError: u_meas");
             Bu = B(:, u_meas);
             Bw = B(:, ~u_meas);
-            Du = D(:, u_meas);
 
             % Convert fusion horizon to number of detection intervals
             assert(rem(f, d) == 0, "ValueError: Fusion horizon and " ...
@@ -127,14 +126,13 @@ classdef MKFObserverSF95 < MKFObserver
             A = repmat({A}, 1, nj);
             Bu = repmat({Bu}, 1, nj);
             C = repmat({C}, 1, nj);
-            Du = repmat({Du}, 1, nj);
             R = repmat({R}, 1, nj);
 
             % Initial covariance matrix is the same for all filters
             %P0_init = repmat({P0}, 1, n_filt);
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,label,x0);
+            obj = obj@MKFObserver(A,Bu,C,Ts,P0,Q,R,seq,T,label,x0);
 
             % Add additional variables used by RODD observer
             obj.u_meas = u_meas;

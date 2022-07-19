@@ -29,13 +29,12 @@ x0 = [0.1; 0.5];
 % Define steady-state Kalman filter with KalmanFilterSS class
 label = "KFSS";
 KFSS_old = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0);
-KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,label,x0);
+KFSS = KalmanFilterSS(A,B,C,Ts,Q,R,label,x0);
 
 assert(strcmp(KFSS.type, "KFSS"))
 assert(isequal(KFSS.A, A))
 assert(isequal(KFSS.B, B))
 assert(isequal(KFSS.C, C))
-assert(isequal(KFSS.D, D))
 assert(isequal(KFSS.Ts, Ts))
 assert(isequal(KFSS.Q, Q))
 assert(isequal(KFSS.R, R))
@@ -53,7 +52,7 @@ assert(KFSS.nu == nu)
 assert(KFSS.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
-KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS");
+KFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS");
 K_test = [0.7727; 0.7557];
 P_test = [1.5098    1.2170;
           1.2170    1.2191];
@@ -67,11 +66,10 @@ assert(KFSS.ykp1_est == 0)
 % and KalmanFilterF classes
 P0 = diag([1e-4 1e-4]);
 
-KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
+KF = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF");
 assert(isequal(KF.A, A))
 assert(isequal(KF.B, B))
 assert(isequal(KF.C, C))
-assert(isequal(KF.D, D))
 assert(isequal(KF.Ts, Ts))
 assert(isequal(KF.P, P0))
 assert(isequal(KF.Q, Q))
@@ -80,11 +78,10 @@ assert(all(isnan(KF.K)))
 assert(isequal(KF.xkp1_est, zeros(2, 1)))
 assert(KF.ykp1_est == 0)
 
-KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,"KF");
+KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,"KF");
 assert(isequal(KFF.A, A))
 assert(isequal(KFF.B, B))
 assert(isequal(KFF.C, C))
-assert(isequal(KFF.D, D))
 assert(isequal(KFF.Ts, Ts))
 assert(isequal(KFF.Q, Q))
 assert(isequal(KFF.R, R))
@@ -239,12 +236,11 @@ x0 = [0.1; 0.5];
 
 % Define dynamic Kalman filter using kalman_filter function
 label = 'KF';
-KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0);
+KF = KalmanFilter(A,B,C,Ts,P0,Q,R,label,x0);
 assert(strcmp(KF.type, "KF"))
 assert(isequal(KF.A, A))
 assert(isequal(KF.B, B))
 assert(isequal(KF.C, C))
-assert(isequal(KF.D, D))
 assert(isequal(KF.Ts, Ts))
 assert(isequal(KF.P0, P0))
 assert(isequal(KF.Q, Q))
@@ -258,12 +254,11 @@ assert(KF.nu == nu)
 assert(KF.ny == ny)
 
 label = 'KFF';
-KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,label,x0);
+KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,label,x0);
 assert(strcmp(KFF.type, "KFF"))
 assert(isequal(KFF.A, A))
 assert(isequal(KFF.B, B))
 assert(isequal(KFF.C, C))
-assert(isequal(KFF.D, D))
 assert(isequal(KFF.Ts, Ts))
 assert(isequal(KFF.P0, P0))
 assert(isequal(KFF.Q, Q))
@@ -280,14 +275,14 @@ assert(KFF.nu == nu)
 assert(KFF.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
-KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R);
+KF = KalmanFilter(A,B,C,Ts,P0,Q,R);
 assert(all(isnan(KF.K)))
 assert(isequal(KF.P, P0))
 assert(isequal(KF.xkp1_est, zeros(n, 1)))
 assert(KF.ykp1_est == 0)
 
 % Re-define with no initial state specified (should be set to zero)
-KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R);
+KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R);
 assert(all(isnan(KFF.Kf)))
 assert(isequal(KFF.xkp1_est, zeros(n, 1)))
 assert(isequaln(KFF.Pkp1, P0))
@@ -508,10 +503,10 @@ P0 = 1e-4 .* eye(n);
 
 % Define Kalman filters
 KFSS_test = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,"KFSS_test",x0);
-KFSS = KalmanFilterSS(A,Bu,C,Du,Ts,Q,R,"KFSS",x0);
+KFSS = KalmanFilterSS(A,Bu,C,Ts,Q,R,"KFSS",x0);
 KF_test = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,"KF_test",x0);
-KF = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,"KF",x0);
-KFF = KalmanFilterF(A,Bu,C,Du,Ts,P0,Q,R,"KFF",x0);
+KF = KalmanFilter(A,Bu,C,Ts,P0,Q,R,"KF",x0);
+KFF = KalmanFilterF(A,Bu,C,Ts,P0,Q,R,"KFF",x0);
 
 observers = {KFSS, KF, KFSS_test, KF_test, KFF};
 n_obs = numel(observers);
@@ -688,13 +683,13 @@ x0 = [0.1; 0.5];
 P0 = diag([1e-4 1e-4]);
 
 % Define steady-state Kalman
-KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS",x0);
+KFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS",x0);
 
 % Define dynamic Kalman filter
-KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
+KF = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF");
 
 % Define dynamic Kalman filter - filtering form
-KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,"KFF");
+KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,"KFF");
 
 % Test handle copy
 KFSS_hcopy = KFSS;
@@ -719,13 +714,13 @@ KFF.A(1, 1) = KFF.A(1, 1) + 0.1;
 assert(isequal(KFF_hcopy.A(1, 1), KFF.A(1, 1)))
 
 % Redefine steady-state Kalman
-KFSS = KalmanFilterSS(A,B,C,D,Ts,Q,R,"KFSS",x0);
+KFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS",x0);
 
 % Redefine dynamic Kalman filter
-KF = KalmanFilter(A,B,C,D,Ts,P0,Q,R,"KF");
+KF = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF");
 
 % Redefine dynamic Kalman filter
-KFF = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,"KFF");
+KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,"KFF");
 
 % Test true copy
 KFSS_copy = KFSS.copy();

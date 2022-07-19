@@ -1,6 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0,gamma_init, ...
+% obs = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,label,x0,gamma_init, ...
 %     p_seq_g_Yk_init)
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system. This is the
@@ -18,8 +18,15 @@
 %  xkp1_hat(k+1|k) : estimate of states at time k + 1
 %  ykp1_hat(k+1|k) : estimate of outputs at time k + 1
 %
+% The system model is defined as:
+%
+%   x(k+1) = A(k) x(k) + B(k) u(k) + w(k)
+%     y(k) = C(k) x(k) + v(k)
+%
+% Note: there is no direct transmission (D = 0).
+%
 % Arguments:
-%   A, B, C, D : Cell arrays containing discrete-time system
+%   A, B, C : Cell arrays containing discrete-time system
 %       matrices for each switching system modelled.
 %   Ts : Sample period.
 %   P0 : Initial covariance matrix of the state estimates
@@ -84,11 +91,11 @@ classdef MKFObserverF < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = MKFObserverF(A,B,C,D,Ts,P0,Q,R,seq,T,label,x0, ...
+        function obj = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,label,x0, ...
                 gamma_init,p_seq_g_Yk_init)
 
             % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
+            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
 
             % Number of switching systems
             nj = numel(A);
@@ -96,23 +103,22 @@ classdef MKFObserverF < matlab.mixin.Copyable
             % Number of filters required
             n_filt = size(seq, 1);
 
-            if nargin < 14
+            if nargin < 13
                 % Initial values of prior conditional probabilities at 
                 % k = -1. In absence of prior knowledge, assume all 
                 % equally likely
                 p_seq_g_Yk_init = ones(n_filt, 1) ./ double(n_filt);
             end
-            if nargin < 13
+            if nargin < 12
                 % Default assumption about model indicator values at k = -1
                 gamma_init = 0;
             end
-            if nargin < 12
+            if nargin < 11
                 x0 = zeros(n,1);
             end
             obj.A = A;
             obj.B = B;
             obj.C = C;
-            obj.D = D;
             obj.Ts = Ts;
             obj.Q = Q;
             obj.R = R;
@@ -144,9 +150,9 @@ classdef MKFObserverF < matlab.mixin.Copyable
             % Check all other system matrix dimensions have same 
             % input/output dimensions and number of states.
             for j = 2:nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
+                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: size of A, B, C, and D")
+                    "ValueError: size of A, B, and C")
             end
 
             % Store other useful variables
@@ -197,8 +203,8 @@ classdef MKFObserverF < matlab.mixin.Copyable
                 % Index of system model
                 ind = obj.gamma_k(i) + 1;
                 obj.filters{i} = KalmanFilterF(obj.A{ind},obj.B{ind}, ...
-                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0, obj.Q{ind}, ...
-                    obj.R{ind},label_i,obj.x0);
+                    obj.C{ind},obj.Ts,obj.P0, obj.Q{ind},obj.R{ind}, ...
+                    label_i,obj.x0);
             end
 
             % Initialize state and output estimates
@@ -246,7 +252,7 @@ classdef MKFObserverF < matlab.mixin.Copyable
             gamma_km1 = obj.gamma_k;
             obj.gamma_k = cellfun(@(x) x(:, obj.i), obj.seq);
 
-            % Compute Pr(gamma(k)|gamma(k-1)) based on Markov transition
+            % Determine Pr(gamma(k)|gamma(k-1)) based on Markov transition
             % probability matrix
             % TODO: This doesn't need to be a property since gamma_k
             % and p_gamma are properties.
@@ -288,7 +294,6 @@ classdef MKFObserverF < matlab.mixin.Copyable
                 obj.filters{f}.A = obj.A{ind};
                 obj.filters{f}.B = obj.B{ind};
                 obj.filters{f}.C = obj.C{ind};
-                obj.filters{f}.D = obj.D{ind};
                 obj.filters{f}.Q = obj.Q{ind};
                 obj.filters{f}.R = obj.R{ind};
 
@@ -315,8 +320,8 @@ classdef MKFObserverF < matlab.mixin.Copyable
             obj.p_seq_g_Ykm1 = obj.p_gamma_k .* obj.p_seq_g_Yk;
 
             % Bayesian update of Pr(Gamma(k)|Y(k))
-            cond_pds = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;
-            obj.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
+            likelihood = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;
+            obj.p_seq_g_Yk = likelihood ./ sum(likelihood);
             % Note: above calculation normalizes p_seq_g_Yk so that
             % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
 

@@ -39,7 +39,7 @@ Q2 = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
 R2 = {sigma_M^2, sigma_M^2};
 seq = {zeros(1, nT+1)};
 seq{1}(t == 10) = 1;
-SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 params = get_obs_params(SKF);
 assert(isequal(fieldnames(params), {'P0', 'Q', 'R', 'f', 'd', 'n_filt'}'))

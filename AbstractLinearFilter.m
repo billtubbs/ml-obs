@@ -35,19 +35,18 @@ classdef (Abstract) AbstractLinearFilter < matlab.mixin.Copyable
         type (1, 1) string  % is this still needed? use classdef
     end
     methods
-        function obj = AbstractLinearFilter(A,B,C,D,Ts,label,x0)
+        function obj = AbstractLinearFilter(A,B,C,Ts,label,x0)
             obj.A = A;
             obj.B = B;
             obj.C = C;
-            obj.D = D;
-            [obj.n, obj.nu, obj.ny] = check_dimensions(A, B, C, D);
+            [obj.n, obj.nu, obj.ny] = check_dimensions(A, B, C);
             obj.Ts = Ts;
-            if nargin < 7
+            if nargin < 6
                 x0 = zeros(obj.n, 1);
             else
                 assert(isequal(size(x0), [obj.n 1]))
             end
-            if nargin < 6
+            if nargin < 5
                 label = obj.type;
             end
             obj.label = label;

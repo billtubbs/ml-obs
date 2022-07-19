@@ -20,7 +20,7 @@
 %   Let there be a certain minimum life length for all 
 %   branches.
 %
-% obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+% obs = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon, ...
 %     sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
 %
 % Creates a struct for simulating a multi-model observer
@@ -30,7 +30,7 @@
 % described in Eriksson and Isaksson (1996).
 %
 % Arguments:
-%   A, B, C, D : Matrices of the discrete time state-space
+%   A, B, C : Matrices of the discrete time state-space
 %       system representing the augmented system (including
 %       disturbances and unmeasured inputs).
 %   Ts : Sample period.
@@ -84,12 +84,12 @@ classdef MKFObserverSP < MKFObserver
         f_hold
     end
     methods
-        function obj = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon, ...
             sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
 
             % TODO: Expose spacing parameter d as an argument
             % Number of states
-            n = check_dimensions(A, B, C, D);
+            n = check_dimensions(A, B, C);
 
             % Check size of initial process covariance matrix
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
@@ -98,7 +98,7 @@ classdef MKFObserverSP < MKFObserver
             d = 1;  % TODO: Make this a specified parameter.
 
             % Initial state estimates
-            if nargin == 15
+            if nargin < 15
                 x0 = zeros(n,1);
             end
 
@@ -107,11 +107,11 @@ classdef MKFObserverSP < MKFObserver
             assert(nw > 0, "ValueError: u_meas");
             Bu = B(:, u_meas);
             Bw = B(:, ~u_meas);
-            Du = D(:, u_meas);
 
             % Construct process noise covariance matrices for each 
             % possible input disturbance (returns a cell array)
-            [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, epsilon, sigma_wp.^2, nw);
+            [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, epsilon, ...
+                sigma_wp.^2, nw);
 
             % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
@@ -122,7 +122,8 @@ classdef MKFObserverSP < MKFObserver
             T = repmat(p_gamma', nj, 1);
 
             % Initialize indicator sequences
-            seq = mat2cell(int16(zeros(n_filt, f)), int16(ones(1, n_filt)), f);
+            seq = mat2cell(int16(zeros(n_filt, f)), ...
+                int16(ones(1, n_filt)), f);
 
             % Define filter groups ('main', 'holding' and 'unused')
             n_min = int16(n_min);
@@ -139,14 +140,10 @@ classdef MKFObserverSP < MKFObserver
             f_main = int16(1:n_main);
             f_hold = int16(n_main+1:n_main+n_hold);
 
-            % TODO: Remove this
-            assert(isequal(sort(unique([f_main f_hold])), 1:(n_main+n_hold)))
-
             % System model doesn't change over time
             A = repmat({A}, 1, nj);
             Bu = repmat({Bu}, 1, nj);
             C = repmat({C}, 1, nj);
-            Du = repmat({Du}, 1, nj);
             R = repmat({R}, 1, nj);
 
             % Initial covariance matrix is the same for all filters
@@ -160,7 +157,7 @@ classdef MKFObserverSP < MKFObserver
             p_seq_g_Yk_init = [1; zeros(n_filt-1, 1)];
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,label,x0, ...
+            obj = obj@MKFObserver(A,Bu,C,Ts,P0,Q,R,seq,T,label,x0, ...
                 gamma_init, p_seq_g_Yk_init);
 
             % Set estimate covariances to high values for the

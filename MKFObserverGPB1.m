@@ -142,7 +142,7 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             for j = 2:nj
                 [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: size of A, B, C, and D")
+                    "ValueError: size of A, B, and C")
             end
 
             % Store other useful variables

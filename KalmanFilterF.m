@@ -1,6 +1,6 @@
 % Kalman Filter class definition
 %
-% obs = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,label,x0)
+% obs = KalmanFilterF(A,B,C,Ts,P0,Q,R,label,x0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance). This is the filtering form of the
@@ -8,18 +8,25 @@
 % outputs at the current time instant given the data
 % at the current time:
 %
-%  x_hat(k|k) : estimate of states at time k
-%  y_hat(k|k) : estimate of outputs at time k
+%   x_hat(k|k) : estimate of states at time k
+%   y_hat(k|k) : estimate of outputs at time k
 %
 % Prior estimates of the states and outputs at the next
 % time instant given the data at the current time are
 % also calculated:
 %
-%  xkp1_hat(k+1|k) : estimate of states at time k + 1
-%  ykp1_hat(k+1|k) : estimate of outputs at time k + 1
+%   xkp1_hat(k+1|k) : estimate of states at time k + 1
+%   ykp1_hat(k+1|k) : estimate of outputs at time k + 1
+%
+% The system model is defined as:
+%
+%   x(k+1) = A(k) x(k) + B(k) u(k) + w(k)
+%     y(k) = C(k) x(k) + v(k)
+%
+% Note: there is no direct transmission (D = 0).
 %
 % Arguments:
-%   A, B, C, D : matrices
+%   A, B, C : matrices
 %       Discrete-time system model matrices.
 %   Ts : double
 %       Sampling period.
@@ -51,10 +58,10 @@ classdef KalmanFilterF < AbstractLinearFilter
         P0 double
     end
     methods
-        function obj = KalmanFilterF(A,B,C,D,Ts,P0,Q,R,varargin)
+        function obj = KalmanFilterF(A,B,C,Ts,P0,Q,R,varargin)
 
             % Call super-class constuctor
-            obj = obj@AbstractLinearFilter(A,B,C,D,Ts,varargin{:});
+            obj = obj@AbstractLinearFilter(A,B,C,Ts,varargin{:});
             n = obj.n;
             ny = obj.ny;
 

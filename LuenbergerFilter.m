@@ -1,11 +1,11 @@
 % Luenberger filter class definition
 %
-% obs = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0)
+% obs = LuenbergerFilter(A,B,C,Ts,poles,label,x0)
 % Class for simulating a steady-state Kalman filter
 % (i.e. with static gain).
 %
 % Arguments:
-%   A, B, C, D : matrices
+%   A, B, C : matrices
 %       Discrete-time system model matrices.
 %   Ts : double
 %       Sampling period.
@@ -30,17 +30,17 @@ classdef LuenbergerFilter < AbstractLinearFilter
         poles {mustBeNumeric}
     end
     methods
-        function obj = LuenbergerFilter(A,B,C,D,Ts,poles,varargin)
+        function obj = LuenbergerFilter(A,B,C,Ts,poles,varargin)
 
             % Call super-class constuctor
-            obj = obj@AbstractLinearFilter(A,B,C,D,Ts,varargin{:});
+            obj = obj@AbstractLinearFilter(A,B,C,Ts,varargin{:});
             n = obj.n;
             ny = obj.ny;
 
             % Set properties for Luenberger filter
             obj.poles = poles;
             obj.type = "LB";
-            if nargin < 7
+            if nargin < 6
                 obj.label = obj.type;
             end
 

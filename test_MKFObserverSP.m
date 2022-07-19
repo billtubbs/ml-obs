@@ -43,7 +43,6 @@ assert(MKF_SP1.nj == 2)
 assert(isequal(MKF_SP1.A{1}, A) && isequal(MKF_SP1.A{2}, A))
 assert(isequal(MKF_SP1.B{1}, Bu) && isequal(MKF_SP1.B{2}, Bu))
 assert(isequal(MKF_SP1.C{1}, C) && isequal(MKF_SP1.C{2}, C))
-assert(isequal(MKF_SP1.D{1}, Du) && isequal(MKF_SP1.D{2}, Du))
 assert(MKF_SP1.Ts == Ts)
 assert(isequaln(MKF_SP1.u_meas, u_meas))
 assert(isequal(MKF_SP1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
@@ -84,10 +83,8 @@ assert(MKF_SP2.nj == 2)
 assert(isequal(MKF_SP2.A{1}, A) && isequal(MKF_SP2.A{2}, A))
 assert(isequal(MKF_SP2.B{1}, Bu) && isequal(MKF_SP2.B{2}, Bu))
 assert(isequal(MKF_SP2.C{1}, C) && isequal(MKF_SP2.C{2}, C))
-assert(isequal(MKF_SP2.D{1}, Du) && isequal(MKF_SP2.D{2}, Du))
 assert(isequal(MKF_SP2.B{1}, Bu) && isequal(MKF_SP2.B{2}, Bu))
 assert(isequal(MKF_SP2.C{1}, C) && isequal(MKF_SP2.C{2}, C))
-assert(isequal(MKF_SP2.D{1}, Du) && isequal(MKF_SP2.D{2}, Du))
 assert(MKF_SP2.Ts == Ts)
 assert(isequaln(MKF_SP2.u_meas, u_meas))
 assert(isequal(MKF_SP2.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
@@ -114,7 +111,7 @@ end
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
-MKF_SP_testx0 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP_testx0 = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal(MKF_SP_testx0.ykp1_est, C * x0))
@@ -150,7 +147,7 @@ end
 
 % Check steady-state at x0 = [1; 0]
 x0 = [1; 0];
-obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+obs = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, 0.3))
@@ -182,7 +179,7 @@ x0 = [0; 0];
 n_filt = 5;
 f = 8;
 n_min = 2;
-obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+obs = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, 0))
@@ -578,7 +575,7 @@ n_min = 1;  % NOTE: this produces identical results to previous
             % hypothesis leaving holding group goes into main group
             % first (as in this version) or can be immediately 
             % eliminated before going to main group (as previously).
-obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+obs = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, 0))
@@ -1046,13 +1043,13 @@ seq = {zeros(1, nT+1); zeros(1, nT+1)};
 seq{2}(t == 10) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
+MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == 10) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
+MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -1062,7 +1059,7 @@ MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Simulate observers
 
@@ -1307,7 +1304,6 @@ assert(MKF_SP1.nj == 3)
 assert(isequal(MKF_SP1.A{1}, A) && isequal(MKF_SP1.A{2}, A))
 assert(isequal(MKF_SP1.B{1}, Bu) && isequal(MKF_SP1.B{2}, Bu))
 assert(isequal(MKF_SP1.C{1}, C) && isequal(MKF_SP1.C{2}, C))
-assert(isequal(MKF_SP1.D{1}, Du) && isequal(MKF_SP1.D{2}, Du))
 assert(MKF_SP1.Ts == Ts)
 assert(isequaln(MKF_SP1.u_meas, u_meas))
 assert(isequal(MKF_SP1.Q{1}, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 1)^2])))
@@ -1342,7 +1338,6 @@ assert(MKF_SP2.nj == 3)
 assert(isequal(MKF_SP2.A{1}, A) && isequal(MKF_SP2.A{2}, A))
 assert(isequal(MKF_SP2.B{1}, Bu) && isequal(MKF_SP2.B{2}, Bu))
 assert(isequal(MKF_SP2.C{1}, C) && isequal(MKF_SP2.C{2}, C))
-assert(isequal(MKF_SP2.D{1}, Du) && isequal(MKF_SP2.D{2}, Du))
 assert(MKF_SP2.Ts == Ts)
 assert(isequaln(MKF_SP2.u_meas, u_meas))
 assert(isequal(MKF_SP2.Q{1}, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 1)^2])))
@@ -1362,7 +1357,7 @@ assert(isequal(round(MKF_SP2.p_gamma, 6), [0.990025; 0.004975; 0.004975]))
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
-MKF_SP_testx0 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP_testx0 = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal(MKF_SP_testx0.ykp1_est, C * x0))
@@ -1382,7 +1377,7 @@ x0 = [0; 0; 0; 0];
 f = 8;
 n_filt = 10;  % number of filters
 n_min = 3;  % minimum life of cloned filters
-obs = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+obs = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 assert(isequal(obs.ykp1_est, [0 0]'))
@@ -1883,7 +1878,7 @@ sigma_wp = [0.01 1; 0.01 1];
 P0 = 1000*eye(n);
 Q = diag([0.01 0.01 0.1^2 0.1^2]);
 R = diag(sigma_M.^2);
-KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
+KF3 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,'KF3');
 
 % Multiple model observer with sequence pruning 1
 label = "MKF_SP1";
@@ -1893,7 +1888,7 @@ R = diag(sigma_M.^2);
 f = 10;  % sequence history length
 n_filt = 15;  % number of filters
 n_min = 5;  % minimum life of cloned filters
-MKF_SP1 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP1 = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
 % Multiple model observer with sequence pruning 2
@@ -1904,7 +1899,7 @@ R = diag(sigma_M.^2);
 f = 10;  % sequence history length
 n_filt = 30;  % number of filters
 n_min = 10;  % minimum life of cloned filters
-MKF_SP2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP2 = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
 % Simulation settings
@@ -1957,13 +1952,13 @@ Z = [0 0; 1 0; 0 1];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 3, 1);
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
+MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
 assert(MKF3.n_filt == 4)
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == t_shock(1)) = 1;
 seq{1}(t == t_shock(2)) = 2;
-MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
+MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
 assert(MKF4.n_filt == 1)
 
 % Define scheduled Kalman filter
@@ -1974,7 +1969,7 @@ assert(MKF4.n_filt == 1)
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
 observers = {KF3, MKF_SP1, MKF_SP2, MKF3, MKF4, SKF};

@@ -11,6 +11,13 @@
 %  x_hat(k+1|k) : estimate of states at time k+1
 %  y_hat(k+1|k) : estimate of outputs at time k+1
 %
+% The system model is defined as:
+%
+%   x(k+1) = A(k) x(k) + B(k) u(k) + w(k)
+%     y(k) = C(k) x(k) + v(k)
+%
+% Note: there is no direct transmission (D = 0).
+%
 % Arguments:
 %   A, B, C, D : matrices
 %       Discrete-time system model matrices.
@@ -42,10 +49,10 @@ classdef KalmanFilter < AbstractLinearFilter
         P0 double
     end
     methods
-        function obj = KalmanFilter(A,B,C,D,Ts,P0,Q,R,varargin)
+        function obj = KalmanFilter(A,B,C,Ts,P0,Q,R,varargin)
 
             % Call super-class constuctor
-            obj = obj@AbstractLinearFilter(A,B,C,D,Ts,varargin{:});
+            obj = obj@AbstractLinearFilter(A,B,C,Ts,varargin{:});
             n = obj.n;
             ny = obj.ny;
 
@@ -57,7 +64,7 @@ classdef KalmanFilter < AbstractLinearFilter
             obj.R = R;
             assert(isequal(size(R), [ny ny]))
             obj.type = "KF";
-            if nargin < 9
+            if nargin < 8
                 obj.label = obj.type;
             end
 
