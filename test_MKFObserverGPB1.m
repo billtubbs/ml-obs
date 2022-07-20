@@ -174,7 +174,7 @@ assert(isequal(seq1{2}, Gamma'))
 % Define MKF observer 1
 
 % First, define with no initial state specified (should be set to zero)
-MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1');
+MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,"MKF1");
 
 assert(strcmp(MKF1.type, "MKF_GPB1"))
 assert(isequal(MKF1.A, A))
@@ -184,24 +184,22 @@ assert(isequal(MKF1.Ts, Ts))
 assert(isequal(MKF1.P0, P0))
 assert(isequal(MKF1.Q, Q))
 assert(isequal(MKF1.R, R))
-assert(isequal(MKF1.seq, {0, 1}'))
 assert(isequal(MKF1.T, T))
 assert(strcmp(MKF1.label, "MKF1"))
 assert(MKF1.n_filt == 2)
-assert(isequaln(MKF1.i, 0))
 assert(MKF1.n == n)
 assert(MKF1.nu == nu)
 assert(MKF1.ny == ny)
-assert(MKF1.f == size(MKF1.seq{1}, 2))
+assert(MKF1.f == 1)
 assert(MKF1.nj == 2)
+assert(isequal(MKF1.i, 0))
 assert(isequal(MKF1.T, T))
-% assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
-% assert(isequal(MKF1.Pkp1, P0))
-% assert(MKF1.ykp1_est == 0)
-assert(isequaln(MKF1.xk_est, zeros(n, 1)))
-assert(isequaln(MKF1.Pk, P0))
-assert(isequaln(MKF1.yk_est, 0))
-% assert(isequal(MKF1.gamma_k, zeros(MKF1.n_filt, 1)))
+assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF1.Pkp1, P0))
+assert(isequal(MKF1.ykp1_est, 0))
+assert(isequaln(MKF1.xk_est, nan(n, 1)))
+assert(isequaln(MKF1.Pk, nan(n)))
+assert(isequaln(MKF1.yk_est, nan(ny, 1)))
 % assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(MKF1.n_filt, 1)))
 % assert(isequaln(MKF1.p_gammak_g_Ykm1, nan(MKF1.n_filt, 1)))
 % assert(isequaln(MKF1.p_gamma_k, nan(MKF1.n_filt, 1)))
@@ -209,14 +207,17 @@ assert(isequaln(MKF1.yk_est, 0))
 
 % Redefine this time with initial conditions
 MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1',x0);
-assert(isequal(MKF1.xk_est, x0))
-assert(isequal(MKF1.yk_est, C{1} * x0))
+assert(isequal(MKF1.xkp1_est, x0))
+assert(isequal(MKF1.Pkp1, P0))
+assert(isequal(MKF1.ykp1_est, C{1} * x0))
+assert(isequal(MKF1.p_seq_g_Yk_init, [0.5; 0.5]))
 
 % With initial prior probability values
 p_seq_g_Yk_init = [0.6; 0.4];
 MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1',x0,p_seq_g_Yk_init);
-assert(isequal(MKF1.xk_est, x0))
-assert(isequal(MKF1.yk_est, C{1} * x0))
+assert(isequal(MKF1.xkp1_est, x0))
+assert(isequal(MKF1.Pkp1, P0))
+assert(isequal(MKF1.ykp1_est, C{1} * x0))
 assert(isequal(MKF1.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % With default initial conditions
@@ -270,7 +271,7 @@ assert(isequal(abs(DiagPk(t == 30, :) - KF2_diagPk) < 0.0001, ...
 mses = nanmean(E_obs.^2);
 
 % Check MKF and SKF observer estimation errors
-assert(isequal(round(mses, 6), [3.806151 0.269363 0.001541 0]))
+assert(isequal(round(mses, 6), [3.806151 0.269363 0.000959 0]))
 
 % Reset observer states to original initial conditions
 KF1.reset()
@@ -278,11 +279,11 @@ KF2.reset()
 MKF1.reset()
 SKF.reset();
 
-assert(isequal(MKF1.P0, P0))
-assert(isequal(MKF1.Pk, P0))
-assert(isequaln(MKF1.i, 0))
-assert(isequal(MKF1.xk_est, zeros(n, 1)))
-assert(MKF1.yk_est == 0)
+assert(isequal(MKF1.i, 0))
+assert(isequal(MKF1.xkp1_est, MKF1.x0))
+assert(isequal(MKF1.Pkp1, MKF1.P0))
+assert(isequal(MKF1.ykp1_est, C{1} * MKF1.x0))
+assert(isequal(MKF1.p_seq_g_Yk, MKF1.p_seq_g_Yk_init))
 % assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
 % assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
 % assert(isequaln(MKF1.p_gammak_g_Ykm1, nan(n_filt, 1)))
@@ -344,11 +345,11 @@ mses = nanmean(E_obs.^2);
 %array2table(mses,'VariableNames',obs_labels)
 
 % Check MKF observer estimation error
-assert(round(mses(f_mkf), 6) == 0.001541)
+assert(round(mses(f_mkf), 6) == 0.000959)
 
 % Check all observer estimation errors
-assert(isequal(round(mses, 4), ...
-    [3.8062 0.2694 0 0.0015 0.0015 0.0015]))
+assert(isequal(round(mses, 6), ...
+    [3.806151 0.269363 0 0.000959 0.000959 0.000959]))
 
 % % Plot selected observers
 % figure(4); clf
@@ -565,7 +566,7 @@ end
 % Results
 MSE_test_values = struct(...
     'MKF1', [0.000660 0.000673], ...
-    'GPB1', [0.000028 0.000020], ...
+    'GPB1', [0.000020 0.000020], ...
     'SKF', [0.000034 0.000044] ...
 );
 
@@ -712,7 +713,7 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
     n = size(observers{1}.xkp1_est, 1);
 
     obs_mkf = observers{f_mkf};
-    n_filters = size(obs_mkf.seq, 1);
+    n_filters = obs_mkf.n_filt;
 
     Xk_est = zeros(nT+1, n*n_obs);
     Yk_est = zeros(nT+1, ny*n_obs);

@@ -1,16 +1,10 @@
 function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T, ...
-    xk_est,Pk,yk,uk,p_seq_g_Yk)
-% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T,xk_est,Pk, ...
-%     yk,uk,p_seq_g_Yk)
+    Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk)
+% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T, ...
+%     xkp1_est,ykp1_est,Pkp1,yk,p_seq_g_Yk)
 % Update equations for simulating the generalised
 % pseudo-Bayes (GPB) multi-model Kalman filter for
 % state estimation of Markov jump linear systems.
-%
-% Update equations for generalised pseudo-Bayes multi-
-% model observer algorithm GBP1. This version is for the
-% system equation in the following form:
-%
-% 
 %
 % Based on code from the following article:
 % -  Bayesian State Estimations for Markovian Jump Systems, 
@@ -21,29 +15,29 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T, ...
     m = size(T,1);
     n = size(A{1},1);
     ny = size(C{1},1);
-    p_seq_g_Ykm1 = sum(T .* p_seq_g_Yk, 1)';
 
-    p_yk_g_seq_Ykm1 = nan(m, 1);
     updx = nan(n, m);
     updy = nan(ny, m);
     updP = nan(n, n, m);
+    p_yk_g_seq_Ykm1 = nan(m, 1);
     for j = 1:m
-        % Filter prediction step
-        xkp1_est = A{j} * xk_est + B{j} * uk;
-        Pkp1 = A{j} * Pk * A{j}' + Q{j};
-        ykp1_est = C{j} * xkp1_est;
-        % Filter update step
-        S = C{j} * Pkp1 * C{j}' + R{j}';
-        K = Pkp1 * C{j}' / S;
-        if ~isscalar(S)
+
+        xkp1_est = Xkp1f_est(:,:,j);
+        ykp1_est = Ykp1f_est(:,:,j);
+        Pkp1 = Pkp1f(:,:,j);
+
+        Sk = C{j} * Pkp1 * C{j}' + R{j}';
+        Kf = Pkp1 * C{j}' / Sk;
+        if ~isscalar(Sk)
             % Make sure covariance matrix is symmetric
-            S = triu(S.',1) + tril(S);
+            Sk = triu(Sk.',1) + tril(Sk);
         end
-        p_yk_g_seq_Ykm1(j) = mvnpdf(yk, ykp1_est, S);
-        updx(:,j) = xkp1_est + K * (yk - ykp1_est);
+        p_yk_g_seq_Ykm1(j) = mvnpdf(yk, ykp1_est, Sk);
+        updx(:,j) = xkp1_est + Kf * (yk - ykp1_est);
         updy(:,j) = C{j} * updx(:,j);
-        updP(:,:,j) = Pkp1 - K * C{j} * Pkp1;
+        updP(:,:,j) = Pkp1 - Kf * C{j} * Pkp1;
     end
+    p_seq_g_Ykm1 = sum(T .* p_seq_g_Yk, 1)';
     liklihood_u = p_seq_g_Ykm1 .* p_yk_g_seq_Ykm1;
     % cf:
     % p_gamma_k = prob_gamma(gamma_k, obj.T(gamma_km1+1, :)')

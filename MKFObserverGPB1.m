@@ -43,47 +43,13 @@
 %
 
 
-classdef MKFObserverGPB1 < matlab.mixin.Copyable
-    properties (SetAccess = immutable)
-        Ts (1, 1) double {mustBeNonnegative}
-        n (1, 1) double {mustBeInteger, mustBeNonnegative}
-        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
-        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
-        nj (1, 1) double {mustBeInteger, mustBeNonnegative}
-        f (1, 1) double {mustBeInteger, mustBeNonnegative}
-        n_filt (1, 1) double {mustBeInteger, mustBeNonnegative}
-    end
-    properties
-        A cell
-        B cell
-        C cell
-        Q cell
-        R cell
-        seq cell
-        T double
-        label (1, 1) string
-        P0 double
-        x0 (:, 1) double
-        p_seq_g_Yk_init double
-        i (1, 1) {mustBeInteger, mustBeNonnegative}
-        gamma_k double
-        p_seq_g_Ykm1 double
-        p_seq_g_Yk double
-        p_yk_g_seq_Ykm1 double
-        p_gammak_g_Ykm1 double
-        p_gamma_k double
-        filters  cell
-        xk_est (:, 1) double
-        Pk double
-        yk_est (:, 1) double
-        type (1, 1) string
-    end
+classdef MKFObserverGPB1 < AbstractMKFObserverGPB
     methods
         function obj = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,label,x0, ...
                 p_seq_g_Yk_init)
 
             % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
+            n = check_dimensions(A{1}, B{1}, C{1});
 
             % Number of switching systems
             nj = numel(A);
@@ -100,92 +66,23 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             if nargin < 10
                 x0 = zeros(n,1);
             end
-            obj.A = A;
-            obj.B = B;
-            obj.C = C;
-            obj.Ts = Ts;
-            obj.Q = Q;
-            obj.R = R;
-            obj.T = T;
-            obj.label = label;
-            obj.P0 = P0;
-            obj.x0 = x0;
-
-            % Model indicator values gamma(k) are static - there is
-            % one filter for each model
-            obj.gamma_k = (0:nj-1)';
-
-            % Mode sequences (length 1 for GPB1)
-            % For compatibility with other MKF observers.
-            % TODO: Could eliminate seq, i and maybe f and make this a 
-            % parent class of the other observers?
-            obj.seq = num2cell(obj.gamma_k);
-
-            % Sequence index starts at 0 but is 1 thereafter.
-            obj.i = int16(0);
-
-            % Fusion horizon length
-            obj.f = 1;
-
-            % Prior assumptions at initialization
-            obj.p_seq_g_Yk_init = p_seq_g_Yk_init;
-
-            % Check transition probability matrix
-            % TODO: Is this necessary? If all possible hypotheses 
-            % are not modelled (as is the case with some observers)
-            % then perhaps T should not be whole?
-            % assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
-            assert(isequal(size(obj.T), [nj nj]), "ValueError: size(T)")
-
-            % Check all other system matrix dimensions have same 
-            % input/output dimensions and number of states.
-            for j = 2:nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
-                assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: size of A, B, and C")
+            if nargin < 9
+                label = "GPB1";
             end
 
-            % Store other useful variables
-            obj.n = n;
-            obj.nu = nu;
-            obj.ny = ny;
-            obj.nj = nj;
-            obj.n_filt = n_filt;
+            obj = obj@AbstractMKFObserverGPB(A,B,C,Ts,P0,Q,R,T,label,x0, ...
+                p_seq_g_Yk_init);
+
+            % Mode sequences (length 1 for GPB1)
+            % TODO: Do we need this For compatibility with other 
+            % MKF observers?
+            %obj.seq = num2cell(obj.gamma_k);
+
+            % Change type code
             obj.type = "MKF_GPB1";
 
             % Initialize all variables
             obj.reset()
-
-        end
-        function reset(obj)
-        % obj.reset()
-        % Initialize all variables to initial values specified
-        % when observer object was created.
-        %
-
-            % Sequence index does not change
-            % TODO: Do we need it?
-            obj.i = 0;
-
-            % Initial values of prior conditional probabilities at k = -1 
-            obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
-
-            % Initialize state and output estimates
-            % Note: At initialization at time k = 0, xkp1_est and
-            % ykp1_est represent prior estimates of the states,
-            % i.e. x_est(k|k-1) and y_est(k|k-1).
-            obj.xk_est = obj.x0;
-            obj.yk_est = obj.C{1} * obj.xk_est;
-
-            % Initialize error covariance at k = 0
-            obj.Pk = obj.P0;
-
-            % At initialization at time k = 0, x_est(k|k)
-            % and y_est(k|k) have not yet been computed.
-            % TODO: Provide these
-            %obj.xk_est = nan(obj.n, 1);
-            %obj.yk_est = nan(obj.ny, 1);
-            %obj.Pkp1 = obj.P0;
 
         end
         function update(obj, yk, uk)
@@ -210,10 +107,19 @@ classdef MKFObserverGPB1 < matlab.mixin.Copyable
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-            % Update all variables based on current measurement
-            [obj.xk_est,obj.yk_est,obj.Pk,obj.p_seq_g_Yk] = ...
-                GPB1_update(obj.A,obj.B,obj.C,obj.Q,obj.R,obj.T, ...
-                obj.xk_est,obj.Pk,yk,uk,obj.p_seq_g_Yk);
+            % Update state and output estimates based on current
+            % measurement
+            [obj.xk_est, obj.yk_est, obj.Pk, obj.p_seq_g_Yk] = ...
+                GPB1_update(obj.A, obj.B, obj.C, obj.Q, obj.R, obj.T, ...
+                    obj.Xkp1f_est, obj.Ykp1f_est, obj.Pkp1f, yk, ...
+                    obj.p_seq_g_Yk);
+
+            % Calculate predictions of each filter
+            for j = 1:obj.nj
+                [obj.Xkp1f_est(:,:,j), obj.Ykp1f_est(:,:,j), ...
+                 obj.Pkp1f(:,:,j)] = kalman_predict_f(obj.A{j}, ...
+                    obj.B{j}, obj.C{j}, obj.Q{j}, obj.xk_est, obj.Pk, uk);
+            end
 
         end
 

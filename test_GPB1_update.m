@@ -87,8 +87,23 @@ Pk = P0;
 
 uk = 0;
 p_seq_g_Yk = u;
-[xk_est,yk_est,Pk,p_seq_g_Yk] = ...
-    GPB1_update(A,B,C,Q,R,T,xk_est,Pk,yk,uk,p_seq_g_Yk);
+
+% Prepare cell array of structs to store data
+n_filt = nj;
+filters = cell(1, n_filt);
+for j = 1:n_filt
+    filters{j}.xkp1_est = nan(n, 1);
+    filters{j}.Pkp1 = nan(n);
+    filters{j}.ykp1_est = nan(ny, 1);
+end
+
+% Do prediction step first
+[Xkp1f_est, Ykp1f_est, Pkp1f] = GPB1_predict(A,B,C,Q,nj, ...
+    xk_est,Pk,uk);
+
+% Update step
+[xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T,Xkp1f_est, ...
+    Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
 
 % Compare
 assert(isequal(x_test, xk_est))
@@ -178,8 +193,23 @@ Pk = P0;
 
 uk = zeros(nu,1);
 p_seq_g_Yk = u;
-[xk_est,yk_est,Pk,p_seq_g_Yk] = ...
-    GPB1_update(Aj,Buj,Cj,Qj,Rj,T,xk_est,Pk,yk,uk,p_seq_g_Yk);
+
+% Prepare cell array of structs to store data
+n_filt = nj;
+filters = cell(1, n_filt);
+for j = 1:n_filt
+    filters{j}.xkp1_est = nan(n, 1);
+    filters{j}.Pkp1 = nan(n);
+    filters{j}.ykp1_est = nan(ny, 1);
+end
+
+% Do prediction step first
+[Xkp1f_est, Ykp1f_est, Pkp1f] = GPB1_predict(Aj,Buj,Cj,Qj,nj, ...
+    xk_est,Pk,uk);
+
+% Update step
+[xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(Aj,Buj,Cj,Qj,Rj,T,Xkp1f_est, ...
+    Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
 
 % Compare
 assert(isequal(x_test, xk_est))
