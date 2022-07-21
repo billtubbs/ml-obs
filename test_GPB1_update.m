@@ -90,16 +90,15 @@ p_seq_g_Yk = u;
 
 % Prepare cell array of structs to store data
 n_filt = nj;
-filters = cell(1, n_filt);
-for j = 1:n_filt
-    filters{j}.xkp1_est = nan(n, 1);
-    filters{j}.Pkp1 = nan(n);
-    filters{j}.ykp1_est = nan(ny, 1);
-end
+Xkp1f_est = nan(n, 1, n_filt);
+Pkp1f = nan(n, n, n_filt);
+Ykp1f_est = nan(ny, 1, n_filt);
 
 % Do prediction step first
-[Xkp1f_est, Ykp1f_est, Pkp1f] = GPB1_predict(A,B,C,Q,nj, ...
-    xk_est,Pk,uk);
+for j = 1:n_filt
+    [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
+     kalman_predict_f(A{j}, B{j}, C{j}, Q{j}, xk_est, Pk, uk);
+end
 
 % Update step
 [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T,Xkp1f_est, ...
@@ -196,16 +195,15 @@ p_seq_g_Yk = u;
 
 % Prepare cell array of structs to store data
 n_filt = nj;
-filters = cell(1, n_filt);
-for j = 1:n_filt
-    filters{j}.xkp1_est = nan(n, 1);
-    filters{j}.Pkp1 = nan(n);
-    filters{j}.ykp1_est = nan(ny, 1);
-end
+Xkp1f_est = nan(n, 1, n_filt);
+Pkp1f = nan(n, n, n_filt);
+Ykp1f_est = nan(ny, 1, n_filt);
 
 % Do prediction step first
-[Xkp1f_est, Ykp1f_est, Pkp1f] = GPB1_predict(Aj,Buj,Cj,Qj,nj, ...
-    xk_est,Pk,uk);
+for j = 1:n_filt
+    [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
+     kalman_predict_f(Aj{j}, Buj{j}, Cj{j}, Qj{j}, xk_est, Pk, uk);
+end
 
 % Update step
 [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(Aj,Buj,Cj,Qj,Rj,T,Xkp1f_est, ...

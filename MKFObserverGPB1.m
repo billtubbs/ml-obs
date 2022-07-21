@@ -115,7 +115,7 @@ classdef MKFObserverGPB1 < AbstractMKFObserverGPB
                     obj.p_seq_g_Yk);
 
             % Calculate predictions of each filter
-            for j = 1:obj.nj
+            for j = 1:obj.n_filt
                 [obj.Xkp1f_est(:,:,j), obj.Ykp1f_est(:,:,j), ...
                  obj.Pkp1f(:,:,j)] = kalman_predict_f(obj.A{j}, ...
                     obj.B{j}, obj.C{j}, obj.Q{j}, obj.xk_est, obj.Pk, uk);

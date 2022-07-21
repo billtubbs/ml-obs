@@ -80,7 +80,7 @@ classdef (Abstract) AbstractMKFObserverGPB < matlab.mixin.Copyable
             nj = numel(A);
 
             % Number of filters required
-            n_filt = nj;
+            n_filt = size(T, 1);
 
             obj.A = A;
             obj.B = B;
