@@ -35,8 +35,12 @@ assert(isequal(p_gamma_k_g_gamma_km1, T(idx)))
 xk_est = [1.1 1.2 1.3 1.4]';
 p_seq_g_Yk = [0.3 0.2 0.1 0.4]';
 gamma_k = [0 0 1 1]';
-n_filt = size(gamma_k, 1);
 nj = 2;
 
 xk_est = merge_estimates(xk_est, p_seq_g_Yk, gamma_k, nj);
 assert(isequal(xk_est, [(0.3*1.1 + 0.2*1.2) (0.1*1.3 + 0.4*1.4)]'))
+
+
+%% Test split_estimates.m
+
+

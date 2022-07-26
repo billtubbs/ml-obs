@@ -7,11 +7,6 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
 % filter for state estimation of Markov jump linear
 % systems.
 %
-% Based on code from the following article:
-% -  Bayesian State Estimations for Markovian Jump Systems, 
-%    by Shunyi Zhao, Choon Ki Ahn, Peng Shi, Yuriy S. Shmaliy, 
-%    and Fei Liu, 2019.
-%
 
     nj = numel(A);  % number of models (modes)
     n_filt = nj * nj;  % number of hypotheses (filters)
