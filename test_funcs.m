@@ -55,6 +55,13 @@ assert(max(abs(prob_w_given_gamma(w, 0, sigma_w) - p1)) < 1e-12);
 assert(max(abs(prob_w_given_gamma(w, 1, sigma_w) - p2)) < 1e-12);
 assert(max(abs(prob_w(w, epsilon, sigma_w) - (epsilon(2)*p2 + epsilon(1)*p1))) < 1e-12);
 
+%% Test Markov model transition probabilities
+T = [0.95 0.05; 0.01 0.99];
+gamma_km1 = [0 1 0 1]';
+gamma_k = [0 0 1 1]';
+assert(isequal(prob_transitions(gamma_k, gamma_km1, T), ...
+    [0.95 0.01 0.05 0.99]'))
+
 
 %% Test probability funcs - two discrete binary variables
 

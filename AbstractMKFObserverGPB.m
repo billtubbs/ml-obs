@@ -22,6 +22,7 @@
 %       matrices for each switching system.
 %   T : Transition probabity matrix of the Markov switching
 %       process.
+%   n_filt : Number of independent filters to model.
 %   label : string name.
 %   x0 : Initial state estimates (optional, default zeros).
 %   p_seq_g_Yk_init : (optional, default uniform)
@@ -70,7 +71,7 @@ classdef (Abstract) AbstractMKFObserverGPB < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = AbstractMKFObserverGPB(A,B,C,Ts,P0,Q,R,T,label,x0, ...
+        function obj = AbstractMKFObserverGPB(A,B,C,Ts,P0,Q,R,T,n_filt,label,x0, ...
                 p_seq_g_Yk_init)
 
             % System dimensions
@@ -78,9 +79,6 @@ classdef (Abstract) AbstractMKFObserverGPB < matlab.mixin.Copyable
 
             % Number of switching systems
             nj = numel(A);
-
-            % Number of filters required
-            n_filt = size(T, 1);
 
             obj.A = A;
             obj.B = B;

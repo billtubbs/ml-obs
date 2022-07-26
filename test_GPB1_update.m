@@ -69,45 +69,92 @@ R2 = 0.1^2;
 Q = {Q1,Q2};
 R = {R1,R2};
 
-% Compare to code from Zhao et al.
-Model.A = reshape(cell2mat(A),n,n,nj);
-Model.B = reshape(cell2mat(B),n,nu,nj);
-Model.C = reshape(cell2mat(C),ny,n,nj);
-Model.D = repmat(eye(n),n,n,nj);  % D is used for different purpose
-Model.Q = reshape(cell2mat(Q),n,n,nj);
-Model.R = reshape(cell2mat(R),ny,ny,nj);
-Model.TP = T;
+% Test GPB1 update and prediction steps
+
+% Inputs
 xk_est = x0;
-yk = sigma_M .* randn();
-u = [0.4; 0.6];
-Pk = P0;
-% Note: GPB1_estimation model does not include known inputs u(k)
-% 'u' here stands for mu which is the posterior likelihood
-[x_test,P_test,u_test] = GPB1_estimation(xk_est,Pk,yk,Model,u);
-
 uk = 0;
-p_seq_g_Yk = u;
-
-% Prepare cell array of structs to store data
+yk = sigma_M .* randn();
+p_seq_g_Yk = [0.4; 0.6];
+Pk = P0;
 n_filt = nj;
+
+% Do prediction step first to calculate priors
+% Prepare empty arrays
 Xkp1f_est = nan(n, 1, n_filt);
 Pkp1f = nan(n, n, n_filt);
 Ykp1f_est = nan(ny, 1, n_filt);
-
-% Do prediction step first
 for j = 1:n_filt
     [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
      kalman_predict_f(A{j}, B{j}, C{j}, Q{j}, xk_est, Pk, uk);
 end
 
 % Update step
-[xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T,Xkp1f_est, ...
+[xk_est1,yk_est1,Pk1,p_seq_g_Yk1] = GPB1_update(A,B,C,Q,R,T,Xkp1f_est, ...
     Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
 
+% Compare to code from Zhao et al.
+Model.A = A;
+Model.B = B;
+Model.C = C;
+Model.D = repmat({eye(n)},1,nj);  % D is used for different purpose
+Model.Q = Q;
+Model.R = R;
+Model.TP = T;
+% Note: GPB1_estimation model does not include known inputs u(k)
+% 'u' here stands for mu which is the posterior likelihood
+u = p_seq_g_Yk;
+[x_test,P_test,u_test] = GPB1_estimation(xk_est,Pk,yk,Model,u);
+
 % Compare
-assert(isequal(x_test, xk_est))
-assert(isequal(P_test, Pk))
-assert(isequal(u_test, p_seq_g_Yk))
+assert(isequal(x_test, xk_est1))
+assert(isequal(P_test, Pk1))
+assert(isequal(u_test, p_seq_g_Yk1))
+
+% Test GPB2 update and prediction steps
+
+% Inputs
+xk_est = x0;
+uk = 0;
+yk = sigma_M .* randn();
+p_seq_g_Yk = [0.4; 0.6];
+Pk = P0;
+n_filt = nj*nj;
+
+% Mode transitions
+gamma_km1 = [0 1 0 1];
+gamma_k = [0 0 1 1];
+
+% Do prediction step first to calculate priors (k|k-1)
+for j = 1:n_filt
+    f_ind = gamma_km1(j) + 1;
+    [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
+     kalman_predict_f(A{f_ind}, B{f_ind}, C{f_ind}, Q{f_ind}, xk_est, Pk, uk);
+end
+
+% Update step
+[xk_est2,yk_est2,Pk2,p_seq_g_Yk2,xk_est_out,yk_est_out,Pk_out] = ...
+    GPB2_update(A,B,C,Q,R,T,Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
+
+% Compare to code from Zhao et al.
+% Note: GPB2_estimation model does not include known inputs u(k)
+% 'u' here stands for mu which is the posterior likelihood
+u = p_seq_g_Yk;
+x = repmat(xk_est,1,nj);
+P = repmat(Pk,1,1,nj);
+[x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
+
+disp('stop')
+
+% Compare
+assert(isequal(x_test, xk_est2))
+assert(isequal(P_test, Pk2))
+assert(isequal(u_test, p_seq_g_Yk2))
+assert(isequal(Out_x_test, xk_est_out))
+assert(isequal(Out_P_test, Pk1))
+
+
+
 
 
 %% Test calculation - 2x2 system
@@ -175,12 +222,12 @@ p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 3, 1);
 
 % Compare to code from Zhao et al.
-Model.A = reshape(cell2mat(Aj),n,n,nj);
-Model.B = reshape(cell2mat(Buj),n,nu,nj);
-Model.C = reshape(cell2mat(Cj),ny,n,nj);
-Model.D = repmat(eye(n),n,n,nj);  % D is used for different purpose
-Model.Q = reshape(cell2mat(Qj),n,n,nj);
-Model.R = reshape(cell2mat(Rj),ny,ny,nj);
+Model.A = Aj;
+Model.B = Buj;
+Model.C = Cj;
+Model.D = repmat({eye(n)},1,nj);  % D is used for different purpose
+Model.Q = Qj;
+Model.R = Rj;
 Model.TP = T;
 xk_est = x0;
 yk = sigma_M .* randn(ny,1);

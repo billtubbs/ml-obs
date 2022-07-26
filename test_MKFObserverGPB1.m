@@ -223,8 +223,40 @@ assert(isequal(MKF1.p_seq_g_Yk_init, p_seq_g_Yk_init))
 % With default initial conditions
 MKF1 = MKFObserverGPB1(A,B,C,Ts,P0,Q,R,T,'MKF1');
 
+% Define GPB2 version
+MKF2 = MKFObserverGPB2(A,B,C,Ts,P0,Q,R,T,"MKF2");
+
+assert(strcmp(MKF2.type, "MKF_GPB2"))
+assert(isequal(MKF2.A, A))
+assert(isequal(MKF2.B, B))
+assert(isequal(MKF2.C, C))
+assert(isequal(MKF2.Ts, Ts))
+assert(isequal(MKF2.P0, P0))
+assert(isequal(MKF2.Q, Q))
+assert(isequal(MKF2.R, R))
+assert(isequal(MKF2.T, T))
+assert(strcmp(MKF2.label, "MKF2"))
+assert(MKF2.n_filt == 4)
+assert(MKF2.n == n)
+assert(MKF2.nu == nu)
+assert(MKF2.ny == ny)
+assert(MKF2.f == 1)
+assert(MKF2.nj == 2)
+assert(isequal(MKF2.i, 0))
+assert(isequal(MKF2.T, T))
+assert(isequal(MKF2.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF2.Pkp1, P0))
+assert(isequal(MKF2.ykp1_est, 0))
+assert(isequaln(MKF2.xk_est, nan(n, 1)))
+assert(isequaln(MKF2.Pk, nan(n)))
+assert(isequaln(MKF2.yk_est, nan(ny, 1)))
+% assert(isequaln(MKF2.p_yk_g_seq_Ykm1, nan(MKF2.n_filt, 1)))
+% assert(isequaln(MKF2.p_gammak_g_Ykm1, nan(MKF2.n_filt, 1)))
+% assert(isequaln(MKF2.p_gamma_k, nan(MKF2.n_filt, 1)))
+% assert(isequaln(MKF2.p_seq_g_Ykm1, nan(MKF2.n_filt, 1)))
+
 % Choose observers to include in simulation
-observers = {KF1, KF2, MKF1, SKF};
+observers = {KF1, KF2, MKF1, MKF2, SKF};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
