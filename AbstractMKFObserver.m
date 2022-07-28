@@ -23,7 +23,7 @@
 %   y0 : Initial output estimates (optional, default zeros).
 %
 
-classdef AbstractMKFObserver < matlab.mixin.Copyable
+classdef (Abstract) AbstractMKFObserver < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         n (1, 1) double {mustBeInteger, mustBeNonnegative}

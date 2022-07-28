@@ -151,7 +151,7 @@ classdef MKFObserverAMM < AbstractMKFObserver
             obj.Ykp1f_est = repmat(obj.y0, 1, 1, obj.n_filt);
 
             % Arrays to store variables for each filter
-            obj.Skf = nan(obj.n, obj.ny, obj.n_filt);
+            obj.Skf = nan(obj.ny, obj.ny, obj.n_filt);
             obj.Kf = nan(obj.n, obj.ny, obj.n_filt);
             obj.Pkf = nan(obj.n, obj.n, obj.n_filt);
             obj.Xkf_est = nan(obj.n, 1, obj.n_filt);
@@ -182,18 +182,24 @@ classdef MKFObserverAMM < AbstractMKFObserver
                 % Model
                 m = obj.models{obj.gamma_k(f) + 1};
 
-                % Update estimates and covariance matrix
+                % Update filter estimates and covariance matrix
                 [obj.Kf(:,:,f), obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), ...
                     obj.Ykf_est(:,:,f), obj.Skf(:,:,f)] = ...
                     kalman_update_f(m.C, m.R, obj.Xkp1f_est(:,:,f), ...
                         obj.Pkp1f(:,:,f), yk);
 
+                % Prediction step for all filters
+                % Kalman filter prediction step
+                [obj.Xkp1f_est(:,:,f), obj.Ykp1f_est(:,:,f), ...
+                    obj.Pkp1f(:,:,f)] = kalman_predict_f(m.A, m.B, ...
+                        m.C, m.Q, obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), uk);
+
                 % Compute posterior probability density of y(k)
                 % using the posterior PDF (assumed to be a normal 
                 % distribution) and output estimate.
 
-                % Get y_f_est(k/k-1) estimated in previous time step
-                ykf_est = obj.Ykp1f_est(:,:,f);
+                % Get updated y_f_est(k/k) estimate
+                ykf_est = obj.Ykf_est(:,:,f);
 
                 % Make sure covariance matrix is symmetric
                 if ~isscalar(obj.Skf(:,:,f))
@@ -204,15 +210,6 @@ classdef MKFObserverAMM < AbstractMKFObserver
 
                 % Calculate normal probability density (multivariate)
                 obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, ykf_est, Sk);
-
-                % Prediction step for all filters
-                % Model
-                m = obj.models{obj.gamma_k(f) + 1};
-
-                % Kalman filter prediction step
-                [obj.Xkp1f_est(:,:,f), obj.Ykp1f_est(:,:,f), ...
-                    obj.Pkp1f(:,:,f)] = kalman_predict_f(m.A, m.B, ...
-                        m.C, m.Q, obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), uk);
 
             end
 
