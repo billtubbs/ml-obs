@@ -182,7 +182,7 @@ classdef MKFObserverAMM < AbstractMKFObserver
                 % Model
                 m = obj.models{obj.gamma_k(f) + 1};
 
-                % Update observer estimates and covariance matrix
+                % Update estimates and covariance matrix
                 [obj.Kf(:,:,f), obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), ...
                     obj.Ykf_est(:,:,f), obj.Skf(:,:,f)] = ...
                     kalman_update_f(m.C, m.R, obj.Xkp1f_est(:,:,f), ...
@@ -205,6 +205,15 @@ classdef MKFObserverAMM < AbstractMKFObserver
                 % Calculate normal probability density (multivariate)
                 obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, ykf_est, Sk);
 
+                % Prediction step for all filters
+                % Model
+                m = obj.models{obj.gamma_k(f) + 1};
+
+                % Kalman filter prediction step
+                [obj.Xkp1f_est(:,:,f), obj.Ykp1f_est(:,:,f), ...
+                    obj.Pkp1f(:,:,f)] = kalman_predict_f(m.A, m.B, ...
+                        m.C, m.Q, obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), uk);
+
             end
 
             assert(~any(isnan(obj.p_yk_g_seq_Ykm1)))
@@ -223,18 +232,6 @@ classdef MKFObserverAMM < AbstractMKFObserver
             %obj.p_seq_g_Yk = likelihood * 0.998 ./ sum(likelihood) + 0.001;
             % Note: above calculation normalizes p_seq_g_Yk so that
             % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
-
-            % Prediction step for all filters
-            for f = 1:obj.n_filt
-
-                % Model
-                m = obj.models{obj.gamma_k(f) + 1};
-
-                % Kalman filter prediction step
-                [obj.Xkp1f_est(:,:,f), obj.Ykp1f_est(:,:,f), ...
-                    obj.Pkp1f(:,:,f)] = kalman_predict_f(m.A, m.B, ...
-                        m.C, m.Q, obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), uk);
-            end
 
             % Compute multi-model observer state and output estimates
             % and estimated state error covariance using the weighted-

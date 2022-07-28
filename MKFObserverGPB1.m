@@ -140,7 +140,7 @@ classdef MKFObserverGPB1 < AbstractMKFObserver
 
             % Prior conditional probabilities at time k = -1 
             obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
-
+            
             % Empty vectors to store variables
             % p(y(k)|Gamma(k),Y(k-1))
             obj.p_yk_g_seq_Ykm1 = nan(obj.n_filt, 1);

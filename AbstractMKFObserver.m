@@ -34,7 +34,6 @@ classdef AbstractMKFObserver < matlab.mixin.Copyable
     end
     properties
         models (1, :) cell
-        filters (:, 1) cell
         label (1, 1) string
         x0 (:, 1) double
         P0 double
