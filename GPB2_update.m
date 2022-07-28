@@ -1,6 +1,6 @@
 function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
-    GPB2_update(A,B,C,Q,R,T,Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk)
-% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB2_update(A,B,C,Q,R,T, ...
+    GPB2_update(models,T,Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk)
+% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB2_update(models,T, ...
 %     xkp1_est,ykp1_est,Pkp1,yk,p_seq_g_Yk)
 % Update equations for simulating the second-order 
 % generalised pseudo-Bayes (GPB2) multi-model Kalman 
@@ -8,10 +8,11 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
 % systems.
 %
 
-    nj = numel(A);  % number of models (modes)
-    n_filt = nj * nj;  % number of hypotheses (filters)
-    n = size(A{1},1);  % number of states
-    ny = size(C{1},1);  % number of outputs
+    nj = numel(models);  % number of models (modes)
+    % All models are assumed to be of same dimensions
+    n = size(models{1}.A, 1);
+    ny = size(models{1}.C, 1);
+    n_filt = nj * nj;
 
     updx = nan(n, n_filt);
     updy = nan(ny, n_filt);
@@ -32,17 +33,17 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
         Pkp1 = Pkp1f(:,:,j);
 
         % Select model according to sequence
-        m_ind = gamma_k(j) + 1;
-        Sk = C{m_ind} * Pkp1 * C{m_ind}' + R{m_ind}';
-        Kf = Pkp1 * C{m_ind}' / Sk;
+        m = models{gamma_k(j) + 1};
+        Sk = m.C * Pkp1 * m.C' + m.R';
+        Kf = Pkp1 * m.C' / Sk;
         if ~isscalar(Sk)
             % Make sure covariance matrix is symmetric
             Sk = triu(Sk.',1) + tril(Sk);
         end
         p_yk_g_seq_Ykm1(j) = mvnpdf(yk, ykp1_est, Sk);
         updx(:,j) = xkp1_est + Kf * (yk - ykp1_est);
-        updy(:,j) = C{m_ind} * updx(:,j);
-        updP(:,:,j) = Pkp1 - Kf * C{m_ind} * Pkp1;
+        updy(:,j) = m.C * updx(:,j);
+        updP(:,:,j) = Pkp1 - Kf * m.C * Pkp1;
 
     end
 
@@ -70,7 +71,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
     Pk_out = zeros(n,n);
     for i = 1:nj
         Pk_out = Pk_out + p_seq_g_Yk(i) * (updP(:,:,i) + ...
-            (updx(:,i) - xk_est) * (updx(:,i) - xk_est)');
+            (updx(:,i) - xk_est_out) * (updx(:,i) - xk_est_out)');
     end
 
     % Compute updated semi-merged estimates

@@ -66,8 +66,19 @@ Q1 = 0.01;
 R1 = 0.1^2;
 Q2 = 0.01;
 R2 = 0.1^2;
-Q = {Q1,Q2};
-R = {R1,R2};
+
+% Define model structs
+m1.A = A1;
+m1.B = B1;
+m1.C = C1;
+m1.Q = Q1;
+m1.R = R1;
+m2.A = A2;
+m2.B = B2;
+m2.C = C2;
+m2.Q = Q2;
+m2.R = R2;
+models = {m1, m2};
 
 % Test GPB1 update and prediction steps
 
@@ -86,20 +97,21 @@ Pkp1f = nan(n, n, n_filt);
 Ykp1f_est = nan(ny, 1, n_filt);
 for j = 1:n_filt
     [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
-     kalman_predict_f(A{j}, B{j}, C{j}, Q{j}, xk_est, Pk, uk);
+     kalman_predict_f(models{j}.A, models{j}.B, models{j}.C, ...
+        models{j}.Q, xk_est, Pk, uk);
 end
 
 % Update step
-[xk_est1,yk_est1,Pk1,p_seq_g_Yk1] = GPB1_update(A,B,C,Q,R,T,Xkp1f_est, ...
+[xk_est1,yk_est1,Pk1,p_seq_g_Yk1] = GPB1_update(models,T,Xkp1f_est, ...
     Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
 
 % Compare to code from Zhao et al.
-Model.A = A;
-Model.B = B;
-Model.C = C;
+Model.A = {A1, A2};
+Model.B = {B1, B2};
+Model.C = {C1, C2};
 Model.D = repmat({eye(n)},1,nj);  % D is used for different purpose
-Model.Q = Q;
-Model.R = R;
+Model.Q = {Q1, Q2};
+Model.R = {R1, R2};
 Model.TP = T;
 % Note: GPB1_estimation model does not include known inputs u(k)
 % 'u' here stands for mu which is the posterior likelihood
@@ -127,14 +139,14 @@ gamma_k = [0 0 1 1];
 
 % Do prediction step first to calculate priors (k|k-1)
 for j = 1:n_filt
-    f_ind = gamma_km1(j) + 1;
+    m = models{gamma_km1(j) + 1};
     [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
-     kalman_predict_f(A{f_ind}, B{f_ind}, C{f_ind}, Q{f_ind}, xk_est, Pk, uk);
+     kalman_predict_f(m.A, m.B, m.C, m.Q, xk_est, Pk, uk);
 end
 
 % Update step
 [xk_est2,yk_est2,Pk2,p_seq_g_Yk2,xk_est_out,yk_est_out,Pk_out] = ...
-    GPB2_update(A,B,C,Q,R,T,Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
+    GPB2_update(models,T,Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
 
 % Compare to code from Zhao et al.
 % Note: GPB2_estimation model does not include known inputs u(k)
@@ -143,8 +155,6 @@ u = p_seq_g_Yk;
 x = repmat(xk_est,1,nj);
 P = repmat(Pk,1,1,nj);
 [x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
-
-disp('stop')
 
 % Compare
 assert(isequal(x_test, xk_est2))
@@ -253,7 +263,7 @@ for j = 1:n_filt
 end
 
 % Update step
-[xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(Aj,Buj,Cj,Qj,Rj,T,Xkp1f_est, ...
+[xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T,Xkp1f_est, ...
     Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
 
 % Compare

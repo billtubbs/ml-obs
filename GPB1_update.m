@@ -1,6 +1,6 @@
-function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T, ...
+function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
     Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk)
-% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T, ...
+% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
 %     xkp1_est,ykp1_est,Pkp1,yk,p_seq_g_Yk)
 % Update equations for simulating the first-order 
 % generalised pseudo-Bayes (GPB1) multi-model Kalman 
@@ -13,31 +13,32 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T, ...
 %    and Fei Liu, 2019.
 %
 
-    m = size(T,1);
-    n = size(A{1},1);
-    ny = size(C{1},1);
+    % All models are assumed to be of same dimensions
+    nj = numel(models);  % number of models (modes)
+    n = size(models{1}.A, 1);
+    ny = size(models{1}.C, 1);
 
-    updx = nan(n, m);
-    updy = nan(ny, m);
-    updP = nan(n, n, m);
-    p_yk_g_seq_Ykm1 = nan(m, 1);
+    updx = nan(n, nj);
+    updy = nan(ny, nj);
+    updP = nan(n, n, nj);
+    p_yk_g_seq_Ykm1 = nan(nj, 1);
 
-    for j = 1:m
+    for j = 1:nj
 
         xkp1_est = Xkp1f_est(:,:,j);
         ykp1_est = Ykp1f_est(:,:,j);
         Pkp1 = Pkp1f(:,:,j);
 
-        Sk = C{j} * Pkp1 * C{j}' + R{j}';
-        Kf = Pkp1 * C{j}' / Sk;
+        Sk = models{j}.C * Pkp1 * models{j}.C' + models{j}.R';
+        Kf = Pkp1 * models{j}.C' / Sk;
         if ~isscalar(Sk)
             % Make sure covariance matrix is symmetric
             Sk = triu(Sk.',1) + tril(Sk);
         end
         p_yk_g_seq_Ykm1(j) = mvnpdf(yk, ykp1_est, Sk);
         updx(:,j) = xkp1_est + Kf * (yk - ykp1_est);
-        updy(:,j) = C{j} * updx(:,j);
-        updP(:,:,j) = Pkp1 - Kf * C{j} * Pkp1;
+        updy(:,j) = models{j}.C * updx(:,j);
+        updP(:,:,j) = Pkp1 - Kf * models{j}.C * Pkp1;
 
     end
 
@@ -54,7 +55,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(A,B,C,Q,R,T, ...
     % Above is equivalent to:
     %   sum(updy .* repmat(p_seq_g_Yk',ny,1), 2)
     Pk = zeros(n,n);
-    for i = 1:m
+    for i = 1:nj
         Pk = Pk + p_seq_g_Yk(i) * (updP(:,:,i) + ...
             (updx(:,i) - xk_est) * (updx(:,i) - xk_est)');
     end
