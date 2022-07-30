@@ -115,8 +115,7 @@ classdef MKFObserverGPB2 < AbstractMKFObserver
             % Model indicator values gamma(k-1) and gamma(k) are static
             % and represent all possible mode transitions from the 
             % previous time instant to the current time.
-            obj.gamma_km1 = (0:nj-1)';
-            obj.gamma_k = (0:nj-1)';
+            [obj.gamma_km1, obj.gamma_k] = mode_transitions_all(nj);
 
             % Transition probabilities Pr(Gamma(k)|Gamma(k-1))
             obj.p_gamma_k_g_gamma_km1 = prob_transitions(obj.gamma_k, ...
@@ -194,20 +193,20 @@ classdef MKFObserverGPB2 < AbstractMKFObserver
             % Update state and output estimates based on current
             % measurement
             [obj.xk_est, obj.yk_est, obj.Pk, obj.p_seq_g_Yk] = ...
-                GPB1_update(obj.A, obj.B, obj.C, obj.Q, obj.R, obj.T, ...
-                    obj.Xkp1f_est, obj.Ykp1f_est, obj.Pkp1f, yk, ...
-                    obj.p_seq_g_Yk);
+                GPB2_update(obj.models, obj.T, obj.Xkp1f_est, ...
+                    obj.Ykp1f_est, obj.Pkp1f, yk, obj.p_seq_g_Yk);
 
             % Calculate predictions of each filter
-            % GBP1 merges the estimates from previous time
-            % instant when making predictions for next:
+            % GBP2 ....
+            %  when making predictions for next:
             %   xi_est(k+1|k) = Ai(k) * x_est(k|k-1) + Bi(k) * u(k);
             %   Pi(k+1|k) = Ai(k) * P(k|k-1) * Ai(k)' + Qi(k);
             %
             for j = 1:obj.n_filt
+                m = obj.models{obj.gamma_k(j) + 1};
                 [obj.Xkp1f_est(:,:,j), obj.Ykp1f_est(:,:,j), ...
-                 obj.Pkp1f(:,:,j)] = kalman_predict_f(obj.A{j}, ...
-                    obj.B{j}, obj.C{j}, obj.Q{j}, obj.xk_est, obj.Pk, uk);
+                 obj.Pkp1f(:,:,j)] = kalman_predict_f(m.A, m.B, m.C, ...
+                    m.Q, obj.xk_est, obj.Pk, uk);
             end
 
         end

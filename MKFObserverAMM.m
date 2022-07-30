@@ -188,28 +188,27 @@ classdef MKFObserverAMM < AbstractMKFObserver
                     kalman_update_f(m.C, m.R, obj.Xkp1f_est(:,:,f), ...
                         obj.Pkp1f(:,:,f), yk);
 
-                % Prediction step for all filters
-                % Kalman filter prediction step
-                [obj.Xkp1f_est(:,:,f), obj.Ykp1f_est(:,:,f), ...
-                    obj.Pkp1f(:,:,f)] = kalman_predict_f(m.A, m.B, ...
-                        m.C, m.Q, obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), uk);
-
                 % Compute posterior probability density of y(k)
                 % using the posterior PDF (assumed to be a normal 
                 % distribution) and output estimate.
 
-                % Get updated y_f_est(k/k) estimate
-                ykf_est = obj.Ykf_est(:,:,f);
+                % Use prior prediction of output y_f_est(k/k-1)
+                ykf_est = obj.Ykp1f_est(:,:,f);
 
                 % Make sure covariance matrix is symmetric
+                Sk = obj.Skf(:,:,f);
                 if ~isscalar(obj.Skf(:,:,f))
-                    Sk = triu(obj.Skf(:,:,f).',1) + tril(obj.Skf(:,:,f));
-                else
-                    Sk = obj.Skf(:,:,f);
+                    Sk = triu(Sk.',1) + tril(Sk);
                 end
 
                 % Calculate normal probability density (multivariate)
                 obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, ykf_est, Sk);
+
+                % Predict states and outputs at next time instant
+                % for all filters
+                [obj.Xkp1f_est(:,:,f), obj.Ykp1f_est(:,:,f), ...
+                    obj.Pkp1f(:,:,f)] = kalman_predict_f(m.A, m.B, ...
+                        m.C, m.Q, obj.Xkf_est(:,:,f), obj.Pkf(:,:,f), uk);
 
             end
 

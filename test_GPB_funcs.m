@@ -70,7 +70,6 @@ end
 assert(isequal(Pk, Pk_test))
 
 
-
 %% Test mode_transitions.m
 
 [gamma_km1, gamma_k] = mode_transitions_all(2);

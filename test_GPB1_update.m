@@ -55,8 +55,7 @@ sigma_W = [0; 0];
 sigma_M = 0.1;
 
 % Transition probabilities
-epsilon = 0.05;
-T = [1-epsilon epsilon; epsilon 1-epsilon];
+T = [0.95 0.05; 0.01 0.99];
 assert(all(sum(T, 2) == 1))
 
 % Observer parameters (same for all observers)
@@ -118,10 +117,11 @@ Model.TP = T;
 u = p_seq_g_Yk;
 [x_test,P_test,u_test] = GPB1_estimation(xk_est,Pk,yk,Model,u);
 
-% Compare
+% Compare GPB1 estimates
 assert(isequal(x_test, xk_est1))
 assert(isequal(P_test, Pk1))
 assert(isequal(u_test, p_seq_g_Yk1))
+
 
 % Test GPB2 update and prediction steps
 
@@ -156,7 +156,7 @@ x = repmat(xk_est,1,nj);
 P = repmat(Pk,1,1,nj);
 [x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
 
-% Compare
+% Compare GPB2 estimates
 assert(isequal(x_test, xk_est2))
 assert(isequal(P_test, Pk2))
 assert(isequal(u_test, p_seq_g_Yk2))
