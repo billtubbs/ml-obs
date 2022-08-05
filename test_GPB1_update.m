@@ -128,20 +128,27 @@ assert(isequal(u_test, p_seq_g_Yk1))
 % Inputs
 xk_est = x0;
 uk = 0;
-yk = sigma_M .* randn();
-p_seq_g_Yk = [0.4; 0.6];
-Pk = P0;
-n_filt = nj*nj;
+yk = round(sigma_M .* randn(), 3);
+
+% Merged estimates from last time instant
+xki_est = repmat(x0, 1, 1, nj);
+xki_est(:,:,2) = xki_est(:,:,2) + 0.1;  % make a slight difference in xk2_est
+Pki = repmat(P0, 1, 1, nj);
+Pki(:,:,2) = Pki(:,:,2) + 1000;  % slight difference in xk2_est
+p_seqi_g_Yk = [0.4; 0.6];
 
 % Mode transitions
 gamma_km1 = [0 1 0 1];
 gamma_k = [0 0 1 1];
 
-% Do prediction step first to calculate priors (k|k-1)
-for j = 1:n_filt
-    m = models{gamma_km1(j) + 1};
-    [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
-     kalman_predict_f(m.A, m.B, m.C, m.Q, xk_est, Pk, uk);
+% Do prediction step first to calculate prior estimates (k|k-1)
+n_filt = nj*nj;
+for f = 1:n_filt
+    i = gamma_km1(f) + 1;
+    j = gamma_k(f) + 1;
+    m = models{j};  % TODO: Change to gamma_km1 later
+    [Xkp1f_est(:,:,f), Ykp1f_est(:,:,f), Pkp1f(:,:,f)] = ...
+     kalman_predict_f(m.A, m.B, m.C, m.Q, xki_est(:,:,i), Pki(:,:,i), uk);
 end
 
 % Update step
@@ -152,9 +159,15 @@ end
 % Note: GPB2_estimation model does not include known inputs u(k)
 % 'u' here stands for mu which is the posterior likelihood
 u = p_seq_g_Yk;
-x = repmat(xk_est,1,nj);
-P = repmat(Pk,1,1,nj);
+x = xki_est;
+P = Pki;
 [x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
+
+assert(isequal(round(x_test, 4), [0.61 -0.61]))
+assert(isequal(round(P_test, 4), cat(3, 0.1111, 0.1111)))
+assert(isequal(round(u_test, 4), [0.4582 0.5418]))
+assert(isequal(round(Out_x_test, 6), -0.050945))
+assert(isequal(round(Out_P_test, 6), 0.480601))
 
 % Compare GPB2 estimates
 assert(isequal(x_test, xk_est2))

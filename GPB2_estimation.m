@@ -20,16 +20,23 @@ function [x,P,u,Out_x,Out_P] = GPB2_estimation(x,P,y,Model,u)
     for j = 1:M
 
         for i = 1:M
-            % M^2 Kalman filters
+
+            % M^2 Kalman filter predictions
             Pred_x = A{j} * x(:,i);
             Pred_P = A{j} * P(:,:,i) * A{j}' + Q{j};
-            S   = C{j}  * Pred_P * C{j}'+ R{j};
-            K   = Pred_P * C{j}' * S^-1; 
+
+            % Calculate the mixing probabilities
+            S = C{j}  * Pred_P * C{j}'+ R{j};
             Mix_u(i,j) = TP(i,j) * u(i) * normpdf(y, C{j} * Pred_x, sqrt(S));
+
+            % Update the M^2 KF estimates and error covariances
+            K = Pred_P * C{j}' * S^-1;
             Updx(:,i) = Pred_x + K *(y - C{j} * Pred_x);
             UpdP(:,:,i) = Pred_P - K * C{j} * Pred_P;
+
         end
 
+        % Normalize the mode probabilities
         Upd_u = Mix_u(:,j) / sum(Mix_u(:,j));
 
         Mix_x(:,j) = sum(Updx .* repmat(Upd_u', N, 1), 2);
@@ -38,7 +45,7 @@ function [x,P,u,Out_x,Out_P] = GPB2_estimation(x,P,y,Model,u)
             summP = Upd_u(i) * (UpdP(:,:,i) + ...
                 (Updx(:,i) - Mix_x(:,j)) * (Updx(:,i) - Mix_x(:,j))');
             Mix_P(:,:,j) =  Mix_P(:,:,j) + summP;
-        end 
+        end
 
         Storu(j) = sum(Mix_u(:,j));
 
@@ -46,8 +53,11 @@ function [x,P,u,Out_x,Out_P] = GPB2_estimation(x,P,y,Model,u)
     x = Mix_x;
     P = Mix_P;
     u = Storu / sum(Storu);
+    % Above is same as u = sum(Mix_u, 1) ./ sum(Mix_u, [1 2])
 
-    Out_x = sum(x .* repmat(u, N, 1), 2);   % Output
+    % Output
+    Out_x = sum(x .* repmat(u, N, 1), 2);
+    % Above same as Out_x = sum(x .* u, 2)
     Out_P = zeros(N, N);
     for i = 1:M
         summP =  u(i) * (P(:,:,i) + (x(:,i) - Out_x) * (x(:,i) - Out_x)');

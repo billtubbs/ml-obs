@@ -7,9 +7,34 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
 % filter for state estimation of Markov jump linear
 % systems.
 %
+% Steps of GPB2 algorithm at time k
+%  Inputs:
+%    - m^2 prior predictions of states, x_est(k|k-1),
+%      error covariance, P(k|k-1), and outputs, y_est(k|k-1)
+%    - prior probability estimates, p_seq_g_Ykm1, of the
+%      m^2 possible mode transitions.
+%    - mode transition probabilities, T
+%
+%  1. Update the m^2 Kalman filters using the current 
+%     measurement, yk, and the current models.
+%  2. Update the m^2 mixing probability estimates, p_seq_g_Yk, 
+%     using the m^2 transition probabilities, T, the estimated 
+%     likelihood of yk given each of the m^2 prior output 
+%     estimates, y_est(k|k-1).
+%  3. Use the mixing probabilities, p_seq_g_Yk to merge the
+%     m^2 estimates into m estimates for each possible mode
+%     at time k.
+%  4. Merge the estimates into one overall estimate at time
+%     k.
+%  5. Reinitialize the m^2 Kalman filters using the m
+%     estimates for the possible modes at time k.
+%  6. Run the m^2 Kalman filter predictions using the 
+%     the current models to calculate prior estimates of the
+%     states at time k + 1.
+%
 
     nj = numel(models);  % number of models (modes)
-    % All models are assumed to be of same dimensions
+    % All models must be of same dimensions
     n = size(models{1}.A, 1);
     ny = size(models{1}.C, 1);
     n_filt = nj * nj;
@@ -26,29 +51,36 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
     % Transition probabilities
     p_gamma_k_g_gamma_km1 = prob_transitions(gamma_k, gamma_km1, T);
 
-    for j = 1:n_filt
+    for f = 1:n_filt
 
-        xkp1_est = Xkp1f_est(:,:,j);
-        ykp1_est = Ykp1f_est(:,:,j);
-        Pkp1 = Pkp1f(:,:,j);
+        xkp1_est = Xkp1f_est(:,:,f);
+        ykp1_est = Ykp1f_est(:,:,f);
+        Pkp1 = Pkp1f(:,:,f);
 
         % Select model according to sequence
-        m = models{gamma_k(j) + 1};
+        m = models{gamma_k(f) + 1};  % TODO: Change to gamma_km1 later
+
+        % Error covariance of output estimate
         Sk = m.C * Pkp1 * m.C' + m.R';
+
+        % KF correction gain
         Kf = Pkp1 * m.C' / Sk;
+
+        % Update Kalman filters
+        updx(:,f) = xkp1_est + Kf * (yk - ykp1_est);
+        updy(:,f) = m.C * updx(:,f);
+        updP(:,:,f) = Pkp1 - Kf * m.C * Pkp1;
+
         if ~isscalar(Sk)
-            % Make sure covariance matrix is symmetric
+            % Make covariance matrix symmetric
             Sk = triu(Sk.',1) + tril(Sk);
         end
-        p_yk_g_seq_Ykm1(j) = mvnpdf(yk, ykp1_est, Sk);
-        updx(:,j) = xkp1_est + Kf * (yk - ykp1_est);
-        updy(:,j) = m.C * updx(:,j);
-        updP(:,:,j) = Pkp1 - Kf * m.C * Pkp1;
+        p_yk_g_seq_Ykm1(f) = mvnpdf(yk, ykp1_est, Sk);
 
     end
 
     % Split prior probabilities from m modes to m^2
-    p_seq_g_Yk = p_seq_g_Yk(gamma_k + 1);
+    p_seq_g_Yk = p_seq_g_Yk(gamma_km1 + 1);
 
     % Compute Pr(Gamma(k)|Y(k-1)) in current timestep from
     % previous estimate (Pr(Gamma(k-1)|Y(k-1))) and transition
@@ -56,7 +88,13 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
     p_seq_g_Ykm1 = p_gamma_k_g_gamma_km1 .* p_seq_g_Yk;
 
     % Compute likelihoods of models given Y(k)
-    cond_pds = p_seq_g_Ykm1 .* p_yk_g_seq_Ykm1;
+    cond_pds = p_yk_g_seq_Ykm1 .* p_seq_g_Ykm1;
+
+    % Mixing probabilities
+    mask = false(n_filt, nj);
+    mask(sub2ind(size(mask), (1:n_filt)', gamma_k + 1)) = true;
+
+    p_mix = Mix_u(:,j) / sum(Mix_u(:,j))
     p_seq_g_Yk = cond_pds / sum(cond_pds);
 
     % Create masks to merge the m^2 estimates into m modes
@@ -91,6 +129,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
             (updx(:, j) - xk_est) * (updx(:, j) - xk_est)');
     end
 
-    p_seq_g_Yk = merge_estimates(p_seq_g_Yk, p_seq_g_Yk, gamma_k, nj);
+    %[xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, ...
+    %gamma_k, nj);
 
 end
