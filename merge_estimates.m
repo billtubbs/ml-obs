@@ -1,9 +1,9 @@
-function [xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, ...
-    gamma_k, nj)
+function [xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, ...
+    p_seq_g_Yk, gamma_k, nj)
 % [xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, ...
 %     gamma_k, nj)
-% Merges (i.e. fuses) a set of multi-model estimates according
-% to the modes specified in gamma_k.
+% Merge (i.e. fuse) a set of multiple-model Kalman filter
+% estimates according to the modes specified in gamma_k.
 %
 % Example:
 % >> xk_est = [1 2 2 3]';
@@ -17,17 +17,23 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, p_s
 %     2.8000
 %
     n_filt = size(gamma_k, 1);
-    mask = false(n_filt, nj);
-    mask(sub2ind(size(mask), (1:n_filt)', gamma_k + 1)) = true;
-    xk_est = sum((xk_est .* p_seq_g_Yk) .* mask, 1)';
-    yk_est = sum((yk_est .* p_seq_g_Yk) .* mask, 1)';
-    Pk = zeros(n, n, nj);
+    n = size(xk_est, 1);
+    ny = size(yk_est, 1);
+    mask = false(1, n_filt, nj);
+    mask(sub2ind(size(mask), ones(n_filt, 1), (1:n_filt)', gamma_k + 1)) = true;
+    xk_est_m = reshape(sum((xk_est .* p_seq_g_Yk') .* mask, 2), [n nj]);
+    yk_est_m = reshape(sum((yk_est .* p_seq_g_Yk') .* mask, 2), [ny nj]);
+    Pk_m = zeros(n, n, nj);
     for f = 1:n_filt
         m_ind = gamma_k(f) + 1;
-        xk_est(:, m_ind) = xk_est(:, m_ind) + updx(:, f) .* p_seq_g_Yk(f);
-        yk_est(:, m_ind) = yk_est(:, m_ind) + updy(:, f) .* p_seq_g_Yk(f);
-        Pk(:,:,m_ind) = Pk(:,:,m_ind) + p_seq_g_Yk(f) * (updP(:, :, f) + ...
-            (updx(:, f) - xk_est) * (updx(:, f) - xk_est)');
+        %xk_est(:, m_ind) = xk_est(:, m_ind) + updx(:, f) .* p_seq_g_Yk(f);
+        %yk_est(:, m_ind) = yk_est(:, m_ind) + updy(:, f) .* p_seq_g_Yk(f);
+        x_diff = xk_est_m(:, m_ind) - xk_est(:, f);
+        Pk_m(:,:,m_ind) = Pk_m(:,:,m_ind) ...
+            + p_seq_g_Yk(f) * (Pk(:, :, f) + x_diff * x_diff');
     end
+    xk_est = xk_est_m;
+    yk_est = yk_est_m;
+    Pk = Pk_m;
 
 end

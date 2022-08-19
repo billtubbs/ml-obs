@@ -91,26 +91,22 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
     cond_pds = p_yk_g_seq_Ykm1 .* p_seq_g_Ykm1;
 
     % Mixing probabilities
-    mask = false(n_filt, nj);
-    mask(sub2ind(size(mask), (1:n_filt)', gamma_k + 1)) = true;
-
-    p_mix = Mix_u(:,j) / sum(Mix_u(:,j))
     p_seq_g_Yk = cond_pds / sum(cond_pds);
 
     % Create masks to merge the m^2 estimates into m modes
-    %mask = false(n_filt, nj);
-    %mask(sub2ind(size(mask), (1:n_filt)', gamma_k + 1)) = true;
+    [xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(Xkp1f_est, Pkp1f, ...
+        Ykp1f_est, p_seq_g_Yk, gamma_k, nj)
 
     % Compute updated merged estimates
-    xk_est_out = updx * p_seq_g_Yk;
+    % xk_est_out = updx * p_seq_g_Yk;
     % Above is equivalent to:
     %   sum(updx .* repmat(p_seq_g_Yk',n,1), 2)
-    yk_est_out = updy * p_seq_g_Yk;
-    Pk_out = zeros(n,n);
-    for i = 1:nj
-        Pk_out = Pk_out + p_seq_g_Yk(i) * (updP(:,:,i) + ...
-            (updx(:,i) - xk_est_out) * (updx(:,i) - xk_est_out)');
-    end
+%     yk_est_out = updy * p_seq_g_Yk;
+%     Pk_out = zeros(n,n);
+%     for i = 1:nj
+%         Pk_out = Pk_out + p_seq_g_Yk(i) * (updP(:,:,i) + ...
+%             (updx(:,i) - xk_est_out) * (updx(:,i) - xk_est_out)');
+%     end
 
     % Compute updated semi-merged estimates
     %xk_est = sum((updx' .* p_seq_g_Yk) .* mask, 1);

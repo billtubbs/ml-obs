@@ -39,6 +39,7 @@ function [x,P,u,Out_x,Out_P] = GPB2_estimation(x,P,y,Model,u)
         % Normalize the mode probabilities
         Upd_u = Mix_u(:,j) / sum(Mix_u(:,j));
 
+        % Mix the estimates
         Mix_x(:,j) = sum(Updx .* repmat(Upd_u', N, 1), 2);
         Mix_P(:,:,j) = zeros(N, N);
         for i = 1:M

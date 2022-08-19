@@ -33,13 +33,73 @@ assert(isequal(p_gamma_k_g_gamma_km1, T(idx)))
 
 %% Test merge_estimates.m
 
-xk_est = [1.1 1.2 1.3 1.4]';
+% Single state and output
+xk_est = [1.1 1.2 1.3 1.4];
+Pk = cat(3,100,110,120,130);
+yk_est = [2 2.2 2.6 2.8];
 p_seq_g_Yk = [0.3 0.2 0.1 0.4]';
 gamma_k = [0 0 1 1]';
 nj = 2;
 
-xk_est = merge_estimates(xk_est, p_seq_g_Yk, gamma_k, nj);
-assert(isequal(xk_est, [(0.3*1.1 + 0.2*1.2) (0.1*1.3 + 0.4*1.4)]'))
+[xk_est_m,yk_est_m,Pk_m,p_seq_g_Yk_m] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, gamma_k, nj);
+xk_est_m_test = [(0.3*1.1 + 0.2*1.2) (0.1*1.3 + 0.4*1.4)];
+assert(isequal(xk_est_m, xk_est_m_test))
+yk_est_m_test = [(0.3*2 + 0.2*2.2) (0.1*2.6 + 0.4*2.8)];
+assert(isequal(yk_est_m, yk_est_m_test))
+
+Pk_m_test = cat(3, 0, 0);
+Pk_m_test(:,:,1) = ...
+      p_seq_g_Yk(1) * (Pk(:,:,1) + (1.1 - xk_est_m_test(1)).^2) ...
+    + p_seq_g_Yk(2) * (Pk(:,:,2) + (1.2 - xk_est_m_test(1)).^2);
+Pk_m_test(:,:,2) = ...
+      p_seq_g_Yk(3) * (Pk(:,:,3) + (1.3 - xk_est_m_test(2)).^2) ...
+    + p_seq_g_Yk(4) * (Pk(:,:,4) + (1.4 - xk_est_m_test(2)).^2);
+
+assert(isequal(Pk_m, Pk_m_test))
+
+
+% Multiple states and outputs
+xk_est = [1.1 1.2 1.3 1.4; ...
+          2.1 2.2 2.3 2.4; ...
+          3.1 3.2 3.3 3.4; ...
+          4.1 4.2 4.3 4.4];
+Pk = cat(3,10*eye(4),20*eye(4),30*eye(4),40*eye(4));
+yk_est = [1 0 0 0;
+          0 1 0 0] * xk_est;
+p_seq_g_Yk = [0.3 0.2 0.1 0.4]';
+gamma_k = [0 0 1 1]';
+nj = 2;
+
+[xk_est_m,yk_est_m,Pk_m,p_seq_g_Yk_m] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, gamma_k, nj);
+%xk_est_m_test = [(0.3*1.1 + 0.2*1.2) (0.1*1.3 + 0.4*1.4)];
+%assert(isequal(xk_est_m, xk_est_m_test))
+%yk_est_m_test = [(0.3*2 + 0.2*2.2) (0.1*2.6 + 0.4*2.8)];
+%assert(isequal(yk_est_m, yk_est_m_test))
+
+% Code adapted from GPB2_estimation.m
+n = 4;
+Mix_u = reshape(p_seq_g_Yk, nj, nj);
+UpdP = Pk;
+for j = 1:nj
+
+    % Normalize the mode probabilities
+    Updx = xk_est(:,(gamma_k + 1) == j);
+    Upd_u = Mix_u(:,j) / sum(Mix_u(:,j));
+
+    % Mix the estimates
+    Mix_x(:,j) = sum(Updx .* repmat(Upd_u', n, 1), 2);
+    Mix_P(:,:,j) = zeros(n, n);
+    for i = 1:nj
+        summP = Upd_u(i) * (UpdP(:,:,i) + ...
+            (Updx(:,i) - Mix_x(:,j)) * (Updx(:,i) - Mix_x(:,j))');
+        Mix_P(:,:,j) =  Mix_P(:,:,j) + summP;
+    end
+
+    Storu(j) = sum(Mix_u(:,j));
+
+end
+assert(isequal(xk_est_m, Mix_x));
+assert(isequal(Pk_m, Mix_P))
 
 
 %% Test weighted_avg_estimates.m
@@ -62,12 +122,12 @@ assert(isequal(xk_est, Xkf_est(:,:,1) * p_seq_g_Yk(1) + ...
 assert(isequal(yk_est, Ykf_est(:,:,1) * p_seq_g_Yk(1) + ...
     Ykf_est(:,:,2) * p_seq_g_Yk(2) + Ykf_est(:,:,3) * p_seq_g_Yk(3)))
 
-Pk_test = zeros(n, n);
+Pk_m_test = zeros(n, n);
 for i = 1:nj
     summP = p_seq_g_Yk(i) * (Pkf_est(:,:,i) + (Xkf_est(:,i) - xk_est) * (Xkf_est(:,i) - xk_est)');
-    Pk_test = Pk_test + summP;
+    Pk_m_test = Pk_m_test + summP;
 end
-assert(isequal(Pk, Pk_test))
+assert(isequal(Pk, Pk_m_test))
 
 
 %% Test mode_transitions.m
