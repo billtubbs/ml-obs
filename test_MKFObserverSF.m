@@ -19,7 +19,7 @@ R = sigma_M^2;
 f = 9;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF_SF = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,"MKF_SF95");
 
 seq_test = { ...
@@ -44,7 +44,7 @@ R = sigma_M^2;
 f = 10;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 5;  % spacing parameter
-MKF_SF = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,"MKF_SF95");
 
 seq_test = { ...
@@ -84,7 +84,6 @@ assert(MKF_SF1.nj == 2)
 assert(isequal(MKF_SF1.A{1}, A) && isequal(MKF_SF1.A{2}, A))
 assert(isequal(MKF_SF1.B{1}, Bu) && isequal(MKF_SF1.B{2}, Bu))
 assert(isequal(MKF_SF1.C{1}, C) && isequal(MKF_SF1.C{2}, C))
-assert(isequal(MKF_SF1.D{1}, Du) && isequal(MKF_SF1.D{2}, Du))
 assert(MKF_SF1.Ts == Ts)
 assert(isequaln(MKF_SF1.u_meas, u_meas))
 assert(isequal(size(MKF_SF1.Q), [1 2]))
@@ -139,7 +138,6 @@ assert(MKF_SF2.nj == 2)
 assert(isequal(MKF_SF2.A{1}, A) && isequal(MKF_SF2.A{2}, A))
 assert(isequal(MKF_SF2.B{1}, Bu) && isequal(MKF_SF2.B{2}, Bu))
 assert(isequal(MKF_SF2.C{1}, C) && isequal(MKF_SF2.C{2}, C))
-assert(isequal(MKF_SF2.D{1}, Du) && isequal(MKF_SF2.D{2}, Du))
 assert(MKF_SF2.Ts == Ts)
 assert(isequaln(MKF_SF2.u_meas, u_meas))
 assert(isequal(size(MKF_SF2.Q), [1 2]))
@@ -170,7 +168,7 @@ R = sigma_M^2;
 f = 15;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
@@ -198,17 +196,17 @@ f = 15;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 5;  % spacing parameter
 label = 'MKF_SF98';
-MKF_SF98 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF98 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % MKF_SF95 with same parameters as MKF_SF98
 label = 'MKF_SF95';
-MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % MKF_SF95 with same parameters as MKF_SF98
 label = 'MKF_SF95';
-MKF_SF95 = MKFObserverSF95(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model observer with sequence pruning
@@ -216,7 +214,7 @@ f = nT;  % sequence history length
 n_filt = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
 label = 'MKF_SP';
-MKF_SP = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,n_filt,f,n_min,label);
 
 % Choose time and amplitude of input disturbance
@@ -259,14 +257,14 @@ seq = {zeros(1, nT+1); zeros(1, nT+1)};
 seq{2}(t == t_shock) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
+MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
 
 % Multiple model filter - one sequence with correct shock
 seq = {zeros(1, nT+1)};
 seq{1}(t == t_shock) = 1;
 p_gamma = [1-epsilon epsilon]';
 T = repmat(p_gamma', 2, 1);
-MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
+MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -276,7 +274,7 @@ MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
 observers = {MKF3, MKF4, SKF, MKF_SF95, MKF_SF98, MKF_SP};
@@ -441,21 +439,21 @@ sigma_wp = [0.01 1; 0.01 1];
 P0 = 1000*eye(n);
 Q = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
 R = diag(sigma_M.^2);
-KF1 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
+KF1 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
 % Covariance matrices
 P0 = 1000*eye(n);
 Q = diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
 R = diag(sigma_M.^2);
-KF2 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF2');
+KF2 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,'KF2');
 
 % Kalman filter 3 - manually tuned
 % Covariance matrices
 P0 = 1000*eye(n);
 Q = diag([0.01 0.01 0.1^2 0.1^2]);
 R = diag(sigma_M.^2);
-KF3 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF3');
+KF3 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,'KF3');
 
 % Multiple model filter 1
 label = 'MKF_SF1';
@@ -465,7 +463,7 @@ R = diag(sigma_M.^2);
 f = 6;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 2;  % spacing parameter
-MKF_SF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF1 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
@@ -476,7 +474,7 @@ R = diag(sigma_M.^2);
 f = 10;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 2;  % spacing parameter
-MKF_SF2 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF2 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Check observer initialization
@@ -491,7 +489,6 @@ assert(MKF_SF1.nj == 3)
 assert(isequal(MKF_SF1.A{1}, A) && isequal(MKF_SF1.A{2}, A))
 assert(isequal(MKF_SF1.B{1}, Bu) && isequal(MKF_SF1.B{2}, Bu))
 assert(isequal(MKF_SF1.C{1}, C) && isequal(MKF_SF1.C{2}, C))
-assert(isequal(MKF_SF1.D{1}, Du) && isequal(MKF_SF1.D{2}, Du))
 assert(MKF_SF1.Ts == Ts)
 assert(isequaln(MKF_SF1.u_meas, u_meas))
 assert(isequal(size(MKF_SF1.Q), [1 3]))
@@ -532,7 +529,6 @@ assert(MKF_SF2.nj == 4)
 assert(isequal(MKF_SF2.A{1}, A) && isequal(MKF_SF2.A{2}, A))
 assert(isequal(MKF_SF2.B{1}, Bu) && isequal(MKF_SF2.B{2}, Bu))
 assert(isequal(MKF_SF2.C{1}, C) && isequal(MKF_SF2.C{2}, C))
-assert(isequal(MKF_SF2.D{1}, Du) && isequal(MKF_SF2.D{2}, Du))
 assert(MKF_SF2.Ts == Ts)
 assert(isequaln(MKF_SF2.u_meas, u_meas))
 assert(isequal(size(MKF_SF2.Q), [1 4]))
@@ -568,7 +564,7 @@ assert(isequal(round(MKF_SF2.p_gamma, 6), ...
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
-MKF_testx0 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 assert(isequal(MKF_testx0.ykp1_est, C * x0))
@@ -622,12 +618,12 @@ Z = [0 0; 0 1; 1 0];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 3, 1);
-MKF3 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF3');
+MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == t_shock(1)) = 1;
 seq{1}(t == t_shock(2)) = 2;
-MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
+MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -637,7 +633,7 @@ MKF4 = MKFObserver(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq,T,'MKF4');
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Du2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
 
 % Choose observers to test
 observers = {KF3, SKF, MKF_SF1, MKF_SF2, MKF3, MKF4};
