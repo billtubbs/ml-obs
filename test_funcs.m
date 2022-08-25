@@ -9,6 +9,7 @@
 %  - combinations.m 
 %  - combinations_lte.m
 %  - prob_combs.m
+%  - calc_merge_idx_seq.m
 %
 
 clear all
@@ -305,3 +306,128 @@ S_test = [   3     3     3;
 for i=1:size(S,1)
     assert(isempty(setdiff(S(i,:), S_test(i,:))))
 end
+
+
+%% Test calc_merge_idx_seq.m
+
+% Test sequence 1
+seq = {[0 0 0];
+       [1 0 0];
+       [0 1 0];
+       [0 0 1]};
+merge_idx_seq = calc_merge_idx_seq(seq);
+
+test_merge_idx_seq = ...
+    [1   1   1
+     1   2   2
+     2   1   3
+     3   3   1];
+assert(isequal(merge_idx_seq, test_merge_idx_seq))
+
+% Test sequence 2
+seq = {[0 0 0];
+       [1 0 0];
+       [0 1 0];
+       [0 0 1];
+       [1 1 0];
+       [1 0 1];
+       [0 1 1]};
+merge_idx_seq = calc_merge_idx_seq(seq);
+
+test_merge_idx_seq = ...
+    [1   1   1;
+     1   2   2;
+     2   1   3;
+     3   3   1;
+     2   2   4;
+     3   4   2;
+     4   3   3];
+assert(isequal(merge_idx_seq, test_merge_idx_seq))
+
+% Test sequence 3
+seq = {[0 0 0 0 0];
+       [1 0 0 0 0];
+       [0 1 0 0 0];
+       [0 0 1 0 0];
+       [0 0 0 1 0];
+       [0 0 0 0 1];
+       [1 1 0 0 0];
+       [1 0 1 0 0];
+       [1 0 0 1 0];
+       [1 0 0 0 1];
+       [0 1 1 0 0];
+       [0 1 0 1 0];
+       [0 1 0 0 1];
+       [0 0 1 1 0];
+       [0 0 1 0 1];
+       [0 0 0 1 1]};
+merge_idx_seq = calc_merge_idx_seq(seq);
+
+test_merge_idx_seq = ...
+   [1    1    1    1    1;
+    1    2    2    2    2;
+    2    1    3    3    3;
+    3    3    1    4    4;
+    4    4    4    1    5;
+    5    5    5    5    1;
+    2    2    6    6    6;
+    3    6    2    7    7;
+    4    7    7    2    8;
+    5    8    8    8    2;
+    6    3    3    9    9;
+    7    4    9    3   10;
+    8    5   10   10    3;
+    9    9    4    4   11;
+   10   10    5   11    4;
+   11   11   11    5    5];
+assert(isequal(merge_idx_seq, test_merge_idx_seq))
+
+% Test sequence 4
+seq = {[0 0 0];
+       [2 0 0];
+       [1 0 0];
+       [0 2 0];
+       [0 1 0];
+       [0 0 2];
+       [0 0 1];
+       [3 0 0];
+       [2 2 0];
+       [2 1 0];
+       [2 0 2];
+       [2 0 1];
+       [1 2 0];
+       [1 1 0];
+       [1 0 2];
+       [1 0 1];
+       [0 3 0];
+       [0 2 2];
+       [0 2 1];
+       [0 1 2];
+       [0 1 1];
+       [0 0 3]};
+merge_idx_seq = calc_merge_idx_seq(seq);
+
+test_merge_idx_seq = ...
+    [1    1    1;
+     1    2    2;
+     1    3    3;
+     2    1    4;
+     3    1    5;
+     4    4    1;
+     5    5    1;
+     1    6    6;
+     2    2    7;
+     3    2    8;
+     4    7    2;
+     5    8    2;
+     2    3    9;
+     3    3   10;
+     4    9    3;
+     5   10    3;
+     6    1   11;
+     7    4    4;
+     8    5    4;
+     9    4    5;
+    10    5    5;
+    11   11    1];
+assert(isequal(merge_idx_seq, test_merge_idx_seq))
