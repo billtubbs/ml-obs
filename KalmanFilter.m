@@ -42,8 +42,8 @@ classdef KalmanFilter < AbstractLinearFilter
     properties
         xkp1_est (:, 1) double
         ykp1_est (:, 1) double
+        Pkp1 double
         K double
-        P double
         Q double
         R double
         P0 double
@@ -79,7 +79,7 @@ classdef KalmanFilter < AbstractLinearFilter
         %
 
             % Initialize estimate covariance
-            obj.P = obj.P0;
+            obj.Pkp1 = obj.P0;
 
             % Gain will be calculated dynamically
             obj.K = nan(obj.n, 1);
@@ -102,8 +102,8 @@ classdef KalmanFilter < AbstractLinearFilter
         %
 
             % Update correction gain and covariance matrix
-            [obj.K, obj.P] = kalman_update(obj.P, obj.A, obj.C, obj.Q, ...
-                obj.R);
+            [obj.K, obj.Pkp1] = kalman_update(obj.Pkp1, obj.A, obj.C, ...
+                obj.Q, obj.R);
 
             % Update and prediction of state and output estimates
             % in next timestep

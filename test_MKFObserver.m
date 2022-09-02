@@ -139,7 +139,7 @@ assert(isequal(SKF.B, B))
 assert(isequal(SKF.C, C))
 assert(isequal(SKF.Ts, Ts))
 assert(isequal(SKF.P0, P0))
-assert(isequal(SKF.P, P0))
+assert(isequal(SKF.Pkp1, P0))
 assert(isequal(SKF.Q, Q))
 assert(isequal(SKF.R, R))
 assert(isequal(SKF.seq, seq))
@@ -759,12 +759,12 @@ function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = 
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
                 for j = 1:obs.n_filt
                     MKF_K_obs{i, j} = obs.filters{j}.K';
-                    MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
+                    MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
                 end
             end
             xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
             ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
-            diagP(1, (f-1)*n+1:f*n) = diag(obs.P)';
+            diagP(1, (f-1)*n+1:f*n) = diag(obs.Pkp1)';
         end
 
         % Record observer estimates

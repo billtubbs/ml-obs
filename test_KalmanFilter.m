@@ -39,11 +39,11 @@ assert(isequal(KFSS.Ts, Ts))
 assert(isequal(KFSS.Q, Q))
 assert(isequal(KFSS.R, R))
 assert(max(abs(KFSS.K - KFSS_old.K), [], [1 2]) < 1e-12)
-assert(max(abs(KFSS.P - KFSS_old.P), [], [1 2]) < 1e-12)
-K_calc = KFSS.A * KFSS.P * KFSS.C' * (KFSS.C * KFSS.P * KFSS.C' + KFSS.R)^-1;
+assert(max(abs(KFSS.Pkp1 - KFSS_old.P), [], [1 2]) < 1e-12)
+K_calc = KFSS.A * KFSS.Pkp1 * KFSS.C' * (KFSS.C * KFSS.Pkp1 * KFSS.C' + KFSS.R)^-1;
 assert(max(abs(KFSS.K - K_calc)) < 1e-12)
 assert(isequal(round(KFSS.K, 6), [0.772750; 0.755731]))
-assert(isequal(round(KFSS.P, 6), [1.509786 1.216953; 1.216953 1.219071]))
+assert(isequal(round(KFSS.Pkp1, 6), [1.509786 1.216953; 1.216953 1.219071]))
 assert(isequal(KFSS.label, label))
 assert(isequal(KFSS.xkp1_est, x0))
 assert(KFSS.ykp1_est == C*x0)
@@ -58,7 +58,7 @@ P_test = [1.5098    1.2170;
           1.2170    1.2191];
 
 assert(isequal(round(KFSS.K, 4), K_test))
-assert(isequal(round(KFSS.P, 4), P_test))
+assert(isequal(round(KFSS.Pkp1, 4), P_test))
 assert(isequal(KFSS.xkp1_est, zeros(n, 1)))
 assert(KFSS.ykp1_est == 0)
 
@@ -71,7 +71,7 @@ assert(isequal(KF.A, A))
 assert(isequal(KF.B, B))
 assert(isequal(KF.C, C))
 assert(isequal(KF.Ts, Ts))
-assert(isequal(KF.P, P0))
+assert(isequal(KF.Pkp1, P0))
 assert(isequal(KF.Q, Q))
 assert(isequal(KF.R, R))
 assert(all(isnan(KF.K)))
@@ -245,7 +245,7 @@ assert(isequal(KF.Ts, Ts))
 assert(isequal(KF.P0, P0))
 assert(isequal(KF.Q, Q))
 assert(isequal(KF.R, R))
-assert(isequal(KF.P, P0))
+assert(isequal(KF.Pkp1, P0))
 assert(isequal(KF.label, label))
 assert(isequal(KF.xkp1_est, x0))
 assert(KF.ykp1_est == C*x0)
@@ -277,7 +277,7 @@ assert(KFF.ny == ny)
 % Re-define with no initial state specified (should be set to zero)
 KF = KalmanFilter(A,B,C,Ts,P0,Q,R);
 assert(all(isnan(KF.K)))
-assert(isequal(KF.P, P0))
+assert(isequal(KF.Pkp1, P0))
 assert(isequal(KF.xkp1_est, zeros(n, 1)))
 assert(KF.ykp1_est == 0)
 
@@ -359,7 +359,7 @@ for i = 1:nT
 
     % Record Kalman filter variables
     KNkalman1(:, i) = KF.K;
-    diagPNkalman1(:, i) = diag(KF.P);
+    diagPNkalman1(:, i) = diag(KF.Pkp1);
     KNkalman2(:, i) = KFF.Kf;
     diagPNkalman2(:, i) = diag(KFF.Pk);
 
@@ -582,11 +582,16 @@ for i = 1:nT
     for j = 1:n_obs
         Xkp1_est(i, (j-1)*n+1:j*n) = observers{j}.xkp1_est';
         Ykp1_est(i, (j-1)*ny+1:j*ny) = observers{j}.ykp1_est';
-        switch observers{j}.type
-            case {"KF", "KFSS"}
-                trP_obs(i, j) = trace(observers{j}.P);
-            case {"KFF"}
-                trP_obs(i, j) = trace(observers{j}.Pk);
+        if isstruct(observers{j})
+            % Old struct-based observers
+            trP_obs(i, j) = trace(observers{j}.P);
+        else
+            switch observers{j}.type
+                case {"KF", "KFSS"}
+                    trP_obs(i, j) = trace(observers{j}.Pkp1);
+                case {"KFF"}
+                    trP_obs(i, j) = trace(observers{j}.Pk);
+            end
         end
     end
 

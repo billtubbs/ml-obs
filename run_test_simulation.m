@@ -50,7 +50,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
         % Record observer estimates and output errors
         X_est(i, :) = obs.xkp1_est';
         Y_est(i, :) = obs.ykp1_est';
-        trP_obs{i, 1} = trace(obs.P);
+        trP_obs{i, 1} = trace(obs.Pkp1);
         E_obs(i, :) = yk_m' - obs.ykp1_est';
 
         switch obs.type

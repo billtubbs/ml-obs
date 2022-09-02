@@ -23,8 +23,8 @@ classdef KalmanFilterSS < AbstractLinearFilter
     properties
         xkp1_est (:, 1) double
         ykp1_est (:, 1) double
+        Pkp1 double
         K double
-        P double
         Q double
         R double
     end
@@ -47,7 +47,7 @@ classdef KalmanFilterSS < AbstractLinearFilter
             end
 
             % Compute the steady-state gain and error covariance matrix
-            [obj.P,K,~,~] = idare(A',C',Q,R,[],[]);
+            [obj.Pkp1,K,~,~] = idare(A',C',Q,R,[],[]);
             obj.K = K';
 
             % Initialize estimates

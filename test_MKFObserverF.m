@@ -140,7 +140,7 @@ assert(isequal(SKF1.B, B))
 assert(isequal(SKF1.C, C))
 assert(isequal(SKF1.Ts, Ts))
 assert(isequal(SKF1.P0, P0))
-assert(isequal(SKF1.P, P0))
+assert(isequal(SKF1.Pkp1, P0))
 assert(isequal(SKF1.Q, Q))
 assert(isequal(SKF1.R, R))
 assert(isequal(SKF1.seq, seq))
@@ -901,7 +901,7 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
                     switch obs.type
                         case {"KF", "SKF", "MKF"}
                             MKF_K_obs{i, j} = obs.filters{j}.K';
-                            MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
+                            MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
                         case {"KFF", "SKFF", "MKFF"}
                             MKF_K_obs{i, j} = obs.filters{j}.Kf';
                             MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
@@ -919,7 +919,9 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
             if isprop(obs,'P')
                 diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.P)';
             else
-                diagPk(1, (f-1)*n+1:f*n) = diag(obs.Pk)';
+                if isprop(obs,'Pk')
+                    diagPk(1, (f-1)*n+1:f*n) = diag(obs.Pk)';
+                end
                 diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.Pkp1)';
             end
         end

@@ -15,8 +15,8 @@
 % time instant given the data at the current time are
 % also calculated:
 %
-%   xkp1_hat(k+1|k) : estimate of states at time k + 1
-%   ykp1_hat(k+1|k) : estimate of outputs at time k + 1
+%   x_hat(k+1|k) : estimate of states at time k + 1
+%   y_hat(k+1|k) : estimate of outputs at time k + 1
 %
 % The system model is defined as:
 %

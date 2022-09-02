@@ -62,12 +62,12 @@
 %    of Infrequent Disturbances. IFAC Proceedings Volumes, 29(1), 
 %     6614-6619. https://doi.org/10.1016/S1474-6670(17)58744-3
 %  - Andersson, P. (1985). Adaptive forgetting in recursive
-%    identification through multiple models?. International
-%    Journal of Control, 42(5), 1175?1193. 
+%    identification through multiple models. International
+%    Journal of Control, 42(5), 1175-1193. 
 %    https://doi.org/10.1080/00207178508933420
 %
 
-classdef MKFObserverSP < MKFObserver
+classdef MKFObserverSP < MKFObserverF
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         n_min double {mustBeInteger, mustBeNonnegative}
@@ -157,13 +157,13 @@ classdef MKFObserverSP < MKFObserver
             p_seq_g_Yk_init = [1; zeros(n_filt-1, 1)];
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Ts,P0,Q,R,seq,T,label,x0, ...
+            obj = obj@MKFObserverF(A,Bu,C,Ts,P0,Q,R,seq,T,label,x0, ...
                 gamma_init, p_seq_g_Yk_init);
 
             % Set estimate covariances to high values for the
             % rest of the filters
             for i = 2:obj.n_filt
-                obj.filters{i}.P = 1e10*eye(obj.n);
+                obj.filters{i}.Pkp1 = 1e10*eye(obj.n);
             end
 
             % Add additional variables used by AFMM observer
@@ -269,7 +269,7 @@ classdef MKFObserverSP < MKFObserver
             % equation (4.3).
 
             % Run MKF super-class updates and probability calcs
-            update@MKFObserver(obj, yk, uk);
+            update@MKFObserverF(obj, yk, uk);
 
         end
     end

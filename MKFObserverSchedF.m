@@ -1,6 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,label,x0)
+% obs = MKFObserverSchedF(A,B,C,Ts,P0,Q,R,seq,label,x0)
 % Object class for simulating a multi-model Kalman filter for 
 % state estimation with prescribed schedule to determine which 
 % system is active at each time step. Although it is a multi-

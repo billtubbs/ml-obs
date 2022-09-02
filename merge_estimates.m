@@ -1,5 +1,5 @@
 function [xk_est_m,yk_est_m,Pk_m,p_seq_g_Yk_m] = merge_estimates( ...
-    xk_est,Pk,yk_est,p_seq_g_Yk,gamma_k, nj)
+    xk_est,Pk,yk_est,p_seq_g_Yk,gamma_k,nj)
 % [xk_est_m,yk_est_m,Pk_m,p_seq_g_Yk_m] = merge_estimates(xk_est,Pk, ...
 %     yk_est,p_seq_g_Yk,gamma_k,nj)
 % Merge (i.e. fuse) a set of multiple-model Kalman filter

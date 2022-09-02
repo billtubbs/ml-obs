@@ -33,7 +33,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         Q cell
         R cell
         K double
-        P double
+        Pkp1 double
         seq (1, :) double
         label (1, 1) string
         x0 (:, 1) double
@@ -148,12 +148,12 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             % Initialize Kalman filter
             obj.filter.reset()
 
-            % Initialize covariance matrix
-            obj.P = obj.filter.P;
-
             % Initialize estimates
             obj.xkp1_est = obj.filter.xkp1_est;
             obj.ykp1_est = obj.filter.ykp1_est;
+
+            % Initialize covariance matrix
+            obj.Pkp1 = obj.filter.Pkp1;
 
         end
         function update(obj, yk, uk)
@@ -211,7 +211,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
 
             % Copy gain and covariance matrix
             obj.K = obj.filter.K;
-            obj.P = obj.filter.P;
+            obj.Pkp1 = obj.filter.Pkp1;
 
             % Copy filter estimates
             obj.xkp1_est = obj.filter.xkp1_est;

@@ -53,17 +53,17 @@ assert(isequal(size(MKF_SP1.seq), [MKF_SP1.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SP1.seq)), [MKF_SP1.n_filt MKF_SP1.f]))
 assert(MKF_SP1.f == size(MKF_SP1.seq{1}, 2))
 assert(isequal(MKF_SP1.xkp1_est, zeros(n, 1)))
-assert(isequal(MKF_SP1.P, 1000*eye(2)))
+assert(isequal(MKF_SP1.Pkp1, 1000*eye(2)))
 assert(isequal(MKF_SP1.ykp1_est, zeros(ny, 1)))
 assert(isequal(MKF_SP1.gamma_init, zeros(MKF_SP1.n_filt, 1)))
 assert(isequal(MKF_SP1.p_seq_g_Yk_init, [1; zeros(MKF_SP1.n_filt-1, 1)]))
 assert(isequal(MKF_SP1.p_gamma, [1-MKF_SP1.epsilon; MKF_SP1.epsilon]))
 
 % Check initialization of filters
-assert(isequal(MKF_SP1.filters{1}.P, MKF_SP1.P0))
+assert(isequal(MKF_SP1.filters{1}.Pkp1, MKF_SP1.P0))
 assert(isequal(MKF_SP1.filters{1}.x0, MKF_SP1.x0))
 for i = 2:MKF_SP1.n_filt
-    assert(isequal(MKF_SP1.filters{i}.P, 1e10*eye(2)))
+    assert(isequal(MKF_SP1.filters{i}.Pkp1, 1e10*eye(2)))
     assert(isequal(MKF_SP1.filters{i}.x0, MKF_SP1.x0))
 end
 
@@ -95,17 +95,17 @@ assert(isequal(size(MKF_SP2.seq), [MKF_SP2.n_filt 1]))
 assert(isequal(size(cell2mat(MKF_SP2.seq)), [MKF_SP2.n_filt MKF_SP2.f]))
 assert(MKF_SP2.f == size(MKF_SP2.seq{1}, 2))
 assert(isequal(MKF_SP2.xkp1_est, zeros(n, 1)))
-assert(isequal(MKF_SP2.P, 1000*eye(2)))
+assert(isequal(MKF_SP2.Pkp1, 1000*eye(2)))
 assert(isequal(MKF_SP2.ykp1_est, zeros(ny, 1)))
 assert(isequal(MKF_SP2.gamma_init, zeros(MKF_SP2.n_filt, 1)))
 assert(isequal(MKF_SP2.p_seq_g_Yk_init, [1; zeros(MKF_SP2.n_filt-1, 1)]))
 assert(isequal(MKF_SP2.p_gamma, [1-MKF_SP2.epsilon; MKF_SP2.epsilon]))
 
 % Check initialization of filters
-assert(isequal(MKF_SP2.filters{1}.P, MKF_SP2.P0))
+assert(isequal(MKF_SP2.filters{1}.Pkp1, MKF_SP2.P0))
 assert(isequal(MKF_SP2.filters{1}.x0, MKF_SP2.x0))
 for i = 2:MKF_SP2.n_filt
-    assert(isequal(MKF_SP2.filters{i}.P, 1e10*eye(2)))
+    assert(isequal(MKF_SP2.filters{i}.Pkp1, 1e10*eye(2)))
     assert(isequal(MKF_SP2.filters{i}.x0, MKF_SP2.x0))
 end
 
@@ -245,11 +245,11 @@ assert(isequaln(obs.p_seq_g_Ykm1, nan(5, 1)))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 4)]'))
 
 % Check initialization of filters
-assert(isequal(obs.filters{1}.P, obs.P0))
-assert(isequal(obs.filters{2}.P, 1e10*eye(2)))
-assert(isequal(obs.filters{3}.P, 1e10*eye(2)))
-assert(isequal(obs.filters{4}.P, 1e10*eye(2)))
-assert(isequal(obs.filters{5}.P, 1e10*eye(2)))
+assert(isequal(obs.filters{1}.Pkp1, obs.P0))
+assert(isequal(obs.filters{2}.Pkp1, 1e10*eye(2)))
+assert(isequal(obs.filters{3}.Pkp1, 1e10*eye(2)))
+assert(isequal(obs.filters{4}.Pkp1, 1e10*eye(2)))
+assert(isequal(obs.filters{5}.Pkp1, 1e10*eye(2)))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))
@@ -641,11 +641,11 @@ assert(isequaln(obs.p_seq_g_Ykm1, nan(5, 1)))
 assert(isequal(obs.p_seq_g_Yk, [1 zeros(1, 4)]'))
 
 % Check initialization of filters
-assert(isequal(obs.filters{1}.P, obs.P0))
-assert(isequal(obs.filters{2}.P, 1e10*eye(2)))
-assert(isequal(obs.filters{3}.P, 1e10*eye(2)))
-assert(isequal(obs.filters{4}.P, 1e10*eye(2)))
-assert(isequal(obs.filters{5}.P, 1e10*eye(2)))
+assert(isequal(obs.filters{1}.Pkp1, obs.P0))
+assert(isequal(obs.filters{2}.Pkp1, 1e10*eye(2)))
+assert(isequal(obs.filters{3}.Pkp1, 1e10*eye(2)))
+assert(isequal(obs.filters{4}.Pkp1, 1e10*eye(2)))
+assert(isequal(obs.filters{5}.Pkp1, 1e10*eye(2)))
 
 % Check estimates
 assert(isequal(obs.xkp1_est, [0; 0]))

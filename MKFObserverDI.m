@@ -3,8 +3,8 @@
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system. This version
 % implements a 'detection interval' used by certain sub-optimal
-% algorithms to reduce the number of filters required. This
-% is used by MKFObserverSF.m.
+% algorithms to reduce the number of filters required. See
+% MKFObserverSF.m for example.
 %
 % obs = MKFObserverDI(A,B,C,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
 %
@@ -56,6 +56,9 @@ classdef MKFObserverDI < matlab.mixin.Copyable
         Q cell
         R cell
         seq cell
+        idx_branch double
+        idx_modes double
+        idx_merge double
         gamma0 double {mustBeInteger, mustBeNonnegative}
         T double
         label (1, 1) string
@@ -71,7 +74,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
         p_seq_g_Ykm1 double
         filters  cell
         xkp1_est (:, 1) double
-        P double
+        Pkp1 double
         ykp1_est (:, 1) double
         type (1, 1) string
     end
@@ -130,6 +133,13 @@ classdef MKFObserverDI < matlab.mixin.Copyable
                     "ValueError: size of A, B, C, and D")
             end
 
+            % Generate the branch, mode, and merge index vectors 
+            % - these govern the branching, mode transitions,
+            % and merging of estimates at the end of each 
+            % detection interval.
+            [obj.idx_branch, obj.idx_modes, obj.idx_merge] = ...
+                seq_fusion_indices(seq, nj)
+
             % Initialize all variables
             obj.reset()
 
@@ -186,7 +196,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
 
             % Initialize estimates
             obj.xkp1_est = obj.x0;
-            obj.P = obj.P0;
+            obj.Pkp1 = obj.P0;
             obj.ykp1_est = obj.C{1} * obj.xkp1_est;
 
         end
@@ -247,7 +257,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
 
                 % Calculate covariance of the output estimation errors
                 C = obj.filters{f}.C;
-                yk_cov = C * obj.filters{f}.P * C' + obj.filters{f}.R;
+                yk_cov = C * obj.filters{f}.Pkp1 * C' + obj.filters{f}.R;
 
                 % Make sure covariance matrix is symmetric
                 if ~isscalar(yk_cov)
@@ -281,7 +291,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
 
                 % Save state and output estimates for next timestep
                 Xkf_est(:, :, f) = obj.filters{f}.xkp1_est';
-                Pkf_est(:, :, f) = obj.filters{f}.P;
+                Pkf_est(:, :, f) = obj.filters{f}.Pkp1;
                 Ykf_est(:, :, f) = obj.filters{f}.ykp1_est';
 
             end
@@ -300,15 +310,23 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             % Note: above calculation normalizes p_seq_g_Yk so that
             % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
 
+            % If at start of a detection interval, carry out
+            % filter branching and merging.
+            if obj.i(2) == 1
+                merge_idx = obj.merge_idx_seq(:, obj.i(1));
+                counts = accumarray(merge_idx, 1);
+                % Find hypothesis scheduled to be merged
+                idxs_to_merge = find(counts > 1);
+                for j = 1:numel(idxs_to_merge)
+                    %disp("Merging")
+                end
+            end
+
             % Compute multi-model observer state and output estimates
             % and estimated state error covariance using the weighted-
             % averages based on the conditional probabilities.
-            weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
-            obj.xkp1_est = sum(weights .* Xkf_est, 3);
-            obj.ykp1_est = sum(weights .* Ykf_est, 3);
-            Xkf_devs = obj.xkp1_est - Xkf_est;
-            obj.P = sum(weights .* (Pkf_est + ...
-                pagemtimes(Xkf_devs, pagetranspose(Xkf_devs))), 3);
+            [obj.xkp1_est,obj.Pkp1,obj.ykp1_est] = ...
+                complete_merge(Xkf_est,Pkf_est,Ykf_est,obj.p_seq_g_Yk);
             assert(~any(isnan(obj.xkp1_est)))
             assert(~any(isnan(obj.ykp1_est)))
 

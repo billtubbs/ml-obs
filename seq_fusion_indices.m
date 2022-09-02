@@ -17,7 +17,7 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
 %       instant, past sequences are merged into one of
 %       these sequences and others are discarded.
 %   nj : integer double
-%       number of system modes (always 2 for RODDs)
+%       number of system modes (2 for a single RODD)
 %
 % Returns:
 %   idx_branch : (nb, 1) integer double
@@ -67,12 +67,15 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
 %     https://doi.org/10.1016/S0005-1098(97)00192-1
 %
 
+    % TODO: is nj argument needed?  Why not just take 
+    % max value from seq?
+
     % Number of merged hypotheses modelled
     nh = size(seq, 1);
 
     % Construct the indices for branching and prediction steps
     % for given sequence model
-    idx_branch = reshape(repmat((1:nh), 2, 1), [], 1);
+    idx_branch = reshape(repmat((1:nh), nj, 1), [], 1);
     idx_modes = reshape(repmat((0:nj-1)', 1, nh), [], 1);
 
     % Hypothesis sequences from time k-f to k:
@@ -85,16 +88,10 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
     % Drop sequences not defined to be modelled (i.e. not 
     % found in seq)
     seq_to_keep = ismember(seq_kmfp1_to_k, seq, 'rows');
+    assert(sum(seq_to_keep) == nh, "ValueError: seq cannot " + ...
+        "be used recursively")
     seq_kmfp1_to_k = seq_kmfp1_to_k(seq_to_keep, :);
     idx_branch = idx_branch(seq_to_keep, :);
     idx_modes = idx_modes(seq_to_keep, :);
-
-    % Index of identical sequences (rows of seq_kmfp1_to_k)
-    % which should be merged
-    [matches, idx_merge] = ismember(seq_kmfp1_to_k, seq, 'rows');
-
-    % Check all sequences to be merged are in the fusion
-    % horizon (seq)
-    assert(all(matches))
 
 end

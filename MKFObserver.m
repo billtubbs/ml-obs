@@ -241,7 +241,7 @@ classdef MKFObserver < matlab.mixin.Copyable
 
                 % Calculate covariance of the output estimation errors
                 C = obj.filters{f}.C;
-                yk_cov = C * obj.filters{f}.P * C' + obj.filters{f}.R;
+                yk_cov = C * obj.filters{f}.Pkp1 * C' + obj.filters{f}.R;
 
                 % Make sure covariance matrix is symmetric
                 if ~isscalar(yk_cov)
@@ -267,7 +267,7 @@ classdef MKFObserver < matlab.mixin.Copyable
 
                 % Save state and output estimates for next timestep
                 Xkf_est(:, :, f) = obj.filters{f}.xkp1_est';
-                Pkf_est(:, :, f) = obj.filters{f}.P;
+                Pkf_est(:, :, f) = obj.filters{f}.Pkp1;
                 Ykf_est(:, :, f) = obj.filters{f}.ykp1_est';
 
             end
