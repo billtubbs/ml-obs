@@ -88,10 +88,15 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
     % Drop sequences not defined to be modelled (i.e. not 
     % found in seq)
     seq_to_keep = ismember(seq_kmfp1_to_k, seq, 'rows');
-    assert(sum(seq_to_keep) == nh, "ValueError: seq cannot " + ...
-        "be used recursively")
     seq_kmfp1_to_k = seq_kmfp1_to_k(seq_to_keep, :);
     idx_branch = idx_branch(seq_to_keep, :);
     idx_modes = idx_modes(seq_to_keep, :);
+
+    % Check re-merged sequences match the original sequence
+    assert(isequal(unique(seq_kmfp1_to_k,'rows'), sortrows(seq)))
+
+    % Index of identical sequences (rows of seq_kmfp1_to_k)
+    % which should be merged
+    [~, idx_merge] = ismember(seq_kmfp1_to_k, seq, 'rows');
 
 end
