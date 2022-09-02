@@ -1,11 +1,15 @@
 function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
 % [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
-% Generates three vectors of indices used in the sequence
-% fusion sub-optimal multi-model observer algorithm 
-% described by Robertson and Lee (1998). These vectors 
-% determine the branching, mode transition, and sequence
-% merging steps for a given set of sequences defined 
-% over the fusion horizon.
+% Generates three sequences of vectors of indices used in
+% the sequence fusion sub-optimal multi-model observer 
+% algorithm described by Robertson and Lee (1998). These 
+% vectors determine the branching, mode transitions, and 
+% sequence merging steps for a given set of sequences defined 
+% over the fusion horizon. This version of the calculations
+% differes from seq_fusion_indices_inv(seq, nj) in that it
+% finds a set of branching, transition and merging steps
+% for each time-step over the horizon, which may not be
+% the same.
 %
 % For more details, see eqn's 22 and 23 and in Robertson and 
 % Lee (1998).
@@ -73,30 +77,49 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
     % Number of merged hypotheses modelled
     nh = size(seq, 1);
 
-    % Construct the indices for branching and prediction steps
-    % for given sequence model
-    idx_branch = reshape(repmat((1:nh), nj, 1), [], 1);
-    idx_modes = reshape(repmat((0:nj-1)', 1, nh), [], 1);
+    % Fusion horizon
+    f = size(seq, 2);
 
-    % Hypothesis sequences from time k-f to k:
-    seq_kmf_to_k = [seq(idx_branch, :) idx_modes];
+    % Cell arrays to hold results
+    idx_branch = cell(1, f);
+    idx_modes = cell(1, f); 
+    idx_merge = cell(1, f);
 
-    % Drop first (oldest) values in sequences to generate
-    % hypothesis sequences from time k-f+1 to k:
-    seq_kmfp1_to_k = seq_kmf_to_k(:, 2:end);
+    % Make copy of sequence starting in first time instant
+    seq_i = seq;
+    for i = 1:f
 
-    % Drop sequences not defined to be modelled (i.e. not 
-    % found in seq)
-    seq_to_keep = ismember(seq_kmfp1_to_k, seq, 'rows');
-    seq_kmfp1_to_k = seq_kmfp1_to_k(seq_to_keep, :);
-    idx_branch = idx_branch(seq_to_keep, :);
-    idx_modes = idx_modes(seq_to_keep, :);
+        % Sequence starting at next time instant
+        seq_ip1 = circshift(seq_i, -1, 2);
 
-    % Check re-merged sequences match the original sequence
-    assert(isequal(unique(seq_kmfp1_to_k,'rows'), sortrows(seq)))
+        % Construct indices for all possible branching and 
+        % mode transition steps for next step of the sequence
+        idx_branch{i} = reshape(repmat((1:nh), nj, 1), [], 1);
+        idx_modes{i} = reshape(repmat((0:nj-1)', 1, nh), [], 1);
+    
+        % Hypothesis sequences from time k-f to k:
+        seq_kmf_to_k = [seq_i(idx_branch{i}, :) idx_modes{i}];
+    
+        % Drop first (oldest) values in sequences to generate
+        % hypothesis sequences from time k-f+1 to k:
+        seq_kmfp1_to_k = seq_kmf_to_k(:, 2:end);
+    
+        % Drop sequences not defined to be modelled at next
+        % time instant (i.e. not found in seq)
+        seq_to_keep = ismember(seq_kmfp1_to_k, seq_ip1, 'rows');
+        seq_kmfp1_to_k = seq_kmfp1_to_k(seq_to_keep, :);
+        idx_branch{i} = idx_branch{i}(seq_to_keep, :);
+        idx_modes{i} = idx_modes{i}(seq_to_keep, :);
 
-    % Index of identical sequences (rows of seq_kmfp1_to_k)
-    % which should be merged
-    [~, idx_merge] = ismember(seq_kmfp1_to_k, seq, 'rows');
+        % Check re-merged sequences match the next sequence
+        assert(isequal(unique(seq_kmfp1_to_k,'rows'), sortrows(seq_ip1)))
+    
+        % Index of identical sequences (rows of seq_kmfp1_to_k)
+        % which should be merged
+        [~, idx_merge{i}] = ismember(seq_kmfp1_to_k, seq_ip1, 'rows');
+
+        seq_i = seq_ip1;
+
+    end
 
 end
