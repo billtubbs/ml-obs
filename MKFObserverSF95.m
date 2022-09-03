@@ -99,11 +99,6 @@ classdef MKFObserverSF95 < MKFObserver
             % Number of hypotheses (filters) to be modelled
             n_filt = size(S, 1);
 
-            % Transition probability matrix
-            % Note that for RODD disturbances Pr(gamma(k)) is
-            % assumed to be an independent random variable.
-            T = repmat(p_gamma', nj, 1);
-
             % Expand sequences by inserting zeros between times
             % when shocks occur.
             seq = cell(n_filt, 1);
@@ -115,6 +110,11 @@ classdef MKFObserverSF95 < MKFObserver
                 % Alternatively, at end of each detection interval
                 %seq{i}(:, d:d:f) = S{i};
             end
+
+            % Transition probability matrix
+            % Note that for RODD disturbances Pr(gamma(k)) is
+            % assumed to be an independent random variable.
+            T = repmat(p_gamma', nj, 1);
 
             % Sequence probabilities Pr(Gamma(k))
             p_seq = prob_Gammas(seq, p_gamma);

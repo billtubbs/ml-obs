@@ -469,7 +469,7 @@ assert(isequal([idx_branch{3} idx_modes{3} idx_merge{3}], [ ...
 ]))
 
 
-%% Example 4 - with detection intervals (1995)
+%% Example 4 - with detection intervals (1995 version)
 
 % Parameters of SF observer
 Q0 = [0.01    0
@@ -555,7 +555,93 @@ for i = [2 3 4 5 7 8 9 10 12 13 14 15]
 end
 
 
-%% Example 5 - more than 2 modes
+%% Example 5 - with detection intervals (1998 version)
+
+% Parameters of SF observer
+Q0 = [0.01    0
+         0    0];
+Bw = [0  1]';
+epsilon = 0.01;
+sigma_wp = [0.0100    1.0000];
+f = 15;
+m = 1;
+d = 5;
+nw = 1;
+assert(rem(f, d) == 0, "detection interval not compatible")
+n_di = f / d;
+nj = 2;
+
+% Construct process noise covariance matrices and switching
+% sequences over the fusion horizon, and the prior 
+% probabilities of each sequence.
+[Q, p_gamma, S] = construct_Q_model_SF(Q0, Bw, epsilon, ...
+    sigma_wp, n_di, m, nw);
+
+% Expand sequences by inserting zeros between times
+% when shocks occur.
+n_filt = size(S, 1);
+seq = cell(n_filt, 1);
+for i = 1:n_filt
+    seq{i} = int16(zeros(size(S{i}, 1), f));
+    seq{i}(:, 1:d:f) = S{i};
+    % Alternatively, at end of each detection interval
+    %seq{i}(:, d:d:f) = S{i};
+end
+assert(isequal(seq, {...
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 1 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 1 0 0 0 0] ...
+}))
+
+seq = cell2mat(seq);
+
+% Generate sets of branching, mode transition and merge
+% indices for each time-step of the sequence
+[idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
+
+% Step 1
+assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
+     1     0     1
+     1     1     2
+     2     0     1
+     2     1     2
+     3     0     3
+     4     0     4 ...
+]))
+
+% Step 6
+assert(isequal([idx_branch{6} idx_modes{6} idx_merge{6}], [ ...
+     1     0     1
+     1     1     3
+     2     0     2
+     3     0     1
+     3     1     3
+     4     0     4 ...
+]))
+
+% Step 11
+assert(isequal([idx_branch{11} idx_modes{11} idx_merge{11}], [ ...
+     1     0     1
+     1     1     4
+     2     0     2
+     3     0     3
+     4     0     1
+     4     1     4 ...
+]))
+
+% No branching or merging during transitions steps between shocks
+for i = [2 3 4 5 7 8 9 10 12 13 14 15]
+    assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
+         1     0     1
+         2     0     2
+         3     0     3
+         4     0     4 ...
+    ]))
+end
+
+
+%% Example 6 - more than 2 modes
 
 % Parameters of SF observer
 Q0 = [ ...

@@ -6,14 +6,13 @@
 % sequence fusion, for state estimation of a Markov jump linear 
 % system. This version produces posterior estimates of the 
 % states and outputs at the current time instant given the data
-% at the current time:
+% available at the current time:
 %
 %  x_hat(k|k) : estimate of states at time k
 %  y_hat(k|k) : estimate of outputs at time k
 %
 % Prior estimates of the states and outputs at the next
-% time instant given the data at the current time are
-% also calculated:
+% time instant are also calculated:
 %
 %  x_hat(k+1|k) : estimate of states at time k + 1
 %  y_hat(k+1|k) : estimate of outputs at time k + 1
@@ -26,27 +25,30 @@
 % Note: there is no direct transmission (D = 0).
 %
 % Arguments:
-%   A, B, C : Cell arrays containing discrete-time system
-%       matrices for each switching system modelled.
-%   Ts : Sample period.
-%   P0 : Initial covariance matrix of the state estimates
+%   models : (1, nj) cell array of structs
+%       Each struct contains the parameters of a linear
+%       model of the system dynamics. These include: A, B, 
+%       and C for the system matrices, Q and R for the
+%       state error covariance and output measurement 
+%       noise covariance, and Ts for the sample period.
+%   P0 : (n, n) double
+%       Initial covariance matrix of the state estimates
 %       (same for each filter).
-%   Q : Cell array of process noise covariance matrices for
-%       each switching system.
-%   R : Cell array of output measurement noise covariance
-%       matrices for each switching system.
 %   seq : model indicator sequences for each filter (in rows).
-%   T : Transition probabity matrix of the Markov switching
-%       process.
-%   label : string name.
-%   x0 : Initial state estimates (optional, default zeros).
-%   gamma_init : (optional, default zeros)
+%   T : Transition probabity matrix for the Markov switching
+%       process. T(i,j) represents the probability of the
+%       system switching from model i to j.
+%   label : string
+%       Arbitrary name to identify the observer.
+%   x0 : (n, 1) double
+%       Initial state estimates (optional, default zeros).
+%   gamma_init : (nh, 1) integer (optional, default zeros)
 %       Initial prior model indicator value at time k-1 
 %       (zero-based, i.e. 0 is for first model).
-%   p_seq_g_Yk_init : (optional, default uniform)
-%       Initial prior hypothesis probabilities at time k-1.
-%       If not specified, default is equal, i.e. uniform,
-%       probability assigned to each hypothesis.
+%   p_seq_g_Yk_init : (nh, 1) double (optional, default uniform)
+%       Initial prior probabilities of each hypothesis at
+%       time k-1. If not specified, default is equal, i.e.
+%       uniform, probability assigned to each hypothesis.
 %
 
 classdef MKFObserverSF < matlab.mixin.Copyable
@@ -60,7 +62,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
     end
     properties
         models cell
-        seq cell
+        seq (:, 1) cell
         T double
         label (1, 1) string
         P0 double
@@ -75,7 +77,10 @@ classdef MKFObserverSF < matlab.mixin.Copyable
         p_yk_g_seq_Ykm1 double
         p_gammak_g_Ykm1 double
         p_gamma_k double
-        filters  struct
+        filters struct
+        idx_branch (1, :) cell
+        idx_modes (1, :) cell
+        idx_merge (1, :) cell
         xk_est (:, 1) double
         Pk double
         yk_est (:, 1) double
@@ -111,6 +116,13 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             if nargin < 6
                 x0 = zeros(n,1);
             end
+
+            % Generate the vectors of indices which define the
+            % hypothesis branching, mode transitions, and merging 
+            % steps of the sequence fusion algorithm
+            [obj.idx_branch, obj.idx_modes, obj.idx_merge] = ...
+                seq_fusion_indices(cell2mat(seq), nj);
+
             obj.models = models;
             obj.seq = seq;
             obj.T = T;
@@ -171,7 +183,8 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             obj.i = int16(0);
             obj.i_next = int16(1);
 
-            % Initial values of prior conditional probabilities at k = -1 
+            % Initial values of prior conditional probabilities at 
+            % k = -1 
             obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
 
             % Empty vectors to store values for filter calculations
@@ -192,7 +205,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             obj.ykp1_est = obj.models{1}.C * obj.xkp1_est;
             obj.Pkp1 = obj.P0;
 
-            % Create struct for filter bank variables
+            % Create struct to store Kalman filter variables
             obj.filters = struct();
             obj.filters.Xkp1_est = repmat(obj.xkp1_est, 1, 1, obj.nh);
             obj.filters.Pkp1 = repmat(obj.P0, 1, 1, obj.nh);

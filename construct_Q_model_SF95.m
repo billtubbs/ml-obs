@@ -27,6 +27,7 @@ function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
     seq = combinations_lte(n_di*nw, m);
 
     % Expand sequence by inserting detection intervals
+    % TODO: Why was this removed?
 
     % Probabilities of no-shock / shock over detection interval
     % (this is named delta in Robertson et al. 1998)
