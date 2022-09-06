@@ -3,8 +3,10 @@
 % obs = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
-% covariance). This is the prediction form of the
-% KF which produces prior estimates of the states and
+% covariance).
+%
+% This is the prediction form of the KF which 
+% produces prior estimates of the states and
 % outputs in the next time instant given the data
 % at the current time instant:
 %
@@ -36,7 +38,7 @@
 %       Initial state estimates.
 %
 
-% TODO: Should rename this KalmanFilterP
+% TODO: Could rename this KalmanFilterP
 
 classdef KalmanFilter < AbstractLinearFilter
     properties
@@ -90,9 +92,10 @@ classdef KalmanFilter < AbstractLinearFilter
 
         end
         function update(obj, yk, uk)
-        % obs.update(yk, uk) updates the gain and covariance matrix
+        % obj.update(yk, uk) updates the gain and covariance matrix
         % of the Kalman filter and calculates the estimates of the
-        % states and output at the next sample time.
+        % states and output at the next sample time given the 
+        % current measurement and inputs.
         %
         % Arguments:
         %   yk : vector, size (ny, 1)
@@ -105,8 +108,7 @@ classdef KalmanFilter < AbstractLinearFilter
             [obj.K, obj.Pkp1] = kalman_update(obj.Pkp1, obj.A, obj.C, ...
                 obj.Q, obj.R);
 
-            % Update and prediction of state and output estimates
-            % in next timestep
+            % Update state and output estimates in next timestep
             obj.xkp1_est = obj.A * obj.xkp1_est + obj.B * uk + ...
                 obj.K * (yk - obj.C * obj.xkp1_est);
             obj.ykp1_est = obj.C * obj.xkp1_est;

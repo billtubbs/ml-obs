@@ -149,14 +149,6 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             % TODO: Could calculate beta parameter here, i.e. total 
             % probability measured?
 
-            % Check all other system matrix dimensions have same 
-            % input/output dimensions and number of states.
-            for j = 2:nj
-                [n_j, nu_j, ny_j] = check_dimensions(models{j}.A, ...
-                    models{j}.B, models{j}.C);
-                assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: size of A, B, and C")
-            end
 
             % Store other useful variables
             obj.nu = nu;

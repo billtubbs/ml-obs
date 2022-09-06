@@ -1,4 +1,5 @@
-% Test classes MKFObserver and MKFObserverSched
+% Test classes KalmanFilterJS, KalmanFilterFJS, MKFObserver 
+% and MKFObserverSched
 
 clear all
 
@@ -8,42 +9,17 @@ rng(seed)
 
 %% Simulation test - SISO system
 
-% Define system
-
-% Sample period
-Ts = 0.5;
-
-% Discrete time state space models
-% Model #1
-A1 = 0.7;
-B1 = 1;
-C1 = 0.3;
-D1 = 0;
-Gpss1 = ss(A1,B1,C1,D1,Ts);
-
-% Model #2
-A2 = 0.9;
-B2 = 1;
-C2 = -0.3;  % -ve gain!
-D2 = 0;
-Gpss2 = ss(A2,B2,C2,D2,Ts);
-
-% Dimensions
-n = size(A1, 1);
-nu = size(B1, 2);
-ny = size(C1, 1);
+% Load switching system
+sys_js2_siso
 
 % Check dimensions
-assert(isequal(size(A1), size(A2)))
-assert(isequal(size(B1), size(B2)))
-assert(isequal(size(C1), size(C2)))
-assert(isequal(size(D1), size(D2)))
-
-% Define system models
-A = {A1, A2};
-B = {B1, B2};
-C = {C1, C2};
-D = {D1, D2};
+assert(isequal(size(model1.A), [n n]))
+assert(isequal(size(model1.B), [n nu]))
+assert(isequal(size(model1.C), [ny n]))
+assert(isequal(size(model2.A), [n n]))
+assert(isequal(size(model2.B), [n nu]))
+assert(isequal(size(model2.C), [ny n]))
+assert(nj == 2)
 
 % Input disturbance variance
 %sigma_w = 0.1;
@@ -53,7 +29,7 @@ sigma_w = 0;
 sigma_W = [0; 0];
 
 % Measurement noise std. dev.
-sigma_M = 0.1;
+sigma_M = 0.0;
 
 % Simulation settings
 nT = 60;
@@ -71,90 +47,125 @@ Gamma = int8(zeros(nT+1, 1));
 Gamma(t>=10, 1) = 1;
 
 % Simulate switching system
-[X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT);
+[X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT);
 
-% % Plot of inputs and outputs
-% figure(1); clf
-% 
-% ax1 = subplot(5,1,1:2);
-% plot(t,Y,'Linewidth',2); hold on
-% plot(t,Ym,'o');
-% max_min = [min(min([Y Ym])) max(max([Y Ym]))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('y(k)')
-% title('System output and output measurements')
-% grid on
-% 
-% ax2 = subplot(5,1,3:4);
-% stairs(t,U,'Linewidth',2);
-% max_min = [min(min(U)) max(max(U))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('u(k) and w_p(k)')
-% legend('u(k)')
-% title('Input')
-% grid on
-% 
-% ax3 = subplot(5,1,5);
-% stairs(t,Gamma,'Linewidth',2)
-% max_min = [min(min(Gamma)) max(max(Gamma))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('gamma(k)')
-% title('Model sequence')
-% grid on
-% 
-% linkaxes([ax1 ax2 ax3], 'x')
+% Plot of inputs and outputs
+figure(1); clf
 
+ax1 = subplot(5,1,1:2);
+plot(t,Y,'Linewidth',2); hold on
+plot(t,Ym,'o');
+max_min = [min(min([Y Ym])) max(max([Y Ym]))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('y(k)')
+title('System output and output measurements')
+grid on
+
+ax2 = subplot(5,1,3:4);
+stairs(t,U,'Linewidth',2);
+max_min = [min(min(U)) max(max(U))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('u(k) and w_p(k)')
+legend('u(k)')
+title('Input')
+grid on
+
+ax3 = subplot(5,1,5);
+stairs(t,Gamma,'Linewidth',2)
+max_min = [min(min(Gamma)) max(max(Gamma))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('gamma(k)')
+title('Model sequence')
+grid on
+
+linkaxes([ax1 ax2 ax3], 'x')
 
 % Observer parameters (same for all observers)
 P0 = 10000;
 x0 = 0.5;
-Q1 = 0.01;
-R1 = 0.1^2;
-Q2 = 0.01;
-R2 = 0.1^2;
-assert(isequal(size(Q1), size(Q2)))
-assert(isequal(size(R1), size(R2)))
+y0 = models{1}.C * x0;
+r0 = 1;  % system mode
+models{1}.Q = 0.01;
+models{1}.R = 0.1^2;
+models{2}.Q = 0.01;
+models{2}.R = 0.1^2;
+assert(isequal(size(models{1}.Q), size(models{2}.Q)))
+assert(isequal(size(models{1}.R), size(models{2}.R)))
 
 % Standard Kalman filters
-KF1 = KalmanFilter(A1,B1,C1,Ts,P0,Q1,R1,'KF1',x0);
-KF2 = KalmanFilter(A2,B2,C2,Ts,P0,Q2,R2,'KF2',x0);
+KF1 = KalmanFilterF(models{1}.A,models{1}.B,models{1}.C,Ts,P0, ...
+    models{1}.Q,models{1}.R,'KF1',x0);
+KF2 = KalmanFilterF(models{2}.A,models{2}.B,models{2}.C,Ts,P0, ...
+    models{2}.Q,models{2}.R,'KF2',x0);
+
+% Transition probabilities
+epsilon = 0.05;
+T = [1-epsilon epsilon; epsilon 1-epsilon];
+assert(all(sum(T, 2) == 1))
+
+% System indicator sequences
+seq1 = {
+    zeros(1, nT+1);
+    [zeros(1, 20) ones(1, nT+1-20)];  % equal to Gamma'
+    [zeros(1, 40) ones(1, nT+1-40)];
+    ones(1, nT+1);
+ };
+assert(isequal(seq1{2}, Gamma'))
 
 % Define observers with a switching system
-Q = {Q1,Q2};
-R = {R1,R2};
 
-% Define scheduled MKF filter
-seq = Gamma';
-SKF = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,"SKF1",x0);
+% Define switching Kalman filter
+SKF = KalmanFilterJS(models,P0,"SKF1",x0);
 
-assert(strcmp(SKF.type, "SKF"))
-assert(isequal(SKF.A, A))
-assert(isequal(SKF.B, B))
-assert(isequal(SKF.C, C))
-assert(isequal(SKF.Ts, Ts))
+assert(strcmp(SKF.type, "KFJS"))
+assert(isequal(SKF.models, models))
 assert(isequal(SKF.P0, P0))
 assert(isequal(SKF.Pkp1, P0))
-assert(isequal(SKF.Q, Q))
-assert(isequal(SKF.R, R))
-assert(isequal(SKF.seq, seq))
 assert(strcmp(SKF.label, "SKF1"))
-assert(SKF.n_filt == 1)
-assert(isa(SKF.filter, 'KalmanFilter'))
-assert(strcmp(SKF.filter.label, 'KF'))
+assert(isequal(SKF.r0, r0))
 assert(SKF.n == n)
 assert(SKF.nu == nu)
 assert(SKF.ny == ny)
-assert(SKF.f == size(SKF.seq, 2))
-assert(SKF.nj == 2)
+assert(SKF.nj == nj)
 assert(isequal(SKF.xkp1_est, x0))
-assert(SKF.ykp1_est == C{1}*x0)
-assert(isequal(SKF.gamma_k, 0))
+assert(SKF.ykp1_est == y0)
+assert(isequal(SKF.rk, r0))
+
+return
+
+
+% % Define scheduled MKF filter
+% seq = Gamma';
+% SKF = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,"SKF1",x0);
+% 
+% assert(strcmp(SKF.type, "SKF"))
+% assert(isequal(SKF.A, A))
+% assert(isequal(SKF.B, B))
+% assert(isequal(SKF.C, C))
+% assert(isequal(SKF.Ts, Ts))
+% assert(isequal(SKF.P0, P0))
+% assert(isequal(SKF.Pkp1, P0))
+% assert(isequal(SKF.Q, Q))
+% assert(isequal(SKF.R, R))
+% assert(isequal(SKF.seq, seq))
+% assert(strcmp(SKF.label, "SKF1"))
+% assert(SKF.n_filt == 1)
+% assert(isa(SKF.filter, 'KalmanFilter'))
+% assert(strcmp(SKF.filter.label, 'KF'))
+% assert(SKF.n == n)
+% assert(SKF.nu == nu)
+% assert(SKF.ny == ny)
+% assert(SKF.f == size(SKF.seq, 2))
+% assert(SKF.nj == 2)
+% assert(isequal(SKF.xkp1_est, x0))
+% assert(SKF.ykp1_est == C{1}*x0)
+% assert(isequal(SKF.gamma_k, 0))
 
 % Transition probabilities
 epsilon = 0.05;
@@ -691,38 +702,6 @@ MKF.filters{1}.x0 = 99;
 
 %END
 
-
-function [X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT)
-% Simulate switching system
-
-    [n, ~, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
-    X = zeros(nT+1,n);
-    Y = zeros(nT+1,ny);
-    Ym = zeros(nT+1,ny);
-    xk = zeros(n,1);
-
-    for i=1:nT+1
-
-        % Switch system
-        j = Gamma(i) + 1;
-
-        % Inputs
-        uk = U(i,:)';
-
-        % Compute y(k)
-        yk = C{j}*xk + D{j}*uk;
-        yk_m = yk + V(i);
-
-        % Store results
-        X(i, :) = xk';
-        Y(i, :) = yk';
-        Ym(i, :) = yk_m';
-
-        % Compute x(k+1)
-        xk = A{j}*xk + B{j}*uk;
-
-    end
-end
 
 % TODO: Can't the function run_test_simulation.m be used here?
 function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...

@@ -1,7 +1,8 @@
 function [n, nu, ny] = check_dimensions(A, B, C, D)
 % [n, nu, ny] = check_dimensions(A, B, C, D)
 % Checks and returns dimensions of state-space system
-% represented by matrices A, B, C, D.
+% represented by matrices A, B, C, and D. D is
+% optional and may be omitted.
 %
     n = size(A, 1);
     assert(size(A, 2) == n, "ValueError: size(A)")

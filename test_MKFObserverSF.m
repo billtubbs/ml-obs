@@ -8,38 +8,17 @@ rng(seed)
 
 %% Simulation test - SISO system
 
-% Define system
-
-% Sample period
-Ts = 0.5;
-
-% Discrete time state space models
-% Model #1
-model1.A = 0.7;
-model1.B = 1;
-model1.C = 0.3;
-model1.Ts = Ts;
-Gpss1 = ss(model1.A,model1.B,model1.C,0,Ts);
-
-% Model #2
-model2.A = 0.9;
-model2.B = 1;
-model2.C = -0.3;  % -ve gain!
-model2.Ts = Ts;
-Gpss2 = ss(model2.A,model2.B,model2.C,0,Ts);
-
-% Dimensions
-n = size(model1.A, 1);
-nu = size(model1.B, 2);
-ny = size(model1.C, 1);
+% Load switching system
+sys_js2_siso
 
 % Check dimensions
-assert(isequal(size(model1.A), size(model2.A)))
-assert(isequal(size(model1.B), size(model2.B)))
-assert(isequal(size(model1.C), size(model2.C)))
-
-% Array of system models for MKF observer
-models = {model1, model2};
+assert(isequal(size(model1.A), [n n]))
+assert(isequal(size(model1.B), [n nu]))
+assert(isequal(size(model1.C), [ny n]))
+assert(isequal(size(model2.A), [n n]))
+assert(isequal(size(model2.B), [n nu]))
+assert(isequal(size(model2.C), [ny n]))
+assert(nj == 2)
 
 % Input disturbance variance
 %sigma_w = 0.1;
@@ -69,43 +48,42 @@ Gamma(t>=10, 1) = 1;
 % Simulate switching system
 [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT);
 
-% % Plot of inputs and outputs
-% figure(1); clf
-% 
-% ax1 = subplot(5,1,1:2);
-% plot(t,Y,'Linewidth',2); hold on
-% plot(t,Ym,'o');
-% max_min = [min(min([Y Ym])) max(max([Y Ym]))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('y(k)')
-% title('System output and output measurements')
-% grid on
-% 
-% ax2 = subplot(5,1,3:4);
-% stairs(t,U,'Linewidth',2);
-% max_min = [min(min(U)) max(max(U))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('u(k) and w_p(k)')
-% legend('u(k)')
-% title('Input')
-% grid on
-% 
-% ax3 = subplot(5,1,5);
-% stairs(t,Gamma,'Linewidth',2)
-% max_min = [min(min(Gamma)) max(max(Gamma))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('gamma(k)')
-% title('Model sequence')
-% grid on
-% 
-% linkaxes([ax1 ax2 ax3], 'x')
+% Plot of inputs and outputs
+figure(1); clf
 
+ax1 = subplot(5,1,1:2);
+plot(t,Y,'Linewidth',2); hold on
+plot(t,Ym,'o');
+max_min = [min(min([Y Ym])) max(max([Y Ym]))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('y(k)')
+title('System output and output measurements')
+grid on
+
+ax2 = subplot(5,1,3:4);
+stairs(t,U,'Linewidth',2);
+max_min = [min(min(U)) max(max(U))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('u(k) and w_p(k)')
+legend('u(k)')
+title('Input')
+grid on
+
+ax3 = subplot(5,1,5);
+stairs(t,Gamma,'Linewidth',2)
+max_min = [min(min(Gamma)) max(max(Gamma))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('gamma(k)')
+title('Model sequence')
+grid on
+
+linkaxes([ax1 ax2 ax3], 'x')
 
 % Observer parameters (same for all observers)
 P0 = 10000;
@@ -124,7 +102,7 @@ KF2 = KalmanFilterF(models{2}.A,models{2}.B,models{2}.C,Ts,P0, ...
     models{2}.Q,models{2}.R,'KF2',x0);
 
 % Define scheduled MKF filter
-seq = Gamma';
+% seq = Gamma';
 %SKF1 = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,"SKF1",x0);
 %SKF2 = MKFObserverSchedF(A,B,C,Ts,P0,Q,R,seq,"SKF2",x0);
 
@@ -808,39 +786,6 @@ MKF.filters{1}.x0 = 99;
 %assert(~isequal(MKF_copy.filters{1}.x0, 99))
 
 %END
-
-
-function [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT)
-% Simulate switching system
-
-    [n, ~, ny] = check_dimensions(models{1}.A, models{1}.B, models{1}.C);
-    X = zeros(nT+1,n);
-    Y = zeros(nT+1,ny);
-    Ym = zeros(nT+1,ny);
-    xk = zeros(n,1);
-
-    for i = 1:nT+1
-
-        % Switch system
-        j = Gamma(i) + 1;
-
-        % Inputs
-        uk = U(i,:)';
-
-        % Compute y(k)
-        yk = models{j}.C * xk;
-        yk_m = yk + V(i);
-
-        % Store results
-        X(i, :) = xk';
-        Y(i, :) = yk';
-        Ym(i, :) = yk_m';
-
-        % Compute x(k+1)
-        xk = models{j}.A * xk + models{j}.B * uk;
-
-    end
-end
 
 
 function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...

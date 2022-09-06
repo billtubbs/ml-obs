@@ -28,7 +28,6 @@ classdef (Abstract) AbstractLinearFilter < matlab.mixin.Copyable
         A double
         B double
         C double
-        D double
         Ts (1, 1) double {mustBeNonnegative}
         label (1, 1) string
         x0 (:, 1) double

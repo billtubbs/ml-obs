@@ -109,9 +109,10 @@ classdef KalmanFilterF < AbstractLinearFilter
 
         end
         function update(obj, yk, uk)
-        % obs.update(yk, uk) updates the gain and covariance matrix
+        % obj.update(yk, uk) updates the gain and covariance matrix
         % of the Kalman filter and calculates the estimates of the
-        % states and output at the current sample time.
+        % states and output at the current sample time given the 
+        % current measurement and inputs.
         %
         % After calling this method, obs.xk_est and obs.yk_est
         % will be the 'a posteriori' estimates of x(k|k) and

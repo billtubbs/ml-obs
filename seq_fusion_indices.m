@@ -1,5 +1,6 @@
-function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
-% [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
+function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, ...
+    nj, nf)
+% [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj, nf)
 % Generates three sequences of vectors of indices used in
 % the sequence fusion sub-optimal multi-model observer 
 % algorithm described by Robertson and Lee (1998). These 
@@ -15,13 +16,16 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
 % Lee (1998).
 %
 % Arguments:
-%   seq : (nh, f) integer double
+%   seq : (nh, ns) integer double
 %       Set of nh mode sequences to be modelled over the
 %       fustion horizon of length f. At every time
 %       instant, past sequences are merged into one of
 %       these sequences and others are discarded.
 %   nj : integer double
-%       number of system modes (2 for a single RODD)
+%       Number of system modes (2 for a single RODD).
+%   nf : integer double (optional)
+%       Fusion horizon. If not provided, nf is set to
+%       the length of the sequence (i.e. size(seq, 2)).
 %
 % Returns:
 %   idx_branch : (nb, 1) integer double
@@ -70,24 +74,27 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
 %     systems. Automatica, 34(2), 261–270. 
 %     https://doi.org/10.1016/S0005-1098(97)00192-1
 %
-
-    % TODO: is nj argument needed?  Why not just take 
-    % max value from seq?
+    arguments
+        seq double
+        nj {mustBeInteger}
+        nf {mustBeInteger} = size(seq, 2)
+    end
 
     % Number of merged hypotheses modelled
     nh = size(seq, 1);
 
-    % Fusion horizon
-    f = size(seq, 2);
+    % Length of sequences
+    ns = size(seq, 2);
 
     % Cell arrays to hold results
-    idx_branch = cell(1, f);
-    idx_modes = cell(1, f); 
-    idx_merge = cell(1, f);
+    idx_branch = cell(1, nf);
+    idx_modes = cell(1, nf); 
+    idx_merge = cell(1, nf);
 
     % Make copy of sequence starting in first time instant
     seq_i = seq;
-    for i = 1:f
+
+    for i = 1:ns
 
         % Sequence starting at next time instant
         seq_ip1 = circshift(seq_i, -1, 2);
@@ -96,27 +103,29 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj)
         % mode transition steps for next step of the sequence
         idx_branch{i} = reshape(repmat((1:nh), nj, 1), [], 1);
         idx_modes{i} = reshape(repmat((0:nj-1)', 1, nh), [], 1);
-    
+
         % Hypothesis sequences from time k-f to k:
-        seq_kmf_to_k = [seq_i(idx_branch{i}, :) idx_modes{i}];
-    
-        % Drop first (oldest) values in sequences to generate
+        seq_kmf_to_k = [seq_i(idx_branch{i}, end-nf+1:end) idx_modes{i}];
+
+        % Drop first (oldest) values in sequences to get
         % hypothesis sequences from time k-f+1 to k:
         seq_kmfp1_to_k = seq_kmf_to_k(:, 2:end);
-    
+
         % Drop sequences not defined to be modelled at next
         % time instant (i.e. not found in seq)
-        seq_to_keep = ismember(seq_kmfp1_to_k, seq_ip1, 'rows');
+        seq_to_keep = ismember(seq_kmfp1_to_k, seq_ip1(:, end-nf+1:end), 'rows');
         seq_kmfp1_to_k = seq_kmfp1_to_k(seq_to_keep, :);
         idx_branch{i} = idx_branch{i}(seq_to_keep, :);
         idx_modes{i} = idx_modes{i}(seq_to_keep, :);
 
         % Check re-merged sequences match the next sequence
-        assert(isequal(unique(seq_kmfp1_to_k,'rows'), sortrows(seq_ip1)))
-    
+        assert(isequal(unique(seq_kmfp1_to_k,'rows'), ...
+            sortrows(seq_ip1(:, end-nf+1:end))))
+
         % Index of identical sequences (rows of seq_kmfp1_to_k)
         % which should be merged
-        [~, idx_merge{i}] = ismember(seq_kmfp1_to_k, seq_ip1, 'rows');
+        [~, idx_merge{i}] = ismember(seq_kmfp1_to_k, ...
+            seq_ip1(:, end-nf+1:end), 'rows');
 
         seq_i = seq_ip1;
 

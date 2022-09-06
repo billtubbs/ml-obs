@@ -574,31 +574,42 @@ nj = 2;
 % Construct process noise covariance matrices and switching
 % sequences over the fusion horizon, and the prior 
 % probabilities of each sequence.
-[Q, p_gamma, S] = construct_Q_model_SF(Q0, Bw, epsilon, ...
-    sigma_wp, n_di, m, nw);
+alpha = (1 - (1 - epsilon).^d);
+var_wp = sigma_wp.^2;
+var_wp(2) = var_wp(2) ./ d;
+[Q, p_gamma, S] = construct_Q_model_SF(Q0, Bw, alpha, ...
+    var_wp, n_di, m, nw);
 
 % Expand sequences by inserting zeros between times
 % when shocks occur.
 n_filt = size(S, 1);
-seq = cell(n_filt, 1);
-for i = 1:n_filt
-    seq{i} = int16(zeros(size(S{i}, 1), f));
-    seq{i}(:, 1:d:f) = S{i};
-    % Alternatively, at end of each detection interval
-    %seq{i}(:, d:d:f) = S{i};
-end
-assert(isequal(seq, {...
-    [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-    [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-    [0 0 0 0 0 1 0 0 0 0 0 0 0 0 0]
-    [0 0 0 0 0 0 0 0 0 0 1 0 0 0 0] ...
-}))
-
-seq = cell2mat(seq);
+seq = cell2mat(S);
+seq = cell2mat(arrayfun( ...
+    @(i) repmat(seq(:, i), 1, d), 1:n_di, 'UniformOutput', false ...
+));
+assert(isequal(seq, [...
+   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+   1   1   1   1   1   0   0   0   0   0   0   0   0   0   0
+   0   0   0   0   0   1   1   1   1   1   0   0   0   0   0
+   0   0   0   0   0   0   0   0   0   0   1   1   1   1   1 ...
+]))
 
 % Generate sets of branching, mode transition and merge
 % indices for each time-step of the sequence
 [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
+
+% This is not a suitable switching sequence since no branching
+% or merging occurs and all steps are identical.  Instead, a
+% different approach is needed where GPB algorithm is only
+% applied at transitions between the detection intervals.
+assert(all(cell2mat(idx_branch) == idx_branch{1}, [1 2]))
+assert(all(cell2mat(idx_modes) == seq, [1 2]))
+assert(all(cell2mat(idx_merge) == idx_merge{1}, [1 2]))
+
+% To achieve the desired results, the fusion horizon must
+% be set to a shorter length
+nh = 11;
+[idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj, nh);
 
 % Step 1
 assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
@@ -631,12 +642,33 @@ assert(isequal([idx_branch{11} idx_modes{11} idx_merge{11}], [ ...
 ]))
 
 % No branching or merging during transitions steps between shocks
-for i = [2 3 4 5 7 8 9 10 12 13 14 15]
+% During 1st detection interval
+for i = [2 3 4 5]
+    assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
+         1     0     1
+         2     1     2
+         3     0     3
+         4     0     4 ...
+    ]))
+end
+
+% During 2nd detection interval
+for i = [7 8 9 10]
+    assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
+         1     0     1
+         2     0     2
+         3     1     3
+         4     0     4 ...
+    ]))
+end
+
+% During 3rd detection interval
+for i = [12 13 14 15]
     assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
          1     0     1
          2     0     2
          3     0     3
-         4     0     4 ...
+         4     1     4 ...
     ]))
 end
 
