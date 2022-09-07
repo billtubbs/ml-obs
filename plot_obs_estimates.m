@@ -13,7 +13,7 @@ function plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
         max_min = [min(y_values, [], [1 2]) max(y_values, [], [1 2])];
         bd = max([0.1 diff(max_min)*0.1]);
         ylim(max_min + [-bd bd])
-        y_label = sprintf('y_%d(k)',i);
+        y_label = sprintf("y_%d(k)", i);
         ylabel(y_label)
         title(strjoin(["Output" y_label]))
         legend([obs_labels {'true'}],'Interpreter','none')
@@ -28,10 +28,10 @@ function plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
         max_min = [min(y_values, [], [1 2]) max(y_values, [], [1 2])];
         bd = max([0.1 diff(max_min)*0.1]);
         ylim(max_min + [-bd bd])
-        y_label = sprintf('x_%d(k)',i);
+        y_label = sprintf("x_%d(k)", i);
         ylabel(y_label)
         legend([obs_labels {'true'}],'Interpreter','none')
-        title(strcat('State ', y_label))
+        title(strjoin(['State' y_label]))
         grid on
     end
     xlabel('t')

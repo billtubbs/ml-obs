@@ -1,11 +1,24 @@
-function [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT)
+function [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT,x0)
 % Simulate switching system
+    arguments
+        models (1, :) cell
+        U double
+        V double
+        Gamma double {mustBeInteger}
+        nT (1, 1) double {mustBeInteger}
+        x0 (:, 1) double = [];
+    end
 
-    [n, ~, ny] = check_dimensions(models{1}.A, models{1}.B, models{1}.C);
+    [nj, n, nu, ny, Ts] = check_models(models);
+
+    if isempty(x0)
+        x0 = zeros(n, 1);
+    end
+
     X = zeros(nT+1,n);
     Y = zeros(nT+1,ny);
     Ym = zeros(nT+1,ny);
-    xk = zeros(n,1);
+    xk = x0;
 
     for i = 1:nT+1
 

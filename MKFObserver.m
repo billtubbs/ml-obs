@@ -43,8 +43,8 @@
 %   x0 : (n, 1) double (optional, default zeros)
 %       Initial state estimates.
 %   r0 : (nh, 1) integer (optional, default ones)
-%       Initial prior system mode at time k-1 (zero-based,
-%       i.e. 0 is for first model).
+%       Integer in the range {1, ..., nj} which indicates
+%       the prior system mode at time k = -1.
 %   p_seq_g_Yk_init : (optional, default uniform)
 %       Initial prior hypothesis probabilities at time k-1.
 %       If not specified, default is equal, i.e. uniform,
@@ -80,7 +80,6 @@ classdef MKFObserver < matlab.mixin.Copyable
         yk_est (:, 1) double
         xkp1_est (:, 1) double
         Pkp1 double
-        ykp1_est (:, 1) double
         rk (:, 1) double {mustBeInteger}
         type (1, 1) string
     end
@@ -167,9 +166,8 @@ classdef MKFObserver < matlab.mixin.Copyable
             % ykp1_est represent prior estimates of the states,
             % i.e. x_est(k|k-1) and y_est(k|k-1).
             obj.xkp1_est = obj.x0;
-            obj.rk = obj.r0;
-            obj.ykp1_est = obj.models{obj.rk(1)}.C * obj.xkp1_est;
             obj.Pkp1 = obj.P0;
+            obj.rk = obj.r0;
 
             % Initial values of prior conditional probabilities at k = -1 
             obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
@@ -187,9 +185,12 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Create struct to store Kalman filter variables
             obj.filters = struct();
             obj.filters.Xkp1_est = repmat(obj.xkp1_est, 1, 1, obj.nh);
-            obj.filters.Pkp1 = repmat(obj.P0, 1, 1, obj.nh);
-            obj.filters.Ykp1_est = repmat(obj.ykp1_est, 1, 1, obj.nh);
+            obj.filters.Pkp1 = repmat(obj.Pkp1, 1, 1, obj.nh);
+            obj.filters.Xk_est = nan(obj.n, 1, obj.nh);
+            obj.filters.Pk = nan(obj.n, obj.n, obj.nh);
+            obj.filters.Yk_est = nan(obj.ny, 1, obj.nh);
             obj.filters.Kf = nan(obj.ny, obj.n, obj.nh);
+            obj.filters.Sk = nan(obj.ny, obj.ny, obj.nh);
 
             % At initialization at time k = 0, x_est(k|k)
             % and y_est(k|k) have not yet been computed.
@@ -237,14 +238,14 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % using posterior PDF (normal distribution) and
                 % estimates computed in previous timestep
 
-                % Get y_f_est(k/k-1) estimated in previous time step
-                yk_est = obj.filters.Ykp1_est(:,:,f);
-
                 % System mode
                 r = obj.rk(f);
 
-                % Calculate covariance of the output estimation errors
+                % Calculate output estimate y_f_est(k/k-1)
                 C = obj.models{r}.C;
+                yk_est = C * obj.xkp1_est;
+
+                % Estimate covariance of the output estimation error
                 R = obj.models{r}.R;
                 yk_cov = C * obj.filters.Pkp1(:,:,f) * C' + R;
 
@@ -256,19 +257,19 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % Calculate normal probability density (multivariate)
                 obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
 
-                % Update correction gain and covariance matrix
-                [obj.filters.Kf(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
-                    kalman_update(obj.filters.Pkp1(:,:,f), ...
-                    obj.models{r}.A, obj.models{r}.C, ...
-                    obj.models{r}.Q, obj.models{r}.R);
-
-                % Update state and output estimates in next timestep
-                obj.filters.Xkp1_est(:,:,f) = obj.models{r}.A * obj.filters.Xkp1_est(:,:,f) ...
-                    + obj.models{r}.B * uk + ...
-                    obj.filters.Kf(:,:,f) * (yk - obj.models{r}.C * obj.filters.Xkp1_est(:,:,f));
-                % TODO: This is wrong because model in next timestep should
-                % be used
-                obj.filters.Ykp1_est(:,:,f) = obj.models{r}.C * obj.filters.Xkp1_est(:,:,f);
+                % Update estimates based on current measurement
+                [obj.filters.Xk_est(:,:,f), obj.filters.Pk(:,:,f), ...
+                    obj.filters.Yk_est(:,:,f), obj.filters.Kf(:,:,f), ...
+                    obj.filters.Sk(:,:,f)] = kalman_update_f( ...
+                        obj.models{r}.C, obj.models{r}.R, ...
+                        obj.filters.Xkp1_est(:,:,f), ...
+                        obj.filters.Pkp1(:,:,f), yk);
+    
+                % Predict states at next time instant
+                [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
+                    kalman_predict_f(obj.models{r}.A, obj.models{r}.B, ...
+                        obj.models{r}.Q, obj.filters.Xk_est(:,:,f), ...
+                        obj.filters.Pk(:,:,f), uk);
 
             end
 
@@ -290,13 +291,16 @@ classdef MKFObserver < matlab.mixin.Copyable
             % and estimated state error covariance using the weighted-
             % averages based on the conditional probabilities.
             weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
+            obj.xk_est = sum(weights .* obj.filters.Xk_est, 3);
+            assert(~any(isnan(obj.xk_est)))
+            Xk_devs = obj.xk_est - obj.filters.Xk_est;
+            obj.Pk = sum(weights .* (obj.filters.Pk + ...
+                pagemtimes(Xk_devs, pagetranspose(Xk_devs))), 3);
             obj.xkp1_est = sum(weights .* obj.filters.Xkp1_est, 3);
-            obj.ykp1_est = sum(weights .* obj.filters.Ykp1_est, 3);
+            assert(~any(isnan(obj.xkp1_est)))
             Xkp1_devs = obj.xkp1_est - obj.filters.Xkp1_est;
             obj.Pkp1 = sum(weights .* (obj.filters.Pkp1 + ...
                 pagemtimes(Xkp1_devs, pagetranspose(Xkp1_devs))), 3);
-            assert(~any(isnan(obj.xkp1_est)))
-            assert(~any(isnan(obj.ykp1_est)))
 
         end
     end

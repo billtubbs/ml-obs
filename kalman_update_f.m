@@ -1,5 +1,5 @@
-function [Kf,xk_est,Pk,yk_est,Sk] = kalman_update_f(C,R,xk_pred,Pk_pred,yk)
-% [Kf,xk_est,Pk,yk_est,Sk] = kalman_update_f(C,R,xk_pred,Pk_pred,yk)
+function [xk_est,Pk,yk_est,Kf,Sk] = kalman_update_f(C,R,xk_pred,Pk_pred,yk)
+% [xk_est,Pk,yk_est,Kf,Sk] = kalman_update_f(C,R,xk_pred,Pk_pred,yk)
 % computes the updated correction gain, state estimate, state error 
 % covariance, output estimate, and output error covariance in the
 % current time instant of a Kalman filter (filtering form) given
@@ -24,17 +24,19 @@ function [Kf,xk_est,Pk,yk_est,Sk] = kalman_update_f(C,R,xk_pred,Pk_pred,yk)
 %     System output measurement at time k.
 %
 % Returns:
-%   Kf : (n, ny) matrix
-%     Correction gain matrix.
 %   xk_est : (n, 1) vector
 %     Posterior estimate of the states, x_est(k|k).
 %   Pk : (n, n) matrix
-%     State error covariance, P(k|k).
+%     Covariance of state estimation error, P(k|k).
 %   yk_est : (ny, 1) vector
 %     Posterior estimate of the outputs, y_est(k|k).
+%   Kf : (n, ny) matrix
+%     Correction gain matrix.
+%   Sk : (ny, ny) matrix
+%     Covariance of output prediction error, S(k).
 %
 
-    % Error covariance of output prediction
+    % Error covariance of output prediction error
     Sk = C * Pk_pred * C' + R;
 
     % Update correction gain

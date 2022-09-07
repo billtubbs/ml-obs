@@ -105,7 +105,7 @@ classdef KalmanFilterF < AbstractLinearFilter
             obj.Sk = nan(obj.ny);
 
             % Gain will be calculated at first update
-            obj.Kf = nan(obj.n, 1);
+            obj.Kf = nan(obj.n, obj.ny);
 
         end
         function update(obj, yk, uk)
@@ -126,13 +126,15 @@ classdef KalmanFilterF < AbstractLinearFilter
         %
 
             % Update estimates based on current measurement
-            [obj.Kf, obj.xk_est, obj.Pk, obj.yk_est, obj.Sk] = ...
+            [obj.xk_est, obj.Pk, obj.yk_est, obj.Kf, obj.Sk] = ...
                 kalman_update_f(obj.C, obj.R, obj.xkp1_est, obj.Pkp1, yk);
 
-            % Make predictions at next time instant
-            [obj.xkp1_est,obj.ykp1_est,obj.Pkp1] = ...
-                kalman_predict_f(obj.A,obj.B,obj.C,obj.Q,obj.xk_est, ...
-                    obj.Pk,uk);
+            % Predict states at next time instant
+            [obj.xkp1_est,obj.Pkp1] = kalman_predict_f(obj.A, obj.B, ...
+                obj.Q, obj.xk_est, obj.Pk, uk);
+
+            % Predicted output at next time instant
+            obj.ykp1_est = obj.C * obj.xkp1_est;
 
         end
     end

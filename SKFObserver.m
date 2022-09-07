@@ -1,19 +1,25 @@
 % Kalman Filter class definition
 %
-% obs = KalmanFilterJS(models,P0,label,x0,r0)
+% obs = SKFObserver(models,P0,label,x0,r0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
-% covariance). This version can be used with jump
-% systems where the system model switches between
+% covariance) for state estimation of a jump linear
+% system where the system model switches between
 % a finite set of models each time step.
 %
-% This is the prediction form of the KF which 
-% produces prior estimates of the states and
-% outputs in the next time instant given the data
-% at the current time instant:
+% This is the filtering form of the observer which 
+% produces posterior estimates of the states and
+% outputs at the current time instant given the data
+% at the current time:
 %
-%  x_hat(k+1|k) : estimate of states at time k+1
-%  y_hat(k+1|k) : estimate of outputs at time k+1
+%   x_hat(k|k) : estimate of states at time k
+%   y_hat(k|k) : estimate of outputs at time k
+%
+% Prior estimates of the states at the next time
+% instant given the data at the current time are also
+% calculated:
+%
+%   x_hat(k+1|k) : estimate of states at time k + 1
 %
 % The system model is defined as:
 %
@@ -37,12 +43,12 @@
 %   x0 : (n, 1) double (optional, default zeros)
 %       Initial state estimates.
 %   r0 : (nh, 1) integer (optional, default ones)
-%       Initial prior system mode at time k-1 (zero-based,
-%       i.e. 0 is for first model).
+%       Integer in the range {1, ..., nj} which indicates
+%       the prior system mode at time k = -1.
 %
 
 
-classdef KalmanFilterJS < matlab.mixin.Copyable
+classdef SKFObserver < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         nu (1, 1) double {mustBeInteger}
@@ -52,19 +58,22 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
     end
     properties
         models (1, :) cell
-        K double
+        Kf double
         P0 double
         label (1, 1) string
         x0 (:, 1) double
         r0 double {mustBeInteger}
+        xk_est (:, 1) double
+        Pk double
+        yk_est (:, 1) double
         xkp1_est (:, 1) double
-        ykp1_est (:, 1) double
         Pkp1 double
+        Sk double
         rk (1, 1) double
         type (1, 1) string  % is this still needed? use classdef
     end
     methods
-        function obj = KalmanFilterJS(models,P0,label,x0,r0)
+        function obj = SKFObserver(models,P0,label,x0,r0)
             arguments
                 models (1, :) cell
                 P0 double
@@ -116,20 +125,25 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
         % when observer object was created.
         %
 
+            % Initialize state estimate and system mode
+            % Note: At initialization at time k = 0, xkp1_est and
+            % r0 represent prior estimates of the states and mode,
+            % i.e. x_est(k|k-1) and r(k|k-1).
+            obj.xkp1_est = obj.x0;
+            obj.rk = obj.r0;
+
             % Initialize estimate covariance
             obj.Pkp1 = obj.P0;
 
-            % Gain will be calculated dynamically
-            obj.K = nan(obj.n, 1);
+            % At initialization time k = 0, x_est(k|k)
+            % and y_est(k|k) have not yet been computed.
+            obj.xk_est = nan(obj.n, 1);
+            obj.yk_est = nan(obj.ny, 1);
+            obj.Pk = nan(obj.n);
+            obj.Sk = nan(obj.ny);
 
-            % Initialize state and output estimates
-            % Note: At initialization at time k = 0, xkp1_est and
-            % ykp1_est represent prior estimates of the states,
-            % i.e. x_est(k|k-1) and y_est(k|k-1).
-            obj.xkp1_est = obj.x0;
-            obj.rk = obj.r0;
-            obj.ykp1_est = obj.models{obj.rk}.C * obj.xkp1_est;
-            obj.Pkp1 = obj.P0;
+            % Gain will be calculated at first update
+            obj.Kf = nan(obj.n, obj.ny);
 
         end
         function update(obj, yk, uk, rk)
@@ -147,18 +161,15 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
         %       System mode at current time k.
         %
 
-            % Update correction gain and covariance matrix
-            [obj.K, obj.Pkp1] = kalman_update(obj.Pkp1, ...
-                obj.models{rk}.A, obj.models{rk}.C, ...
-                obj.models{rk}.Q, obj.models{rk}.R);
+            % Update estimates based on current measurement
+            [obj.xk_est, obj.Pk, obj.yk_est, obj.Sk, obj.Kf] = ...
+                kalman_update_f(obj.models{rk}.C, ...
+                obj.models{rk}.R, obj.xkp1_est, obj.Pkp1, yk);
 
-            % Update state and output estimates in next timestep
-            obj.xkp1_est = obj.models{rk}.A * obj.xkp1_est ...
-                + obj.models{rk}.B * uk + ...
-                obj.K * (yk - obj.models{rk}.C * obj.xkp1_est);
-            % TODO: This is wrong because model in next timestep should
-            % be used
-            obj.ykp1_est = obj.models{rk}.C * obj.xkp1_est;
+            % Predict states at next time instant
+            [obj.xkp1_est, obj.Pkp1] = kalman_predict_f(...
+                obj.models{rk}.A, obj.models{rk}.B, obj.models{rk}.Q, ...
+                obj.xk_est, obj.Pk, uk);
 
         end
     end

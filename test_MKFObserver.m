@@ -1,4 +1,4 @@
-% Test classes KalmanFilterJS, KalmanFilterFJS, MKFObserverAMM 
+% Test classes SKFObserver, KalmanFilterFJS, MKFObserverAMM 
 % and MKFObserverSched
 
 clear all
@@ -49,42 +49,40 @@ Gamma(t>=10, 1) = 1;
 % Simulate switching system
 [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT);
 
-% % Plot of inputs and outputs
-% figure(1); clf
-% 
-% ax1 = subplot(5,1,1:2);
-% plot(t,Y,'Linewidth',2); hold on
-% plot(t,Ym,'o');
-% max_min = [min(min([Y Ym])) max(max([Y Ym]))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('y(k)')
-% title('System output and output measurements')
-% grid on
-% 
-% ax2 = subplot(5,1,3:4);
-% stairs(t,U,'Linewidth',2);
-% max_min = [min(min(U)) max(max(U))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('u(k) and w_p(k)')
-% legend('u(k)')
-% title('Input')
-% grid on
-% 
-% ax3 = subplot(5,1,5);
-% stairs(t,Gamma,'Linewidth',2)
-% max_min = [min(min(Gamma)) max(max(Gamma))];
-% bd = max([0.1 diff(max_min)*0.1]);
-% ylim(max_min + [-bd bd])
-% xlabel('t')
-% ylabel('gamma(k)')
-% title('Model sequence')
-% grid on
-% 
-% linkaxes([ax1 ax2 ax3], 'x')
+% Plot of inputs and outputs
+figure(1); clf
+
+ax1 = subplot(5,1,1:2);
+plot(t,Y,'Linewidth',2); hold on
+plot(t,Ym,'o');
+max_min = [min(min([Y Ym])) max(max([Y Ym]))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+ylabel('y(k)')
+title('System output and output measurements')
+grid on
+
+ax2 = subplot(5,1,3:4);
+stairs(t,U,'Linewidth',2);
+max_min = [min(min(U)) max(max(U))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+ylabel('u(k) and w_p(k)')
+legend('u(k)')
+title('Input')
+grid on
+
+ax3 = subplot(5,1,5);
+stairs(t,Gamma,'Linewidth',2)
+max_min = [min(min(Gamma)) max(max(Gamma))];
+bd = max([0.1 diff(max_min)*0.1]);
+ylim(max_min + [-bd bd])
+xlabel('t')
+ylabel('gamma(k)')
+title('Model sequence')
+grid on
+
+linkaxes([ax1 ax2 ax3], 'x')
 
 % Observer parameters (same for all observers)
 P0 = 10000;
@@ -121,13 +119,12 @@ assert(isequal(seq1{2}, Gamma'))
 % Define observers with a switching system
 
 % Define switching Kalman filter
-SKF = KalmanFilterJS(models,P0,"SKF1",x0);
+SKF = SKFObserver(models,P0,"SKF1",x0);
 
 % Test initialisation
 assert(strcmp(SKF.type, "KFJS"))
 assert(isequal(SKF.models, models))
 assert(isequal(SKF.P0, P0))
-assert(isequal(SKF.Pkp1, P0))
 assert(strcmp(SKF.label, "SKF1"))
 assert(isequal(SKF.r0, r0))
 assert(SKF.n == n)
@@ -135,8 +132,13 @@ assert(SKF.nu == nu)
 assert(SKF.ny == ny)
 assert(SKF.nj == nj)
 assert(isequal(SKF.xkp1_est, x0))
-assert(SKF.ykp1_est == y0)
+assert(isequal(SKF.Pkp1, P0))
 assert(isequal(SKF.rk, r0))
+assert(isequaln(SKF.xk_est, nan(n, 1)))
+assert(isequaln(SKF.Pk, nan(n)))
+assert(isequaln(SKF.yk_est, nan(ny, 1)))
+assert(isequaln(SKF.Kf, nan(n, ny)))
+assert(isequaln(SKF.Sk, nan(ny)))
 
 % % Define scheduled MKF filter
 % seq = Gamma';
@@ -200,7 +202,6 @@ assert(MKF1.nu == nu)
 assert(MKF1.ny == ny)
 assert(MKF1.nj == nj)
 assert(isequal(MKF1.xkp1_est, x0))
-assert(MKF1.ykp1_est == y0)
 assert(MKF1.nh == nh)
 assert(isequal(MKF1.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
 assert(isequal(MKF1.rk, r0))
@@ -209,8 +210,11 @@ assert(isequaln(MKF1.p_rk_g_Ykm1, nan(nh, 1)))
 assert(isequaln(MKF1.p_seq_g_Ykm1, nan(nh, 1)))
 assert(isequaln(MKF1.filters.Xkp1_est, repmat(x0, 1, 1, nh)))
 assert(isequaln(MKF1.filters.Pkp1, repmat(P0, 1, 1, nh)))
-assert(isequaln(MKF1.filters.Ykp1_est, repmat(y0, 1, 1, nh)))
-assert(isequaln(MKF1.filters.Kf, nan(ny, n, nh)))
+assert(isequaln(MKF1.filters.Kf, nan(n, ny, nh)))
+assert(isequaln(MKF1.filters.Sk, repmat(nan(ny), 1, 1, nh)))
+assert(isequaln(MKF1.xk_est, nan(n, 1)))
+assert(isequaln(MKF1.Pk, nan(n)))
+assert(isequaln(MKF1.yk_est, nan(ny, 1)))
 
 % % Redefine this time with initial conditions
 % MKF1 = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,'MKF1',x0);
@@ -693,17 +697,17 @@ MKF.filters{1}.x0 = 99;
 
 
 % TODO: Can't the function run_test_simulation.m be used here?
-function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
+function [Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
     run_simulation_obs(Ym,U,Gamma,seq,observers,f_mkf)
 % Simulate observers
 
     nT = size(Ym, 1) - 1;
     ny = size(Ym, 2);
     n_obs = numel(observers);
-    n = size(observers{1}.xkp1_est, 1);
+    n = size(observers{1}.xk_est, 1);
 
-    Xkp1_est = zeros(nT+1, n*n_obs);
-    Ykp1_est = zeros(nT+1, ny*n_obs);
+    Xk_est = zeros(nT+1, n*n_obs);
+    Yk_est = zeros(nT+1, ny*n_obs);
     DiagP = zeros(nT+1, n*n_obs);
 
     if ~isempty(f_mkf)
@@ -748,14 +752,14 @@ function [Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = 
                     MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
                 end
             end
-            xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
-            ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
-            diagP(1, (f-1)*n+1:f*n) = diag(obs.Pkp1)';
+            xk_est(1, (f-1)*n+1:f*n) = obs.xk_est';
+            yk_est(1, (f-1)*ny+1:f*ny) = obs.yk_est';
+            diagP(1, (f-1)*n+1:f*n) = diag(obs.Pk)';
         end
 
         % Record observer estimates
-        Xkp1_est(i, :) = xkp1_est;
-        Ykp1_est(i, :) = ykp1_est;
+        Xk_est(i, :) = xk_est;
+        Yk_est(i, :) = yk_est;
         DiagP(i, :) = diagP;
 
     end
