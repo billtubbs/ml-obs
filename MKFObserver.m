@@ -117,9 +117,9 @@ classdef MKFObserver < matlab.mixin.Copyable
 
             % Determine initial state values
             if isempty(x0)
-                x0 = zeros(obj.n, 1);  % default initial states
+                x0 = zeros(n, 1);  % default initial states
             else
-                assert(isequal(size(x0), [n 1]))
+                assert(isequal(size(x0), [n 1]), "ValueError: x0")
             end
 
             % Check transition probability matrix
@@ -296,6 +296,8 @@ classdef MKFObserver < matlab.mixin.Copyable
             Xk_devs = obj.xk_est - obj.filters.Xk_est;
             obj.Pk = sum(weights .* (obj.filters.Pk + ...
                 pagemtimes(Xk_devs, pagetranspose(Xk_devs))), 3);
+            obj.yk_est = sum(weights .* obj.filters.Yk_est, 3);
+
             obj.xkp1_est = sum(weights .* obj.filters.Xkp1_est, 3);
             assert(~any(isnan(obj.xkp1_est)))
             Xkp1_devs = obj.xkp1_est - obj.filters.Xkp1_est;
