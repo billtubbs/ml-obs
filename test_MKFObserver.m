@@ -49,40 +49,40 @@ Gamma(t>=10, 1) = 1;
 % Simulate switching system
 [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT);
 
-% Plot of inputs and outputs
-figure(1); clf
-
-ax1 = subplot(5,1,1:2);
-plot(t,Y,'Linewidth',2); hold on
-plot(t,Ym,'o');
-max_min = [min(min([Y Ym])) max(max([Y Ym]))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-ylabel('y(k)')
-title('System output and output measurements')
-grid on
-
-ax2 = subplot(5,1,3:4);
-stairs(t,U,'Linewidth',2);
-max_min = [min(min(U)) max(max(U))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-ylabel('u(k) and w_p(k)')
-legend('u(k)')
-title('Input')
-grid on
-
-ax3 = subplot(5,1,5);
-stairs(t,Gamma,'Linewidth',2)
-max_min = [min(min(Gamma)) max(max(Gamma))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
-xlabel('t')
-ylabel('gamma(k)')
-title('Model sequence')
-grid on
-
-linkaxes([ax1 ax2 ax3], 'x')
+% % Plot of inputs and outputs
+% figure(1); clf
+% 
+% ax1 = subplot(5,1,1:2);
+% plot(t,Y,'Linewidth',2); hold on
+% plot(t,Ym,'o');
+% max_min = [min(min([Y Ym])) max(max([Y Ym]))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% ylabel('y(k)')
+% title('System output and output measurements')
+% grid on
+% 
+% ax2 = subplot(5,1,3:4);
+% stairs(t,U,'Linewidth',2);
+% max_min = [min(min(U)) max(max(U))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% ylabel('u(k) and w_p(k)')
+% legend('u(k)')
+% title('Input')
+% grid on
+% 
+% ax3 = subplot(5,1,5);
+% stairs(t,Gamma,'Linewidth',2)
+% max_min = [min(min(Gamma)) max(max(Gamma))];
+% bd = max([0.1 diff(max_min)*0.1]);
+% ylim(max_min + [-bd bd])
+% xlabel('t')
+% ylabel('gamma(k)')
+% title('Model sequence')
+% grid on
+% 
+% linkaxes([ax1 ax2 ax3], 'x')
 
 % Observer parameters (same for all observers)
 P0 = 10000;
@@ -119,20 +119,22 @@ assert(isequal(seq1{2}, Gamma'))
 % Define observers with a switching system
 
 % Define switching Kalman filter
-SKF = SKFObserver(models,P0,"SKF1",x0);
+SKF = SKFObserver(models,P0,"SKF1");
 
 % Test initialisation
-assert(strcmp(SKF.type, "KFJS"))
+assert(strcmp(SKF.type, "SKF"))
 assert(isequal(SKF.models, models))
 assert(isequal(SKF.P0, P0))
 assert(strcmp(SKF.label, "SKF1"))
+assert(isequal(SKF.x0, zeros(n, 1)))
 assert(isequal(SKF.r0, r0))
-assert(SKF.n == n)
 assert(SKF.nu == nu)
 assert(SKF.ny == ny)
 assert(SKF.nj == nj)
-assert(isequal(SKF.xkp1_est, x0))
+assert(SKF.n == n)
+assert(isequal(SKF.xkp1_est, zeros(n, 1)))
 assert(isequal(SKF.Pkp1, P0))
+assert(isequal(SKF.rk, r0))
 assert(isequal(SKF.rk, r0))
 assert(isequaln(SKF.xk_est, nan(n, 1)))
 assert(isequaln(SKF.Pk, nan(n)))
@@ -140,11 +142,42 @@ assert(isequaln(SKF.yk_est, nan(ny, 1)))
 assert(isequaln(SKF.Kf, nan(n, ny)))
 assert(isequaln(SKF.Sk, nan(ny)))
 
-% % Define scheduled MKF filter
-% seq = Gamma';
-% SKF = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,"SKF1",x0);
-% 
-% assert(strcmp(SKF.type, "SKF"))
+% Redefine this time with initial conditions
+SKF = SKFObserver(models,P0,"SKF1",x0);
+assert(isequal(SKF.xkp1_est, x0))
+
+SKF = SKFObserver(models,P0,"SKF1",x0,r0);
+assert(isequal(SKF.x0, x0))
+assert(isequal(SKF.xkp1_est, x0))
+assert(isequal(SKF.r0, r0))
+assert(isequal(SKF.rk, r0))
+
+% % Define scheduled SKF filter
+seq = Gamma' + 1;  % add one for MATLAB indexing
+SKF_S = SKFObserverS(models,P0,seq,"SKF_S");
+
+assert(strcmp(SKF_S.type, "SKF-S"))
+assert(isequal(SKF_S.models, models))
+assert(isequal(SKF_S.P0, P0))
+assert(strcmp(SKF_S.label, "SKF_S"))
+assert(isequal(SKF_S.r0, r0))
+assert(SKF_S.n == n)
+assert(SKF_S.nu == nu)
+assert(SKF_S.ny == ny)
+assert(SKF_S.nj == nj)
+assert(isequal(SKF_S.xkp1_est, zeros(n, 1)))
+assert(isequal(SKF_S.Pkp1, P0))
+assert(isequal(SKF_S.rk, r0))
+assert(isequaln(SKF_S.xk_est, nan(n, 1)))
+assert(isequaln(SKF_S.Pk, nan(n)))
+assert(isequaln(SKF_S.yk_est, nan(ny, 1)))
+assert(isequaln(SKF_S.Kf, nan(n, ny)))
+assert(isequaln(SKF_S.Sk, nan(ny)))
+assert(isequaln(SKF_S.seq, seq))
+assert(isequaln(SKF_S.nf, size(seq, 2)))
+assert(isequaln(SKF_S.i, 0))
+assert(isequaln(SKF_S.i_next, 1))
+
 % assert(isequal(SKF.A, A))
 % assert(isequal(SKF.B, B))
 % assert(isequal(SKF.C, C))
@@ -240,7 +273,7 @@ assert(isequal(MKF1.p_seq_g_Yk, p_seq_g_Yk_init))
 MKF1 = MKFObserver(models,P0,T,r0,"MKF1");
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, SKF, MKF1};
+observers = {KF1, KF2, SKF, SKF_S, MKF1};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
@@ -266,10 +299,10 @@ assert(nanmean(E_obs(t < 10, 1).^2) < 0.0001)
 % Check MKF and SKF match KF1 before system switched
 KF1_x_est = X_est(t == 9.5, 1);
 assert(isequal(abs(X_est(t == 9.5, :) - KF1_x_est) < 0.0001, ...
-    [true false true true]))
+    [true false true true true]))
 KF1_diagP = sum(DiagP(t == 9.5, 1));
 assert(isequal(abs(DiagP(t == 9.5, :) - KF1_diagP) < 0.0001, ...
-    [true false true true]))
+    [true false true true true]))
 
 % Check KF2 was accurate after system switched
 assert(mean(E_obs(t > 12, 2).^2) < 0.001)
@@ -277,16 +310,16 @@ assert(mean(E_obs(t > 12, 2).^2) < 0.001)
 % Check MKF and SKF match KF2 after system switched
 KF2_x_est = X_est(t == 30, 2);
 assert(isequal(abs(X_est(t == 30, :) - KF2_x_est) < 0.0001, ...
-    [false true true true]))
+    [false true true true true]))
 KF2_diagP = sum(DiagP(t == 30, 2));
 assert(isequal(abs(DiagP(t == 30, :) - KF2_diagP) < 0.0001, ...
-    [false true true true]))
+    [false true true true true]))
 
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
 
 % Check MKF and SKF observer estimation errors
-assert(isequal(round(mses, 4), [3.8062 0.2694 0 0]))
+assert(isequal(round(mses, 6), [3.806151 0.269363 0 0 0]))
 % Previously, using ykp1_est (i.e. prior predictions),
 % MSEs were: [5.1728 0.4313 0.1296 0.0660]
 
@@ -729,7 +762,7 @@ function [Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
         for f = 1:n_obs
             obs = observers{f};
             switch obs.type
-                case "KFJS"
+                case "SKF"
                     rk = Gamma(i) + 1;
                     obs.update(yk, uk, rk);
                 case "MKF"

@@ -47,7 +47,6 @@
 %       the prior system mode at time k = -1.
 %
 
-
 classdef SKFObserver < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
@@ -94,7 +93,7 @@ classdef SKFObserver < matlab.mixin.Copyable
 
             % Determine initial state values
             if isempty(x0)
-                x0 = zeros(obj.n, 1);  % default initial states
+                x0 = zeros(n, 1);  % default initial states
             else
                 assert(isequal(size(x0), [n 1]))
             end
@@ -109,7 +108,7 @@ classdef SKFObserver < matlab.mixin.Copyable
             obj.P0 = P0;
             obj.x0 = x0;
             obj.r0 = r0;
-            obj.type = "KFJS";
+            obj.type = "SKF";
             if label == ""
                 label = obj.type;
             end
