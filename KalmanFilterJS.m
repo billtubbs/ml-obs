@@ -1,6 +1,6 @@
 % Kalman Filter class definition
 %
-% obs = KalmanFilterJS(models,P0,label,x0)
+% obs = KalmanFilterJS(models,P0,label,x0,r0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance). This version can be used with jump
@@ -34,13 +34,17 @@
 %       (same for each filter).
 %   label : string
 %       Arbitrary name to identify the observer.
-%   x0 : (n, 1) double
-%       Initial state estimates (optional, default zeros).
+%   x0 : (n, 1) double (optional, default zeros)
+%       Initial state estimates.
+%   r0 : (nh, 1) integer (optional, default ones)
+%       Initial prior system mode at time k-1 (zero-based,
+%       i.e. 0 is for first model).
 %
 
 
 classdef KalmanFilterJS < matlab.mixin.Copyable
     properties (SetAccess = immutable)
+        Ts (1, 1) double {mustBeNonnegative}
         nu (1, 1) double {mustBeInteger}
         ny (1, 1) double {mustBeInteger}
         n (1, 1) double {mustBeInteger}
@@ -52,11 +56,11 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
         P0 double
         label (1, 1) string
         x0 (:, 1) double
-        rk (:, 1) double
+        r0 double {mustBeInteger}
         xkp1_est (:, 1) double
         ykp1_est (:, 1) double
         Pkp1 double
-        r0 double {mustBeInteger}
+        rk (1, 1) double
         type (1, 1) string  % is this still needed? use classdef
     end
     methods
@@ -70,11 +74,7 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
             end
 
             % Get number of system models and check their dimensions
-            [nj, n, nu, ny] = check_models(models);
-            obj.nj = nj;
-            obj.nu = nu;
-            obj.n = n;
-            obj.ny = ny;
+            [nj, n, nu, ny, Ts] = check_models(models);
 
             % Check dimensions of other parameters
             assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
@@ -87,10 +87,15 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
             if isempty(x0)
                 x0 = zeros(obj.n, 1);  % default initial states
             else
-                assert(isequal(size(x0), [obj.n 1]))
+                assert(isequal(size(x0), [n 1]))
             end
 
             % Store parameters
+            obj.Ts = Ts;
+            obj.nj = nj;
+            obj.nu = nu;
+            obj.n = n;
+            obj.ny = ny;
             obj.models = models;
             obj.P0 = P0;
             obj.x0 = x0;
@@ -118,9 +123,13 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
             obj.K = nan(obj.n, 1);
 
             % Initialize state and output estimates
+            % Note: At initialization at time k = 0, xkp1_est and
+            % ykp1_est represent prior estimates of the states,
+            % i.e. x_est(k|k-1) and y_est(k|k-1).
             obj.xkp1_est = obj.x0;
             obj.rk = obj.r0;
             obj.ykp1_est = obj.models{obj.rk}.C * obj.xkp1_est;
+            obj.Pkp1 = obj.P0;
 
         end
         function update(obj, yk, uk, rk)
@@ -134,7 +143,7 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
         %       System output measurements at current time k.
         %   uk : vector, size (nu, 1)
         %       System inputs at current time k.
-        %   rk : vector, size (nj, 1)
+        %   rk : integer
         %       System mode at current time k.
         %
 
@@ -147,6 +156,8 @@ classdef KalmanFilterJS < matlab.mixin.Copyable
             obj.xkp1_est = obj.models{rk}.A * obj.xkp1_est ...
                 + obj.models{rk}.B * uk + ...
                 obj.K * (yk - obj.models{rk}.C * obj.xkp1_est);
+            % TODO: This is wrong because model in next timestep should
+            % be used
             obj.ykp1_est = obj.models{rk}.C * obj.xkp1_est;
 
         end

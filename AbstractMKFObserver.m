@@ -5,9 +5,9 @@
 % jump linear systems. The defining characteristic of
 % these methods is that the number of independent
 % Kalman filters matches the number of system models.
-% I.e. obj.n_filt = obj.nj
+% I.e. obj.nh = obj.nj
 %
-% obs = AbstractMKFObserver(models,Ts,n_filt,label,x0,y0)
+% obs = AbstractMKFObserver(models,Ts,nh,label,x0,y0)
 %
 % Arguments:
 %   models : cell array of structs defining a set of 
@@ -17,7 +17,7 @@
 %   Ts : Sample period.
 %   P0 : Initial covariance of the state estimation errors
 %       (same for each filter).
-%   n_filt : Number of independent filters to model.
+%   nh : Number of hypotheses to model.
 %   label : string name.
 %   x0 : Initial state estimates (optional, default zeros).
 %   y0 : Initial output estimates (optional, default zeros).
@@ -30,7 +30,7 @@ classdef (Abstract) AbstractMKFObserver < matlab.mixin.Copyable
         nu (1, 1) double {mustBeInteger, mustBeNonnegative}
         ny (1, 1) double {mustBeInteger, mustBeNonnegative}
         nj (1, 1) double {mustBeInteger, mustBeNonnegative}
-        n_filt (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nh (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
         models (1, :) cell
@@ -44,32 +44,25 @@ classdef (Abstract) AbstractMKFObserver < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = AbstractMKFObserver(models,Ts,n_filt,label,x0,y0)
+        function obj = AbstractMKFObserver(models,nh,label,x0,y0)
 
-            % Number of modes (switching systems)
-            nj = numel(models);
+            % Get number of system models and check their dimensions
+            [nj, n, nu, ny, Ts] = check_models(models);
 
-            % Number of system inputs and outputs
-            [n, nu, ny] = check_dimensions(models{1}.A, models{1}.B, ...
-                models{1}.C);
-
-            % Check all system models have same dimensions.
-            for j = 2:nj
-                if isfield(models{j}, "D")
-                    % Check no direct transmission (D = 0)
-                    assert(all(models{j}.D == 0, [1 2]), ...
-                        "ValueError: D matrix")
-                end
-                [n2, nu2, ny2] = check_dimensions(models{j}.A, ...
-                    models{j}.B, models{j}.C);
-                assert(isequal([n2, nu2, ny2], [n, nu, ny]), ...
-                    "ValueError: size of A, B, C matrices")
+            % Check dimensions of other parameters
+            for j = 1:nj
+                assert(isequal(size(models{j}.Q), [n n]))
+                assert(isequal(size(models{j}.R), [ny ny]))
             end
 
-            % Save properties
-            obj.models = models;
+            % Store parameters
             obj.Ts = Ts;
-            obj.n_filt = n_filt;
+            obj.nj = nj;
+            obj.nu = nu;
+            obj.n = n;
+            obj.ny = ny;
+            obj.models = models;
+            obj.nh = nh;
             obj.label = label;
             obj.x0 = x0;
             obj.y0 = y0;

@@ -21,6 +21,11 @@ assert(prob_gamma(0, epsilon) == 0.99)
 assert(prob_gamma(1, epsilon) == 0.01)
 assert(isequal(prob_gamma([0 0 1], epsilon), [0.99 0.99 0.01]))
 
+% Test prob_rk.m
+assert(prob_rk(1, epsilon) == 0.99)
+assert(prob_rk(2, epsilon) == 0.01)
+assert(isequal(prob_rk([1 1 2], epsilon), [0.99 0.99 0.01]))
+
 % Variance parameter
 sigma1 = 0.01;
 b = 100;
@@ -71,6 +76,12 @@ assert(isequal(prob_gamma([1; 1], epsilon), [0.01; 0.03]))
 assert(isequal(prob_gamma([0 0 1; 1 0 0], epsilon), ...
     [0.99 0.99 0.01; 0.03 0.97 0.97]))
 
+% Test prob_rk.m
+assert(isequal(prob_rk([1; 1], epsilon), [0.99; 0.97]))
+assert(isequal(prob_rk([2; 2], epsilon), [0.01; 0.03]))
+assert(isequal(prob_rk([1 1 2; 2 1 1], epsilon), ...
+    [0.99 0.99 0.01; 0.03 0.97 0.97]))
+
 % Variance parameter
 sigma1 = [0.01 0.005];
 b = [100 100];
@@ -91,6 +102,12 @@ assert(prob_gamma(0, epsilon) == 0.98)
 assert(prob_gamma(1, epsilon) == 0.015)
 assert(prob_gamma(2, epsilon) == 0.005)
 assert(isequal(prob_gamma([0 0 1 2], epsilon), [0.98 0.98 0.015 0.005]))
+
+% Test prob_rk.m
+assert(prob_rk(1, epsilon) == 0.98)
+assert(prob_rk(2, epsilon) == 0.015)
+assert(prob_rk(3, epsilon) == 0.005)
+assert(isequal(prob_rk([1 1 2 3], epsilon), [0.98 0.98 0.015 0.005]))
 
 % Variance parameter
 sigma1 = 0.01;
@@ -116,6 +133,14 @@ assert(isequal(prob_gamma([1; 1], epsilon), [0.015; 0.02]))
 assert(isequal(prob_gamma([2; 2], epsilon), [0.005; 0.01]))
 assert(isequal(prob_gamma([0 0 1 2; 2 1 0 0], epsilon), ...
     [0.98 0.98 0.015 0.005; 0.01 0.02 0.97 0.97]))
+
+% Test prob_rk.m
+assert(isequal(prob_rk([1; 1], epsilon), [0.98; 0.97]))
+assert(isequal(prob_rk([2; 2], epsilon), [0.015; 0.02]))
+assert(isequal(prob_rk([3; 3], epsilon), [0.005; 0.01]))
+assert(isequal(prob_rk([1 1 2 3; 3 2 1 1], epsilon), ...
+    [0.98 0.98 0.015 0.005; 0.01 0.02 0.97 0.97]))
+
 
 
 
