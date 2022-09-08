@@ -43,8 +43,16 @@
 %       Initial state estimates at time k = 0.
 %
 
-classdef KalmanFilterF < AbstractLinearFilter
+classdef KalmanFilterF < matlab.mixin.Copyable
+    properties (SetAccess = immutable)
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
+    end
     properties
+        model struct
+        Ts (1, 1) double {mustBeNonnegative}
+        P0 double
         xk_est (:, 1) double
         yk_est (:, 1) double
         xkp1_est (:, 1) double
@@ -53,29 +61,47 @@ classdef KalmanFilterF < AbstractLinearFilter
         Pk double
         Pkp1 double
         Sk double
-        Q double
-        R double
-        P0 double
+        label (1, 1) string
+        x0 (:, 1) double
+        type (1, 1) string  % TODO: is this still needed? use classdef
     end
     methods
-        function obj = KalmanFilterF(A,B,C,Ts,P0,Q,R,varargin)
-
-            % Call super-class constuctor
-            obj = obj@AbstractLinearFilter(A,B,C,Ts,varargin{:});
-            n = obj.n;
-            ny = obj.ny;
-
-            % Set additional properties for dynamic KF
-            assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
-            obj.P0 = P0;
-            obj.Q = Q;
-            assert(isequal(size(Q), [n n]))
-            obj.R = R;
-            assert(isequal(size(R), [ny ny]))
-            obj.type = "KFF";
-            if nargin < 9
-                obj.label = obj.type;
+        function obj = KalmanFilterF(model,P0,label,x0)
+            arguments
+                model struct
+                P0 double
+                label (1, 1) string = ""
+                x0 (:, 1) double = []
             end
+
+            % Check system model dimensions
+            [n, nu, ny] = check_dimensions(model.A, model.B, model.C);
+
+            % Check size of other parameters
+            assert(isequal(size(model.Q), [n n]), "ValueError: size(model.Q)")
+            assert(isequal(size(model.R), [ny ny]), "ValueError: size(model.R)")
+            assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
+
+            % Determine initial state values
+            if isempty(x0)
+                x0 = zeros(n, 1);  % default initial states
+            else
+                assert(isequal(size(x0), [n 1]), "ValueError: size(x0)")
+            end
+
+            % Store parameters
+            obj.Ts = model.Ts;
+            obj.nu = nu;
+            obj.n = n;
+            obj.ny = ny;
+            obj.model = model;
+            obj.P0 = P0;
+            obj.x0 = x0;
+            obj.type = "KFF";
+            if label == ""
+                label = obj.type;
+            end
+            obj.label = label;
 
             % Initialize variables
             obj.reset()
@@ -92,7 +118,7 @@ classdef KalmanFilterF < AbstractLinearFilter
             % ykp1_est represent prior estimates of the states,
             % i.e. x_est(k|k-1) and y_est(k|k-1).
             obj.xkp1_est = obj.x0; 
-            obj.ykp1_est = obj.C * obj.xkp1_est;
+            obj.ykp1_est = obj.model.C * obj.xkp1_est;
 
             % Initialize error covariance P(k|k-1)
             obj.Pkp1 = obj.P0;
@@ -127,14 +153,15 @@ classdef KalmanFilterF < AbstractLinearFilter
 
             % Update estimates based on current measurement
             [obj.xk_est, obj.Pk, obj.yk_est, obj.Kf, obj.Sk] = ...
-                kalman_update_f(obj.C, obj.R, obj.xkp1_est, obj.Pkp1, yk);
+                kalman_update_f(obj.model.C, obj.model.R, ...
+                obj.xkp1_est, obj.Pkp1, yk);
 
             % Predict states at next time instant
-            [obj.xkp1_est,obj.Pkp1] = kalman_predict_f(obj.A, obj.B, ...
-                obj.Q, obj.xk_est, obj.Pk, uk);
+            [obj.xkp1_est, obj.Pkp1] = kalman_predict_f(obj.model.A, ...
+                obj.model.B, obj.model.Q, obj.xk_est, obj.Pk, uk);
 
             % Predicted output at next time instant
-            obj.ykp1_est = obj.C * obj.xkp1_est;
+            obj.ykp1_est = obj.model.C * obj.xkp1_est;
 
         end
     end

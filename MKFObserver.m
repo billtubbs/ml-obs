@@ -65,7 +65,7 @@ classdef MKFObserver < matlab.mixin.Copyable
         K double
         P0 double
         T double
-        r0 (:, 1) double {mustBeInteger}
+        r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)}
         label (1, 1) string
         x0 (:, 1) double
         p_seq_g_Yk_init double
@@ -89,7 +89,7 @@ classdef MKFObserver < matlab.mixin.Copyable
                 models (1, :) cell
                 P0 double
                 T double
-                r0
+                r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)}
                 label (1, 1) string = ""
                 x0 = []
                 p_seq_g_Yk_init = []
@@ -189,7 +189,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.filters.Xk_est = nan(obj.n, 1, obj.nh);
             obj.filters.Pk = nan(obj.n, obj.n, obj.nh);
             obj.filters.Yk_est = nan(obj.ny, 1, obj.nh);
-            obj.filters.Kf = nan(obj.ny, obj.n, obj.nh);
+            obj.filters.Kf = nan(obj.n, obj.ny, obj.nh);
             obj.filters.Sk = nan(obj.ny, obj.ny, obj.nh);
 
             % At initialization at time k = 0, x_est(k|k)

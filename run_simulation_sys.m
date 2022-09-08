@@ -1,4 +1,5 @@
 function [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT,x0)
+% [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT,x0)
 % Simulate switching system
     arguments
         models (1, :) cell

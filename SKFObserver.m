@@ -61,7 +61,7 @@ classdef SKFObserver < matlab.mixin.Copyable
         P0 double
         label (1, 1) string
         x0 (:, 1) double
-        r0 double {mustBeInteger}
+        r0 (1, 1) double {mustBeInteger}
         xk_est (:, 1) double
         Pk double
         yk_est (:, 1) double
@@ -77,8 +77,8 @@ classdef SKFObserver < matlab.mixin.Copyable
                 models (1, :) cell
                 P0 double
                 label (1, 1) string = ""
-                x0 = []
-                r0 = 1  % default system mode at k = 0
+                x0 (:, 1) double = []
+                r0 (1, 1) double {mustBeInteger} = 1
             end
 
             % Get number of system models and check their dimensions

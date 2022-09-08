@@ -1,5 +1,18 @@
-% Test classes SKFObserver, KalmanFilterFJS, MKFObserverAMM 
-% and MKFObserverSched
+% Tests the following observer classes
+% 
+%  - KalmanFilterF
+%      Single Kalman Filter (used for comparison).
+%  - SKFObserver
+%      KF with switching system model.
+%  - SKFObserverS
+%      KF with switching system model and pre-set sequence.
+%  - MKFObserver
+%      Multiple-model KF with switching system models.
+%  - MKFObserverS
+%      Multiple-model KF with switching system models and
+%      pre-set sequence.
+%
+
 
 clear all
 
@@ -97,10 +110,8 @@ assert(isequal(size(models{1}.Q), size(models{2}.Q)))
 assert(isequal(size(models{1}.R), size(models{2}.R)))
 
 % Standard Kalman filters
-KF1 = KalmanFilterF(models{1}.A,models{1}.B,models{1}.C,Ts,P0, ...
-    models{1}.Q,models{1}.R,'KF1',x0);
-KF2 = KalmanFilterF(models{2}.A,models{2}.B,models{2}.C,Ts,P0, ...
-    models{2}.Q,models{2}.R,'KF2',x0);
+KF1 = KalmanFilterF(models{1},P0,'KF1');
+KF2 = KalmanFilterF(models{2},P0,'KF2');
 
 % Transition probabilities
 epsilon = 0.05;
@@ -109,12 +120,12 @@ assert(all(sum(T, 2) == 1))
 
 % System indicator sequences
 seq1 = {
-    zeros(1, nT+1);
-    [zeros(1, 20) ones(1, nT+1-20)];  % equal to Gamma'
-    [zeros(1, 40) ones(1, nT+1-40)];
     ones(1, nT+1);
+    [ones(1, 20) 2*ones(1, nT+1-20)];  % matches Gamma'
+    [ones(1, 40) 2*ones(1, nT+1-40)];
+    2*ones(1, nT+1);
  };
-assert(isequal(seq1{2}, Gamma'))
+assert(isequal(seq1{2}, Gamma' + 1))
 
 % Define observers with a switching system
 
@@ -152,22 +163,24 @@ assert(isequal(SKF.xkp1_est, x0))
 assert(isequal(SKF.r0, r0))
 assert(isequal(SKF.rk, r0))
 
-% % Define scheduled SKF filter
+% Again with default initial conditions
+SKF = SKFObserver(models,P0,"SKF");
+
+% Define scheduled SKF filter
 seq = Gamma' + 1;  % add one for MATLAB indexing
 SKF_S = SKFObserverS(models,P0,seq,"SKF_S");
 
-assert(strcmp(SKF_S.type, "SKF-S"))
+assert(strcmp(SKF_S.type, "SKF_S"))
 assert(isequal(SKF_S.models, models))
 assert(isequal(SKF_S.P0, P0))
 assert(strcmp(SKF_S.label, "SKF_S"))
-assert(isequal(SKF_S.r0, r0))
 assert(SKF_S.n == n)
 assert(SKF_S.nu == nu)
 assert(SKF_S.ny == ny)
 assert(SKF_S.nj == nj)
 assert(isequal(SKF_S.xkp1_est, zeros(n, 1)))
 assert(isequal(SKF_S.Pkp1, P0))
-assert(isequal(SKF_S.rk, r0))
+assert(isequal(SKF_S.rk, seq(:, 1)))
 assert(isequaln(SKF_S.xk_est, nan(n, 1)))
 assert(isequaln(SKF_S.Pk, nan(n)))
 assert(isequaln(SKF_S.yk_est, nan(ny, 1)))
@@ -178,28 +191,6 @@ assert(isequaln(SKF_S.nf, size(seq, 2)))
 assert(isequaln(SKF_S.i, 0))
 assert(isequaln(SKF_S.i_next, 1))
 
-% assert(isequal(SKF.A, A))
-% assert(isequal(SKF.B, B))
-% assert(isequal(SKF.C, C))
-% assert(isequal(SKF.Ts, Ts))
-% assert(isequal(SKF.P0, P0))
-% assert(isequal(SKF.Pkp1, P0))
-% assert(isequal(SKF.Q, Q))
-% assert(isequal(SKF.R, R))
-% assert(isequal(SKF.seq, seq))
-% assert(strcmp(SKF.label, "SKF1"))
-% assert(SKF.n_filt == 1)
-% assert(isa(SKF.filter, 'KalmanFilter'))
-% assert(strcmp(SKF.filter.label, 'KF'))
-% assert(SKF.n == n)
-% assert(SKF.nu == nu)
-% assert(SKF.ny == ny)
-% assert(SKF.f == size(SKF.seq, 2))
-% assert(SKF.nj == 2)
-% assert(isequal(SKF.xkp1_est, x0))
-% assert(SKF.ykp1_est == C{1}*x0)
-% assert(isequal(SKF.gamma_k, 0))
-
 % Transition probabilities
 epsilon = 0.05;
 T = [1-epsilon epsilon; epsilon 1-epsilon];
@@ -207,12 +198,12 @@ assert(all(sum(T, 2) == 1))
 
 % System indicator sequences
 seq1 = {
-    zeros(1, nT+1);
-    [zeros(1, 20) ones(1, nT+1-20)];  % equal to Gamma'
-    [zeros(1, 40) ones(1, nT+1-40)];
     ones(1, nT+1);
+    [ones(1, 20) 2*ones(1, nT+1-20)];  % matches Gamma'
+    [ones(1, 40) 2*ones(1, nT+1-40)];
+    2*ones(1, nT+1);
  };
-assert(isequal(seq1{2}, Gamma'))
+assert(isequal(seq1{2}, Gamma' + 1))
 
 % Define MKF observer 1
 seq = seq1;
@@ -221,7 +212,7 @@ nh = numel(seq);
 
 % First, define with no initial state specified (should be set to zero)
 % TODO: Allow independent P0 to be specified for each filter.
-r0 = cellfun(@(s) s(:, 1), seq1) + 1;
+r0 = cellfun(@(s) s(:, 1), seq1);
 MKF = MKFObserver(models,P0,T,r0,"MKF1");
 
 % Test initialisation
@@ -274,7 +265,7 @@ MKF = MKFObserver(models,P0,T,r0,"MKF");
 
 % First, define with no initial state specified (should be set to zero)
 % TODO: Allow independent P0 to be specified for each filter.
-r0 = cellfun(@(s) s(:, 1), seq1) + 1;
+r0 = cellfun(@(s) s(:, 1), seq1);
 MKF_S = MKFObserverS(models,P0,seq,T,"MKF_S");
 
 % Test initialisation
@@ -302,12 +293,40 @@ assert(isequaln(MKF_S.xk_est, nan(n, 1)))
 assert(isequaln(MKF_S.Pk, nan(n)))
 assert(isequaln(MKF_S.yk_est, nan(ny, 1)))
 assert(isequaln(MKF_S.seq, seq))
-assert(isequaln(MKF_S.nf, size(seq, 2)))
+assert(isequaln(MKF_S.nf, size(seq{1}, 2)))
 assert(isequaln(MKF_S.i, 0))
 assert(isequaln(MKF_S.i_next, 1))
 
+% Define autonomous multi-model (AMM) observer 
+MKF_AMM = MKFObserverAMM(models,P0,T,"MKF_AMM");
+
+% Test initialisation
+assert(strcmp(MKF_AMM.type, "MKF_AMM"))
+assert(isequal(MKF_AMM.models, models))
+assert(isequal(MKF_AMM.P0, P0))
+assert(isequal(MKF_AMM.Pkp1, P0))
+assert(strcmp(MKF_AMM.label, "MKF_AMM"))
+assert(MKF_AMM.n == n)
+assert(MKF_AMM.nu == nu)
+assert(MKF_AMM.ny == ny)
+assert(MKF_AMM.nj == nj)
+assert(isequal(MKF_AMM.xkp1_est, zeros(n, 1)))
+assert(MKF_AMM.nh == nj)
+assert(isequal(MKF_AMM.p_seq_g_Yk_init, ones(nj, 1) ./ nj))
+assert(isequal(MKF_AMM.rk, [1 2]'))
+assert(isequaln(MKF_AMM.p_yk_g_seq_Ykm1, nan(nj, 1)))
+assert(isequaln(MKF_AMM.p_rk_g_Ykm1, nan(nj, 1)))
+assert(isequaln(MKF_AMM.p_seq_g_Ykm1, nan(nj, 1)))
+assert(isequaln(MKF_AMM.filters.Xkp1_est, zeros(n, 1, nj)))
+assert(isequaln(MKF_AMM.filters.Pkp1, repmat(P0, 1, 1, nj)))
+assert(isequaln(MKF_AMM.filters.Kf, nan(n, ny, nj)))
+assert(isequaln(MKF_AMM.filters.Sk, repmat(nan(ny), 1, 1, nj)))
+assert(isequaln(MKF_AMM.xk_est, nan(n, 1)))
+assert(isequaln(MKF_AMM.Pk, nan(n)))
+assert(isequaln(MKF_AMM.yk_est, nan(ny, 1)))
+
 % Choose observers to include in simulation
-observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_S};
+observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_S, MKF_AMM};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
@@ -315,52 +334,66 @@ obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 f_mkf = [];
 
 % Simulate observers - without measurement noise (Y)
-[X_est,Y_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
+[Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
     run_simulation_obs(Ym,U,Gamma,seq,observers,f_mkf);
 
 % Output estimation errors
-E_obs = Y - Y_est;
+E_obs = Y - Yk_est;
 
 % Combine and display results
-sim_results1 = table(t,Gamma,U,X,Y,Ym,X_est,Y_est,E_obs)
+sim_results1 = table(t,Gamma,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
 
-figure(2); clf
-plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
+% figure(2); clf
+% plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
 
 % Check KF1 was accurate before system switched
 assert(nanmean(E_obs(t < 10, 1).^2) < 0.0001)
 
-% Check MKF and SKF match KF1 before system switched
-KF1_x_est = X_est(t == 9.5, 1);
-assert(isequal(abs(X_est(t == 9.5, :) - KF1_x_est) < 0.0001, ...
-    [true false true true true true]))
-KF1_diagP = sum(DiagP(t == 9.5, 1));
-assert(isequal(abs(DiagP(t == 9.5, :) - KF1_diagP) < 0.0001, ...
-    [true false true true true true]))
-
 % Check KF2 was accurate after system switched
 assert(mean(E_obs(t > 12, 2).^2) < 0.001)
 
-% Check MKF and SKF match KF2 after system switched
-KF2_x_est = X_est(t == 30, 2);
-assert(isequal(abs(X_est(t == 30, :) - KF2_x_est) < 0.0001, ...
-    [false true true true true false]))
+% Check which observers match KF1 before system switched
+KF1_x_est = Xk_est(t == 9.5, 1);
+assert(isequal(abs(Xk_est(t == 9.5, :) - KF1_x_est) < 0.0001, ...
+    [true false true true true true true]))
+KF1_diagP = sum(DiagP(t == 9.5, 1));
+assert(isequal(abs(DiagP(t == 9.5, :) - KF1_diagP) < 0.0001, ...
+    [true false true true true true true]))
+
+% Check which observers match KF2 after system switched
+KF2_x_est = Xk_est(t == 30, 2);
+assert(isequal(abs(Xk_est(t == 30, :) - KF2_x_est) < 0.0001, ...
+    [false true true true true true false]))
 KF2_diagP = sum(DiagP(t == 30, 2));
 assert(isequal(abs(DiagP(t == 30, :) - KF2_diagP) < 0.0001, ...
-    [false true true true true false]))
+    [false true true true true true false]))
 
-% Check MKF_S estimates match KF1 estimates
-KF1_x_est = X_est(:, 1);
-MKF_S_x_est = X_est(:, 6);
-assert(all(abs(KF1_x_est - MKF_S_x_est) < 0.0001))
+% Check MKF_AMM estimates match KF1 estimates
+KF1_x_est = Xk_est(:, 1);
+MKF_AMM_x_est = Xk_est(:, 7);
+assert(all(abs(KF1_x_est - MKF_AMM_x_est) < 0.0001))
 
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
+%disp(array2table(mses, 'VariableNames', obs_labels))
 
 % Check MKF and SKF observer estimation errors
-assert(isequal(round(mses, 6), [3.806151 0.269363 0 0 0 3.806151]))
+assert(isequal(round(mses, 6), [3.806151 0.269363 0 0 0 0 3.806151]))
 % Previously, using ykp1_est (i.e. prior predictions),
 % MSEs were: [5.1728 0.4313 0.1296 0.0660]
+
+% Check final values
+XYk_est = cell2mat(cellfun(@(obs) [obs.xk_est obs.yk_est], ...
+    observers', 'UniformOutput', false));
+assert(isequal(round(XYk_est, 6), [ ...
+     -1.191082  -0.357325
+      9.901224  -2.970367
+      9.901227  -2.970368
+      9.901227  -2.970368
+      9.901227  -2.970368
+      9.901227  -2.970368
+     -1.191082  -0.357325 ...
+]))
 
 % Reset observer states to initial conditions
 KF1.reset()
@@ -369,90 +402,68 @@ SKF.reset();
 SKF_S.reset();
 MKF.reset()
 MKF_S.reset()
+MKF_AMM.reset()
 
-return
+% Check main variables reset to initial conditions
+XYk_est = cell2mat(cellfun(@(obs) [obs.xk_est' obs.yk_est'], ...
+    observers', 'UniformOutput', false));
+assert(isequaln(XYk_est, nan(n_obs, n+ny)))
+Xkp1_est = cell2mat(cellfun(@(obs) obs.xkp1_est', observers', ...
+    'UniformOutput', false));
+assert(all(Xkp1_est == 0))
+Pk = cell2mat(cellfun(@(obs) obs.Pk, observers', ...
+    'UniformOutput', false));
+assert(isequaln(Pk, nan(n_obs, 1)))
+Pkp1 = cell2mat(cellfun(@(obs) obs.Pkp1, observers', ...
+    'UniformOutput', false));
+assert(all(Pkp1 == P0))
 
+% Check other variables
+assert(SKF.rk == 1)
+assert(SKF_S.rk == 1)
+assert(isequal(MKF.rk, [1 1 1 2]'))
+assert(isequal(MKF_S.rk, [1 1 1 2]'))
+assert(isequal(MKF_AMM.rk, [1 2]'))
+assert(isequal([SKF_S.i SKF_S.i_next], [0 1]))
+assert(isequal([MKF_S.i MKF_S.i_next], [0 1]))
+assert(isequal(MKF.p_seq_g_Yk, [0.25 0.25 0.25 0.25]'))
+assert(isequal(MKF_S.p_seq_g_Yk, [0.25 0.25 0.25 0.25]'))
+assert(isequal(MKF_AMM.p_seq_g_Yk, [0.5 0.5]'))
 
+% Test copy methods
 
-assert(isequal(MKF.P0, P0))
-assert(isequal(MKF.Pk, P0))
-assert(isequal(MKF.seq, seq))
-assert(isequaln(MKF.i, 0))
-assert(isequal(MKF.i_next, 1))
-assert(isequal(MKF.xkp1_est, zeros(n, 1)))
-assert(MKF.ykp1_est == 0)
-assert(isequal(MKF.gamma_k, zeros(n_filt, 1)))
-assert(isequaln(MKF.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF.p_gammak_g_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF.p_gamma_k, nan(n_filt, 1)))
-assert(isequaln(MKF.p_seq_g_Ykm1, nan(n_filt, 1)))
-
-% Redefine a new observer (identical to above)
-MKF1_new = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,'MKF1');
-assert(isequaln(MKF1_new, MKF))
-MKF1_new.label = "MKF1_new";
+% Redefine a new observer (identical to existing)
+MKF_new = MKFObserver(models,P0,T,r0,"MKF");
+assert(isequaln(MKF_new, MKF))
+MKF_new.label = "MKF_new";
 
 % Make a copy
-MKF1_copy = MKF1_new.copy();
-assert(isequaln(MKF1_copy, MKF1_new))
-MKF1_copy.label = "MKF1_copy";
+MKF_copy = MKF_new.copy();
+assert(isequaln(MKF_copy, MKF_new))
+MKF_copy.label = "MKF_copy";
+
+% Run simulation of original, new and copy
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, SKF, MKF, MKF1_new, MKF1_copy};
+observers = {MKF, MKF_new, MKF_copy};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
-% Identify which observer to log MKF data for
-f_mkf = 4;
-
-% Simulate observers - with measurement noise (Ym)
-[X_est,Y_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Ym,U,observers,f_mkf);
+[Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
+    run_simulation_obs(Ym,U,Gamma,seq,observers,f_mkf);
 
 % Output estimation errors
-E_obs = Y - Y_est;
+E_obs = Y - Yk_est;
 
 % Combine and display results
-sim_results = table(t,Gamma,U,X,Y,Ym,X_est,Y_est,E_obs);
-writetable(sim_results, "results/test_MKFO_sim_results.csv");
+sim_results2 = table(t,Gamma,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
 
-% Display results from MKF observer
-sim_results_MKF = [ ...
-    table(t) ... 
-    table(MKF_K_obs) ...
-    table(MKF_trP_obs) ...
-    table(MKF_i) ...
-    table(MKF_p_seq_g_Yk) ...
-];
-writetable(sim_results_MKF, "results/test_MKFO_sim_results_MKF.csv");
+% Check estimates are identical
+assert(all(sim_results2.Yk_est(:, 1) == sim_results2.Yk_est, [1 2]))
+assert(all(sim_results2.Xk_est(:, 1) == sim_results2.Xk_est, [1 2]))
 
 % figure(3); clf
 % plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels)
-
-% Check final state estimates
-test_X_est = [0.202984  9.838603  9.838607  9.838607  9.854841  9.807889];
-assert(isequal(round(X_est(t == t(end), :), 6), test_X_est))
-% TODO: Why do the copies not produce identical simulation results?
-% (see plot figure).
-
-% Check final error covariance estimates
-test_DiagP = [0.017355  0.028238  0.028238  0.028238  0.028238  0.028238];
-assert(isequal(round(DiagP(t == t(end), :), 6), test_DiagP))
-
-% Compute mean-squared error
-mses = nanmean(E_obs.^2);
-%array2table(mses,'VariableNames',obs_labels)
-
-% Check MKF observer estimation error
-assert(round(mses(f_mkf), 4) == 0.1335)
-
-% Check all observer estimation errors
-assert(isequal(round(mses, 4), ...
-    [5.1749  0.4074  0.0685  0.1335  0.1387  0.0877]))
-
-% % Plot selected observers
-% figure(4); clf
-% plot_obs_estimates(t,X,X_est(:,[3 4]),Y,Y_est(:,[3 4]),obs_labels([3 4]))
 
 
 %% Simulation test on 2x2 system
@@ -464,42 +475,25 @@ Ts = 1;
 % coupling (-0.2) and epsilon = [0.01; 0.01].
 
 % Discrete time state space model
-A = [ 0.8890       0     1 -0.2;
-           0  0.8890  -0.2    1;
-           0       0     1    0;
-           0       0     0    1];
-B = [    1 -0.2  0  0;
+A = [
+      0.8890       0     1 -0.2
+           0  0.8890  -0.2    1
+           0       0     1    0
+           0       0     0    1
+];
+B = [
+         1 -0.2  0  0;
       -0.2    1  0  0;
          0    0  1  0;
-         0    0  0  1];
+         0    0  0  1
+];
 C = [ 0.1110 0         0  0;
              0  0.1110 0  0];
 D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 
 % Dimensions
-n = size(A, 1);
-nu = size(B, 2);
-ny = size(C, 1);
-
-% Designate measured input and output signals
-u_meas = [true; true; false; false];
-y_meas = [true; true];
-
-% Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
-
-% Disturbance input (used by SKF observer)
-Bw = B(:, ~u_meas);
-nw = sum(~u_meas);
-
-% RODD random variable parameters
-epsilon = [0.01; 0.01];
-sigma_M = [0.1; 0.1];
-sigma_wp = [0.01 1; 0.01 1];
+[n, nu, ny] = check_dimensions(A, B, C, D);
 
 % Simulation settings
 nT = 200;
@@ -525,40 +519,127 @@ alpha(t == t_shock(2), 2) = 1;
 Wp = du0' .* alpha;
 
 U_sim = [U Wp];
+x0 = zeros(n, 1);
+
+% System models
+model.A = A;
+model.B = B;  % input disturbances unmeasured
+model.C = C;
+model.Ts = Ts;
+models = repmat({model}, 1, nj);
+
+% Choose measurement noise for plant
+sigma_MP = [0; 0];  % Set to zero for testing
+V = sigma_MP'.*randn(nT+1, ny);
+
+% Run simulation
+[X, Y, Ym] = run_simulation_sys(models,U_sim,V,alpha,nT,x0);
+
+% % Simulate system
+% X2 = zeros(nT+1,n);
+% Y2 = zeros(nT+1,ny);
+% xk = x0;
+% for i = 1:nT+1
+% 
+%     % Inputs
+%     uk = U_sim(i,:)';
+% 
+%     % Compute y(k)
+%     yk = C * xk + D * uk;
+% 
+%     % Store results
+%     X2(i, :) = xk';
+%     Y2(i, :) = yk';
+% 
+%     % Compute x(k+1)
+%     xk = A * xk + B * uk;
+% 
+% end
+% 
+% % Check simulation output is correct
+% [Y3, t, X3] = lsim(Gpss, U_sim, t, x0);
+% assert(isequal(X, X2))
+% assert(isequal(Y, Y2))
+% assert(isequal(X, X3))
+% assert(isequal(Y, Y3))
+
+% Designate measured input and output signals
+u_meas = [true; true; false; false];
+y_meas = [true; true];
+
+% Observer model (without unmeasured disturbance input)
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+
+% Disturbance input (used by SKF observer)
+Bw = B(:, ~u_meas);
+nw = sum(~u_meas);
+
+% Dimensions of observer model
+[n, nu, ny] = check_dimensions(A, Bu, C, Du);
+
+% RODD random variable parameters
+epsilon = [0.01; 0.01];
+sigma_M = [0.1; 0.1];
+%sigma_M = [0; 0];  % set to zero for testing
+sigma_wp = [0.01 1; 0.01 1];
+
+% Observer models
+model.A = A;
+model.B = Bu;  % input disturbances unmeasured
+model.C = C;
+model.Ts = Ts;
+nj = 3;
+models = repmat({model}, 1, nj);
+
+% Observer parameters (same for all observers)
+models{1}.Q = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
+models{2}.Q = diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]);
+models{3}.Q = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2]);
+assert(isequal(size(models{1}.Q), [n n]))
+assert(isequal(size(models{2}.Q), [n n]))
+assert(isequal(size(models{3}.Q), [n n]))
+
+R = diag(sigma_M.^2);
+models{1}.R = R;
+models{2}.R = R;
+models{3}.R = R;
+assert(isequal(size(R), [ny ny]))
+
+P0 = 1000*eye(n);
+%P0_init = repmat({P0}, 1, 3);
+x0 = zeros(n,1);
+y0 = models{1}.C * x0;
+r0 = [1 1]';  % initial system mode
 
 % Custom MKF test observers
 % Devise a custom multi-model filter with a shock indicator 
 % sequence that perfectly reflects the shock occurence in
 % this test simulation (t = t_shock)
-% Multiple model filter 1
-A2 = repmat({A}, 1, 3);
-Bu2 = repmat({Bu}, 1, 3);
-C2 = repmat({C}, 1, 3);
-Du2 = repmat({Du}, 1, 3);
-P0 = 1000*eye(n);
-%P0_init = repmat({P0}, 1, 3);
-Q2 = {diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]), ...
-      diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
-      diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2])};
-R2 = {diag(sigma_M.^2), diag(sigma_M.^2), diag(sigma_M.^2)};
-seq = {zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1)};
-seq{2}(t == t_shock(1)) = 1;  % shock 1
-seq{3}(t == t_shock(2)) = 2;  % shock 2
-seq{4}(t == t_shock(1)) = 1;  % both
-seq{4}(t == t_shock(2)) = 2;
-p_gamma = [1-epsilon epsilon]';
-Z = [0 0; 1 0; 0 1];  % combinations
-p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-p_gamma = p_gamma ./ sum(p_gamma);  % normalized
-T = repmat(p_gamma', 3, 1);
-MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
-assert(MKF3.n_filt == 4)
 
-seq = {zeros(1, nT+1)};
-seq{1}(t == t_shock(1)) = 1;
-seq{1}(t == t_shock(2)) = 2;
-MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
-assert(MKF4.n_filt == 1)
+% Multiple model filter 1
+seq = {ones(1, nT+1); ones(1, nT+1); ones(1, nT+1); ones(1, nT+1)};
+seq{2}(t == t_shock(1)) = 2;  % shock 1
+seq{3}(t == t_shock(2)) = 3;  % shock 2
+seq{4}(t == t_shock(1)) = 2;  % both
+seq{4}(t == t_shock(2)) = 3;
+p_rk = [1-epsilon epsilon]';
+Z = [1 1; 2 1; 1 2];  % combinations
+p_rk = prod(prob_rk(Z', p_rk), 1)';
+p_rk = p_rk ./ sum(p_rk);  % normalized
+T = repmat(p_rk', 3, 1);
+
+MKF3 = MKFObserverS(models,P0,seq,T,'MKF3');
+assert(MKF3.nh == 4)
+
+% Multiple model filter 2
+seq = {ones(1, nT+1)};
+seq{1}(t == t_shock(1)) = 2;
+seq{1}(t == t_shock(2)) = 3;
+MKF4 = MKFObserverS(models,P0,seq,T,'MKF4');
+assert(MKF4.nh == 1)
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -568,152 +649,93 @@ assert(MKF4.n_filt == 1)
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKF = SKFObserverS(models,P0,seq{1},"SKF");
 
 % Choose observers to test
 observers = {MKF3, MKF4, SKF};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
-% Simulate system
-X = zeros(nT+1,n);
-Y = zeros(nT+1,ny);
-xk = zeros(n,1);
-
-for i = 1:nT+1
-
-    % Inputs
-    uk = U_sim(i,:)';
-
-    % Compute y(k)
-    yk = C*xk + D*uk;
-
-    % Store results
-    X(i, :) = xk';
-    Y(i, :) = yk';
-
-    % Compute x(k+1)
-    xk = A*xk + B*uk;
-
-end
-
-% Check simulation output is correct
-[Y2, t, X2] = lsim(Gpss, U_sim, t);
-assert(isequal(X, X2))
-assert(isequal(Y, Y2))
-
-% Choose measurement noise for plant
-sigma_MP = [0; 0];  % Set to zero for testing
-Y_m = Y + sigma_MP'.*randn(nT+1, ny);
-
 % Identify which observer to log MKF data for
 f_mkf = 1;
 
 % Simulate observers
-[Xkp1_est,Ykp1_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
-    run_simulation_obs(Y_m,U,observers,f_mkf);
+[Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
+    run_simulation_obs(Ym,U,alpha,seq,observers,f_mkf);
+
+% Output estimation errors
+E_obs = repmat(Y, 1, n_obs) - Yk_est;
+
+% Combine and display results
+sim_results = table(t,alpha,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
+disp(sim_results)
 
 % Plot observer estimates
 % figure(5); clf
-% plot_obs_estimates(t,X,Xkp1_est,Y,Ykp1_est,obs_labels)
+% plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
 
 % Check final state estimates
-test_X_est = [-1.801802  9.009008  1.000000  1.000000 -1.801802 ...
-    9.009008  1.000000  1.000000 -1.801802  9.009008  1.000000  1.000000];
-assert(isequal(round(Xkp1_est(t == t(end), :), 6), test_X_est))
+% Previous values (probably run with noise):
+% test_X_est = [-1.801802  9.009008  1.000000  1.000000 -1.801802 ...
+%     9.009008  1.000000  1.000000 -1.801802  9.009008  1.000000  1.000000];
+test_X_est = [
+    -1.801832  9.008979  0.999994  0.999994 ...
+    -1.801802  9.009008  1.000000  1.000000 ...
+    -1.801802  9.009008  1.000000  1.000000];
+assert(isequal(round(Xk_est(t == t(end), :), 6), test_X_est))
 
 % Check final error covariance estimates
 % TODO: Haven't checked if these are correct.
-test_DiagP = [ 0.092947  0.092947  0.002086  0.002086  0.092947 ...
-    0.092947  0.002086  0.002086  0.092947  0.092947  0.002086  0.002086];
+% Previous values (probably run with noise):
+% test_DiagP = [ 0.092947  0.092947  0.002086  0.002086  0.092947 ...
+%     0.092947  0.002086  0.002086  0.092947  0.092947  0.002086  0.002086];
+test_DiagP = [ ...
+    0.083317    0.083317    0.001986    0.001986 ...
+    0.083317    0.083317    0.001986    0.001986 ...
+    0.083317    0.083317    0.001986    0.001986];
 assert(isequal(round(DiagP(t == t(end), :), 6), test_DiagP))
 
-% Compute mean-squared errors
-MSE = containers.Map();
-for i = 1:n_obs
-    MSE(observers{i}.label) = mean((Ykp1_est(:, i*ny-1:i*ny) - Y).^2);
-end
-%fprintf("%d, %s: %f\n", i, obs.label, mean((Y_est - Y).^2))
+% Display trace of covariance matrix data for MKF observer filters
+[table(t) array2table(MKF_trP_obs, 'VariableNames', ...
+    compose("Tr(P_%d)", 1:observers{f_mkf}.nh))]
 
-% % Display results of last simulation
-% 
-% X_est = sim_results.X_est;
-% E_obs = sim_results.E_obs;
-% K_obs = sim_results.K_obs;
-% trP_obs = sim_results.trP_obs;
-% 
-% table(t,alpha,U,Wp,X,Y,Y_m,X_est,Y_est,E_obs)
-% 
-% % Display gains and trace of covariance matrix
-% table(t, cell2mat(K_obs), cell2mat(trP_obs), ...
-%     'VariableNames', {'t', 'K{1}, K{2}', 'trace(P{1}), trace(P{2})'})
-% 
-% % Show table of mean-squared errors
-% table(MSE.keys', cell2mat(MSE.values'), ...
-%     'VariableNames', {'Observer', 'MSE'})
+% Compute mean-squared errors
+MSE = struct();
+for i = 1:n_obs
+    MSE.(observers{i}.label) = mean(E_obs(:, i*ny-1:i*ny).^2);
+end
+disp(MSE)
 
 % Results on Nov 8 after reverting back the Bayesian updating
-MSE_test_values = containers.Map(...
- {'MKF3',              'MKF4',              'SKF'             }, ...
- {[0.000707 0.000348], [0.000234 0.000083], [0.000234 0.000083]} ...
+MSE_test_values = struct( ...
+ 'MKF3', [0.000707 0.000348],  ...  % TODO: Why is it [0.001097 0.003716]
+ 'MKF4', [0.000017 0.000022],  ...
+ 'SKF', [0.000017 0.000022]  ...
 );
 
-for label = MSE.keys
-    %fprintf("%s: %f, %f (%f, %f)\n", label{1}, MSE(label{1}), MSE_test_values(label{1}))
-    assert(isequal(round(MSE(label{1}), 6), MSE_test_values(label{1})))
+labels = fieldnames(MSE);
+for i = 1:numel(labels)
+    fprintf("%s: %.6f, %.6f (%.6f, %.6f)\n", labels{i}, MSE.(labels{i}), ...
+        MSE_test_values.(labels{i}))
+end
+for i = 1:numel(labels)
+    assert(isequal(round(MSE.(labels{i}), 6), MSE_test_values.(labels{i})))
 end
 
 
 %% Test copy methods
 
-% Define system
-
-% Sample period
-Ts = 0.5;
-
-% Discrete time state space models
-% Model #1
-A1 = 0.7;
-B1 = 1;
-C1 = 0.3;
-D1 = 0;
-Gpss1 = ss(A1,B1,C1,D1,Ts);
-
-% Model #2
-A2 = 0.9;
-B2 = 1;
-C2 = -0.3;  % -ve gain!
-D2 = 0;
-Gpss2 = ss(A2,B2,C2,D2,Ts);
-
-% Dimensions
-n = size(A1, 1);
-nu = size(B1, 2);
-ny = size(C1, 1);
-
-% Check dimensions
-assert(isequal(size(A1), size(A2)))
-assert(isequal(size(B1), size(B2)))
-assert(isequal(size(C1), size(C2)))
-assert(isequal(size(D1), size(D2)))
-
-% Define system models
-A = {A1, A2};
-B = {B1, B2};
-C = {C1, C2};
-D = {D1, D2};
+% Load switching system
+sys_js2_siso
 
 % Observer parameters (same for all observers)
 P0 = 10000;
 x0 = 0.5;
-Q1 = 0.01;
-R1 = 0.1^2;
-Q2 = 0.01;
-R2 = 0.1^2;
-
-% Switching parameters
-Q = {Q1,Q2};
-R = {R1,R2};
+r0 = 1;  % system mode
+models{1}.Q = 0.01;
+models{1}.R = 0.1^2;
+models{2}.Q = 0.01;
+models{2}.R = 0.1^2;
 
 % Transition probabilities
 epsilon = 0.05;
@@ -723,10 +745,10 @@ assert(all(sum(T, 2) == 1))
 % System indicator sequences
 nT = 60;
 seq1 = {
-    zeros(1, nT+1);
-    [zeros(1, 20) ones(1, nT+1-20)];  % equal to Gamma'
-    [zeros(1, 40) ones(1, nT+1-40)];
     ones(1, nT+1);
+    [ones(1, 20) 2*ones(1, nT+1-20)];  % matches Gamma'
+    [ones(1, 40) 2*ones(1, nT+1-40)];
+    2*ones(1, nT+1);
  };
 
 % Define MKF observer
@@ -735,7 +757,7 @@ n_filt = numel(seq);
 %P0j = repmat({P0}, n_filt, 1);
 
 % Define multi-model observer with initial conditions
-MKF = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,'MKF',x0);
+MKF = MKFObserverS(models,P0,seq,T,'MKF',x0);
 
 % Test handle copy
 MKF_hcopy = MKF;
@@ -749,8 +771,8 @@ assert(isequal(MKF_hcopy.x0, 1.0))
 MKF_copy = MKF.copy();
 assert(isequaln(MKF_copy, MKF))  % same values
 assert(MKF_copy ~= MKF)  % must not be same object
-assert(isequaln(MKF_copy.filters{1}, MKF.filters{1}))
-assert(isequaln(MKF_copy.filters{2}, MKF.filters{2}))
+assert(isequaln(MKF_copy.filters, MKF.filters))
+assert(isequaln(MKF_copy.filters, MKF.filters))
 
 % Check deep copy was made
 % TODO: This is not working
@@ -760,8 +782,8 @@ assert(isequaln(MKF_copy.filters{2}, MKF.filters{2}))
 MKF.label = "New name";
 assert(~isequal(MKF_copy.label, "New name"))
 
-MKF.filters{1}.x0 = 99;
-%assert(~isequal(MKF_copy.filters{1}.x0, 99))
+MKF.filters.Xkp1_est(:, :, 1) = 99;
+assert(~isequal(MKF_copy.filters.Xkp1_est(:, :, 1), 99))
 
 %END
 
@@ -783,7 +805,7 @@ function [Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
     if ~isempty(f_mkf)
         obs_mkf = observers{f_mkf};
         nh = size(obs_mkf.seq, 1);
-        MKF_K_obs = cell(nT+1, n*nh);
+        MKF_K_obs = cell(nT+1, n_obs*nh);
         MKF_trP_obs = nan(nT+1, nh);
         MKF_i = nan(nT+1, 2);
         MKF_p_seq_g_Yk = nan(nT+1, nh);
@@ -809,7 +831,7 @@ function [Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
                     rk = Gamma(i) + 1;
                     obs.update(yk, uk, rk);
                 case "MKF"
-                    rk = seq(:, i) + 1;
+                    rk = seq(:, i);
                     obs.update(yk, uk, rk);
                 otherwise
                     obs.update(yk, uk);
@@ -817,9 +839,9 @@ function [Xk_est,Yk_est,DiagP,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk] = ...
             if f == f_mkf
                 MKF_i(i, :) = obs.i;
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-                for j = 1:obs.n_filt
-                    MKF_K_obs{i, j} = obs.filters{j}.K';
-                    MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
+                for j = 1:obs.nh
+                    MKF_K_obs{i, j} = obs.filters.Kf(:,:,j);
+                    MKF_trP_obs(i, j) = trace(obs.filters.Pkp1(:,:,j));
                 end
             end
             xk_est(1, (f-1)*n+1:f*n) = obs.xk_est';
