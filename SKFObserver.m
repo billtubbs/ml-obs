@@ -160,6 +160,14 @@ classdef SKFObserver < matlab.mixin.Copyable
         %       System mode at current time k.
         %
 
+            % Check size of arguments passed
+            assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
+            assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
+            assert(isequal(size(rk), [1 1]), "ValueError: size(rk)")
+
+            % Update system mode, r(k)
+            obj.rk = rk;
+
             % Update estimates based on current measurement
             [obj.xk_est, obj.Pk, obj.yk_est, obj.Sk, obj.Kf] = ...
                 kalman_update_f(obj.models{rk}.C, ...

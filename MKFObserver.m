@@ -216,12 +216,12 @@ classdef MKFObserver < matlab.mixin.Copyable
         %       System modes at current time k.
         %
 
+            % Check size of arguments passed
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
+            assert(isequal(size(rk), [obj.nh 1]), "ValueError: size(rk)")
 
-            % Update model indicator values r(k) with the
-            % current values from the filter's sequence and keep a
-            % copy of the previous values
+            % Update system modes, r(k-1), r(k)
             rkm1 = obj.rk;
             obj.rk = rk;
 
@@ -306,14 +306,4 @@ classdef MKFObserver < matlab.mixin.Copyable
 
         end
     end
-% TODO: Should do a deep copy automatically (i.e. without this)
-% - https://www.mathworks.com/help/matlab/matlab_oop/custom-copy-behavior.html
-%     methods (Access = protected)
-%         function cp = copyElement(obj)
-%             % Shallow copy object
-%             cp = copyElement@matlab.mixin.Copyable(obj);
-%            cp.Prop1 = obj.Prop1;
-%            cp.Prop2 = datestr(now);
-%         end
-%     end
 end

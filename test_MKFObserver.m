@@ -222,58 +222,92 @@ nh = numel(seq);
 % First, define with no initial state specified (should be set to zero)
 % TODO: Allow independent P0 to be specified for each filter.
 r0 = cellfun(@(s) s(:, 1), seq1) + 1;
-MKF1 = MKFObserver(models,P0,T,r0,"MKF1");
+MKF = MKFObserver(models,P0,T,r0,"MKF1");
 
 % Test initialisation
-assert(strcmp(MKF1.type, "MKF"))
-assert(isequal(MKF1.models, models))
-assert(isequal(MKF1.P0, P0))
-assert(isequal(MKF1.Pkp1, P0))
-assert(strcmp(MKF1.label, "MKF1"))
-assert(MKF1.n == n)
-assert(MKF1.nu == nu)
-assert(MKF1.ny == ny)
-assert(MKF1.nj == nj)
-assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
-assert(MKF1.nh == nh)
-assert(isequal(MKF1.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
-assert(isequal(MKF1.rk, r0))
-assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF1.p_rk_g_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF1.p_seq_g_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF1.filters.Xkp1_est, zeros(n, 1, nh)))
-assert(isequaln(MKF1.filters.Pkp1, repmat(P0, 1, 1, nh)))
-assert(isequaln(MKF1.filters.Kf, nan(n, ny, nh)))
-assert(isequaln(MKF1.filters.Sk, repmat(nan(ny), 1, 1, nh)))
-assert(isequaln(MKF1.xk_est, nan(n, 1)))
-assert(isequaln(MKF1.Pk, nan(n)))
-assert(isequaln(MKF1.yk_est, nan(ny, 1)))
+assert(strcmp(MKF.type, "MKF"))
+assert(isequal(MKF.models, models))
+assert(isequal(MKF.P0, P0))
+assert(isequal(MKF.Pkp1, P0))
+assert(strcmp(MKF.label, "MKF1"))
+assert(MKF.n == n)
+assert(MKF.nu == nu)
+assert(MKF.ny == ny)
+assert(MKF.nj == nj)
+assert(isequal(MKF.xkp1_est, zeros(n, 1)))
+assert(MKF.nh == nh)
+assert(isequal(MKF.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
+assert(isequal(MKF.rk, r0))
+assert(isequaln(MKF.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF.p_seq_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF.filters.Xkp1_est, zeros(n, 1, nh)))
+assert(isequaln(MKF.filters.Pkp1, repmat(P0, 1, 1, nh)))
+assert(isequaln(MKF.filters.Kf, nan(n, ny, nh)))
+assert(isequaln(MKF.filters.Sk, repmat(nan(ny), 1, 1, nh)))
+assert(isequaln(MKF.xk_est, nan(n, 1)))
+assert(isequaln(MKF.Pk, nan(n)))
+assert(isequaln(MKF.yk_est, nan(ny, 1)))
 
 % Redefine this time with initial conditions
-MKF1 = MKFObserver(models,P0,T,r0,"MKF1",x0);
-assert(isequal(MKF1.x0, x0))
-assert(isequal(MKF1.r0, r0))
-assert(isequal(MKF1.xkp1_est, x0))
-assert(isequal(MKF1.rk, r0))
-assert(isequaln(MKF1.filters.Xkp1_est, repmat(x0, 1, 1, nh)))
-assert(isequal(MKF1.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
-assert(isequal(MKF1.p_seq_g_Yk, MKF1.p_seq_g_Yk_init))
+MKF = MKFObserver(models,P0,T,r0,"MKF1",x0);
+assert(isequal(MKF.x0, x0))
+assert(isequal(MKF.r0, r0))
+assert(isequal(MKF.xkp1_est, x0))
+assert(isequal(MKF.rk, r0))
+assert(isequaln(MKF.filters.Xkp1_est, repmat(x0, 1, 1, nh)))
+assert(isequal(MKF.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
+assert(isequal(MKF.p_seq_g_Yk, MKF.p_seq_g_Yk_init))
 
 % Test with initial hypothesis probabilities
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF1 = MKFObserver(models,P0,T,r0,"MKF1",x0,p_seq_g_Yk_init);
-assert(isequal(MKF1.x0, x0))
-assert(isequal(MKF1.r0, r0))
-assert(isequal(MKF1.xkp1_est, x0))
-assert(isequal(MKF1.rk, r0))
-assert(isequal(MKF1.p_seq_g_Yk_init, p_seq_g_Yk_init))
-assert(isequal(MKF1.p_seq_g_Yk, p_seq_g_Yk_init))
+MKF = MKFObserver(models,P0,T,r0,"MKF1",x0,p_seq_g_Yk_init);
+assert(isequal(MKF.x0, x0))
+assert(isequal(MKF.r0, r0))
+assert(isequal(MKF.xkp1_est, x0))
+assert(isequal(MKF.rk, r0))
+assert(isequal(MKF.p_seq_g_Yk_init, p_seq_g_Yk_init))
+assert(isequal(MKF.p_seq_g_Yk, p_seq_g_Yk_init))
 
 % Again with default initial conditions
-MKF1 = MKFObserver(models,P0,T,r0,"MKF1");
+MKF = MKFObserver(models,P0,T,r0,"MKF");
+
+% First, define with no initial state specified (should be set to zero)
+% TODO: Allow independent P0 to be specified for each filter.
+r0 = cellfun(@(s) s(:, 1), seq1) + 1;
+MKF_S = MKFObserverS(models,P0,seq,T,"MKF_S");
+
+% Test initialisation
+assert(strcmp(MKF_S.type, "MKF-S"))
+assert(isequal(MKF_S.models, models))
+assert(isequal(MKF_S.P0, P0))
+assert(isequal(MKF_S.Pkp1, P0))
+assert(strcmp(MKF_S.label, "MKF_S"))
+assert(MKF_S.n == n)
+assert(MKF_S.nu == nu)
+assert(MKF_S.ny == ny)
+assert(MKF_S.nj == nj)
+assert(isequal(MKF_S.xkp1_est, zeros(n, 1)))
+assert(MKF_S.nh == nh)
+assert(isequal(MKF_S.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
+assert(isequal(MKF_S.rk, r0))
+assert(isequaln(MKF_S.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_S.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_S.p_seq_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_S.filters.Xkp1_est, zeros(n, 1, nh)))
+assert(isequaln(MKF_S.filters.Pkp1, repmat(P0, 1, 1, nh)))
+assert(isequaln(MKF_S.filters.Kf, nan(n, ny, nh)))
+assert(isequaln(MKF_S.filters.Sk, repmat(nan(ny), 1, 1, nh)))
+assert(isequaln(MKF_S.xk_est, nan(n, 1)))
+assert(isequaln(MKF_S.Pk, nan(n)))
+assert(isequaln(MKF_S.yk_est, nan(ny, 1)))
+assert(isequaln(MKF_S.seq, seq))
+assert(isequaln(MKF_S.nf, size(seq, 2)))
+assert(isequaln(MKF_S.i, 0))
+assert(isequaln(MKF_S.i_next, 1))
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, SKF, SKF_S, MKF1};
+observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_S};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
@@ -299,10 +333,10 @@ assert(nanmean(E_obs(t < 10, 1).^2) < 0.0001)
 % Check MKF and SKF match KF1 before system switched
 KF1_x_est = X_est(t == 9.5, 1);
 assert(isequal(abs(X_est(t == 9.5, :) - KF1_x_est) < 0.0001, ...
-    [true false true true true]))
+    [true false true true true true]))
 KF1_diagP = sum(DiagP(t == 9.5, 1));
 assert(isequal(abs(DiagP(t == 9.5, :) - KF1_diagP) < 0.0001, ...
-    [true false true true true]))
+    [true false true true true true]))
 
 % Check KF2 was accurate after system switched
 assert(mean(E_obs(t > 12, 2).^2) < 0.001)
@@ -310,43 +344,52 @@ assert(mean(E_obs(t > 12, 2).^2) < 0.001)
 % Check MKF and SKF match KF2 after system switched
 KF2_x_est = X_est(t == 30, 2);
 assert(isequal(abs(X_est(t == 30, :) - KF2_x_est) < 0.0001, ...
-    [false true true true true]))
+    [false true true true true false]))
 KF2_diagP = sum(DiagP(t == 30, 2));
 assert(isequal(abs(DiagP(t == 30, :) - KF2_diagP) < 0.0001, ...
-    [false true true true true]))
+    [false true true true true false]))
+
+% Check MKF_S estimates match KF1 estimates
+KF1_x_est = X_est(:, 1);
+MKF_S_x_est = X_est(:, 6);
+assert(all(abs(KF1_x_est - MKF_S_x_est) < 0.0001))
 
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
 
 % Check MKF and SKF observer estimation errors
-assert(isequal(round(mses, 6), [3.806151 0.269363 0 0 0]))
+assert(isequal(round(mses, 6), [3.806151 0.269363 0 0 0 3.806151]))
 % Previously, using ykp1_est (i.e. prior predictions),
 % MSEs were: [5.1728 0.4313 0.1296 0.0660]
 
-% Reset observer states to original initial conditions
+% Reset observer states to initial conditions
 KF1.reset()
 KF2.reset()
-MKF1.reset()
 SKF.reset();
+SKF_S.reset();
+MKF.reset()
+MKF_S.reset()
 
 return
 
-assert(isequal(MKF1.P0, P0))
-assert(isequal(MKF1.Pk, P0))
-assert(isequal(MKF1.seq, seq))
-assert(isequaln(MKF1.i, 0))
-assert(isequal(MKF1.i_next, 1))
-assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
-assert(MKF1.ykp1_est == 0)
-assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
-assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_gammak_g_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_gamma_k, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_seq_g_Ykm1, nan(n_filt, 1)))
+
+
+assert(isequal(MKF.P0, P0))
+assert(isequal(MKF.Pk, P0))
+assert(isequal(MKF.seq, seq))
+assert(isequaln(MKF.i, 0))
+assert(isequal(MKF.i_next, 1))
+assert(isequal(MKF.xkp1_est, zeros(n, 1)))
+assert(MKF.ykp1_est == 0)
+assert(isequal(MKF.gamma_k, zeros(n_filt, 1)))
+assert(isequaln(MKF.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
+assert(isequaln(MKF.p_gammak_g_Ykm1, nan(n_filt, 1)))
+assert(isequaln(MKF.p_gamma_k, nan(n_filt, 1)))
+assert(isequaln(MKF.p_seq_g_Ykm1, nan(n_filt, 1)))
 
 % Redefine a new observer (identical to above)
 MKF1_new = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,'MKF1');
-assert(isequaln(MKF1_new, MKF1))
+assert(isequaln(MKF1_new, MKF))
 MKF1_new.label = "MKF1_new";
 
 % Make a copy
@@ -355,7 +398,7 @@ assert(isequaln(MKF1_copy, MKF1_new))
 MKF1_copy.label = "MKF1_copy";
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, SKF, MKF1, MKF1_new, MKF1_copy};
+observers = {KF1, KF2, SKF, MKF, MKF1_new, MKF1_copy};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
