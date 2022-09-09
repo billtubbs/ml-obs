@@ -1,5 +1,5 @@
-function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
-    GPB2_update(models,T,Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk)
+function [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
+    GPB2_update(models,T,Xkp1f_est,Pkp1f,yk,p_seq_g_Yk)
 % [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB2_update(models,T, ...
 %     xkp1_est,ykp1_est,Pkp1,yk,p_seq_g_Yk)
 % Update equations for simulating the second-order 
@@ -9,40 +9,43 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
 %
 % Steps of GPB2 algorithm at time k
 %  Inputs:
-%    - m^2 prior predictions of states, x_est(k|k-1),
-%      error covariance, P(k|k-1), and outputs, y_est(k|k-1)
-%    - prior probability estimates, p_seq_g_Ykm1, of the
-%      m^2 possible mode transitions.
-%    - mode transition probabilities, T
+%    - nj^2 prior predictions of states, x_pred_ij(k|k-1), with
+%      error covariance, P_ij(k|k-1).
+%    - nj^2 prior probability estimates, p(seq_ij|Y(k-1)), of the
+%      nj^2 mode sequences.
+%    - mode transition probabilities, T_ij.
 %
-%  1. Update the m^2 Kalman filters using the current 
-%     measurement, yk, and the current models.
-%  2. Update the m^2 mixing probability estimates, p_seq_g_Yk, 
-%     using the m^2 transition probabilities, T, the estimated 
-%     likelihood of yk given each of the m^2 prior output 
-%     estimates, y_est(k|k-1).
-%  3. Use the mixing probabilities, p_seq_g_Yk to merge the
-%     m^2 estimates into m estimates for each possible mode
-%     at time k.
-%  4. Merge the estimates into one overall estimate at time
-%     k.
-%  5. Reinitialize the m^2 Kalman filters using the m
-%     estimates for the possible modes at time k.
-%  6. Run the m^2 Kalman filter predictions using the 
-%     the current models to calculate prior estimates of the
-%     states at time k + 1.
+%  1. Calculate the nj^2 output predictions, y_est_ij(k|k-1),
+%     from the prior state predictions, x_pred_ij(k|k-1), using
+%     the system models corresponding to each mode sequence.
+%  2. Update the nj^2 Kalman filter state estimates, 
+%     x_est_ij(k|k-1) using the current measurement, y(k), and 
+%     the system models corresponding to each mode sequence.
+%  3. Update the nj^2 mixing probability estimates, p(seq_ij|Y(k)), 
+%     using the transition probabilities, T, the estimated 
+%     likelihood of y(k) given each of the nj^2 prior output 
+%     estimates, y_est_ij(k|k-1).
+%  4. Use the mixing probabilities, p_seq_g_Yk to merge the
+%     nj^2 state estimates into nj merged estimates, x_est_i(k|k-1),
+%     for each possible system mode, i = 1, 2, ... nj, at time k.
+%  5. Merge the estimates into one overall estimate, x_est(k|k-1).
+%  6. Reinitialize the nj^2 Kalman filters using the nj merged
+%     estimates, x_est_i(k|k-1), for the modes at time k.
+%  7. Calculate the nj^2 Kalman filter predictions of the states 
+%     in the next time instant, x_pred_ij(k+1|k) using the system
+%     models corresponding to each mode sequence.
 %
 
+    % All models must have the same dimensions (this is not checked)
     nj = numel(models);  % number of models (modes)
-    % All models must be of same dimensions
     n = size(models{1}.A, 1);
     ny = size(models{1}.C, 1);
-    n_filt = nj * nj;
+    nh = nj * nj;
 
-    updx = nan(n, n_filt);
-    updy = nan(ny, n_filt);
-    updP = nan(n, n, n_filt);
-    p_yk_g_seq_Ykm1 = nan(n_filt, 1);
+    updx = nan(n, nh);
+    updy = nan(ny, nh);
+    updP = nan(n, n, nh);
+    p_yk_g_seq_Ykm1 = nan(nh, 1);
 
     % Transitions modelled
     gamma_km1 = [0 1 0 1]';
@@ -51,7 +54,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
     % Transition probabilities
     p_gamma_k_g_gamma_km1 = prob_transitions(gamma_k, gamma_km1, T);
 
-    for f = 1:n_filt
+    for f = 1:nh
 
         xkp1_est = Xkp1f_est(:,:,f);
         ykp1_est = Ykp1f_est(:,:,f);
@@ -94,7 +97,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
     p_seq_g_Yk = cond_pds / sum(cond_pds);
 
     % Create masks to merge the m^2 estimates into m modes
-    [xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(Xkp1f_est, Pkp1f, ...
+    [Xkm_est,Ykm_est,Pk,p_seq_g_Yk] = merge_estimates(Xkp1f_est, Pkp1f, ...
         Ykp1f_est, p_seq_g_Yk, gamma_k, nj)
 
     % Compute updated merged estimates
@@ -111,18 +114,18 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk,xk_est_out,yk_est_out,Pk_out] = ...
     % Compute updated semi-merged estimates
     %xk_est = sum((updx' .* p_seq_g_Yk) .* mask, 1);
     %yk_est = sum((updy' .* p_seq_g_Yk) .* mask, 1);
-    xk_est = zeros(n, nj);
-    yk_est = zeros(ny, nj);
+    Xkm_est = zeros(n, nj);
+    Ykm_est = zeros(ny, nj);
     Pk = zeros(n, n, nj);
     %xk_est_out = zeros(n, 1);
     %yk_est_out = zeros(ny, 1);
     %Pk_out = zeros(n, n);
-    for j = 1:n_filt
+    for j = 1:nh
         m_ind = gamma_k(j) + 1;
-        xk_est(:, m_ind) = xk_est(:, m_ind) + updx(:, j) .* p_seq_g_Yk(j);
-        yk_est(:, m_ind) = yk_est(:, m_ind) + updy(:, j) .* p_seq_g_Yk(j);
+        Xkm_est(:, m_ind) = Xkm_est(:, m_ind) + updx(:, j) .* p_seq_g_Yk(j);
+        Ykm_est(:, m_ind) = Ykm_est(:, m_ind) + updy(:, j) .* p_seq_g_Yk(j);
         Pk(:,:,m_ind) = Pk(:,:,m_ind) + p_seq_g_Yk(j) * (updP(:, :, j) + ...
-            (updx(:, j) - xk_est) * (updx(:, j) - xk_est)');
+            (updx(:, j) - Xkm_est) * (updx(:, j) - Xkm_est)');
     end
 
     %[xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, ...

@@ -1,182 +1,88 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverGPB2(models,Ts,P0,T,label,x0,y0, ...
-%                 p_seq_g_Yk_init)
-% 
+% obs = MKFObserverGPB2(models,P0,T,label,x0,p_seq_g_Yk_init)
 % Class for simulating the generalised pseudo-Bayes multi-
 % model Kalman filter for state estimation of Markov jump
-% linear systems. This is the filtering form of the 
-% MKFObserver, which produces posterior estimates of the 
-% states and outputs at the current time instant given the
-% data at the current time:
+% linear systems. This is the second-order version of the
+% algorithm (GPB2).
 %
-% This observer is in 'filtering form', which means it
-% produces posterior estimates of the states and outputs 
-% at the current time given the data up to the current 
-% time:
+% This is the filtering form of the observer which 
+% produces posterior estimates of the states and
+% outputs at the current time instant given the data
+% at the current time:
 %
-%  x_est(k|k) : estimate of states at time k
-%  y_est(k|k) : estimate of outputs at time k
+%   x_hat(k|k) : estimate of states at time k
+%   y_hat(k|k) : estimate of outputs at time k
 %
-% Predictions (prior estimates) of the states and outputs
-% at the next time instant given the data at the current
-% time are also calculated:
+% Prior estimates of the states at the next time
+% instant given the data at the current time are also
+% calculated:
 %
-%  x_pred(k+1|k) : estimate of states at time k + 1
-%  y_pred(k+1|k) : estimate of outputs at time k + 1
+%   x_hat(k+1|k) : estimate of states at time k + 1
 %
 % The system model is defined as:
 %
 %   x(k+1) = A(k) x(k) + B(k) u(k) + w(k)
 %     y(k) = C(k) x(k) + v(k)
 %
-% Note: Assumes no direct transmission (D = 0).
+% Note: there is no direct transmission (D = 0).
 %
 % Arguments:
-%   models : cell array of structs defining a set of 
-%       discrete-time linear system models. Each struct
-%       must have the system matrices A, B, C, and the
-%       covariance matrices Q and R as fields.
-%   Ts : Sample period.
-%   P0 : Initial covariance of the state estimation errors
+%   models : (1, nj) cell array of structs
+%       Each struct contains the parameters of a linear
+%       model of the system dynamics. These include: A, B, 
+%       and C for the system matrices, Q and R for the
+%       state error covariance and output measurement 
+%       noise covariance, and Ts for the sample period.
+%   P0 : (n, n) double
+%       Initial covariance matrix of the state estimates
 %       (same for each filter).
 %   T : Transition probabity matrix of the Markov switching
 %       process.
-%   label : string name.
-%   x0 : Initial state estimates (optional, default zeros).
-%   y0 : Initial output estimates (optional, default zeros).
+%   label : string
+%       Arbitrary name to identify the observer.
+%   x0 : (n, 1) double (optional, default zeros)
+%       Initial state estimates.
 %   p_seq_g_Yk_init : (optional, default uniform)
 %       Initial prior hypothesis probabilities at time k-1.
 %       If not specified, default is equal, i.e. uniform,
 %       probability assigned to each hypothesis.
 %
 
-classdef MKFObserverGPB2 < AbstractMKFObserver
-    properties
-        T double
-        gamma_k double {mustBeInteger, mustBeNonnegative}
-        gamma_km1 double {mustBeInteger, mustBeNonnegative}
-        p_seq_g_Yk_init double
-        p_seq_g_Ykm1 double
-        p_seq_g_Yk double
-        p_yk_g_seq_Ykm1 double
-        p_gammak_g_Ykm1 double
-        p_gamma_k_g_gamma_km1 double
-        Skf (:, :, :) double
-        Kf (:, :, :) double
-        Pkf (:, :, :) double
-        xkp1_est (:, 1) double
-        Pkp1 double
-        ykp1_est (:, 1) double
-        Xkf_est (:, 1, :) double
-        Ykf_est (:, 1, :) double
-        Pkp1f (:, :, :) double
-        Xkp1f_est (:, 1, :) double
-        Ykp1f_est (:, 1, :) double
-    end
+classdef MKFObserverGPB2 < MKFObserver
     methods
-        function obj = MKFObserverGPB2(models,Ts,P0,T,label,x0,y0, ...
+        function obj = MKFObserverGPB2(models,P0,T,label,x0, ...
                 p_seq_g_Yk_init)
-
-            type = "MKF_GPB2";
-
-            % Number of switching systems
-            nj = numel(models);
-
-            % Number of states (all models must have same structure)
-            n = size(models{1}.A, 1);
-
-            % Number of filters required (= no. of possible mode
-            % transitions from k-1 to k)
-            n_filt = nj * nj;
-
-            if nargin < 8
-                % Initial values of prior conditional probabilities at 
-                % k = -1. In absence of prior knowledge, assume all 
-                % equally likely
-                p_seq_g_Yk_init = ones(n_filt, 1) ./ double(n_filt);
-            end
-            if nargin < 6
-                x0 = zeros(n,1);
-            end
-            if nargin < 7
-                y0 = models{1}.C * x0;
-            end
-            if nargin < 5
-                label = type;
+            arguments
+                models (1, :) cell
+                P0 double
+                T double
+                label (1, 1) string = ""
+                x0 = []
+                p_seq_g_Yk_init = []
             end
 
-            % Call super-class constructor
-            obj = obj@AbstractMKFObserver(models,Ts,n_filt,label,x0,y0);
+            % Get number of system models and check their dimensions
+            nj = check_models(models);
 
-            % Initial value of state estimate error covariance
-            obj.P0 = P0;
+            % System modes to be modelled
+            r0 = (1:nj)';
 
-            % Model indicator values gamma(k-1) and gamma(k) are static
-            % and represent all possible mode transitions from the 
-            % previous time instant to the current time.
-            [obj.gamma_km1, obj.gamma_k] = mode_transitions_all(nj);
+            % Create super-class observer instance
+            obj = obj@MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init);
 
-            % Transition probabilities Pr(Gamma(k)|Gamma(k-1))
-            obj.p_gamma_k_g_gamma_km1 = prob_transitions(obj.gamma_k, ...
-                obj.gamma_km1, T);
-
-            % Save properties
-            obj.p_seq_g_Yk_init = p_seq_g_Yk_init;
-            obj.T = T;
-            obj.type = type;
+            % Store parameters
+            obj.type = "MKF_GPB1";
 
             % Initialize all variables
             obj.reset()
 
         end
-        function reset(obj)
-        % obj.reset()
-        % Initialize all variables to initial values specified
-        % when observer object was created.
-        %
-
-            % Call super-class reset method
-            reset@AbstractMKFObserver(obj)
-
-            % Prior conditional probabilities at time k = -1 
-            obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
-
-            % Empty vectors to store variables
-            % p(y(k)|Gamma(k),Y(k-1))
-            obj.p_yk_g_seq_Ykm1 = nan(obj.n_filt, 1);
-            % Pr(gamma(k)|Y(k-1))
-            obj.p_gammak_g_Ykm1 = nan(obj.n_filt, 1);
-            % Pr(Gamma(k)|Gamma(k-1)) = 1 since no transitions with AMM
-            obj.p_gamma_k_g_gamma_km1 = prob_transitions(obj.gamma_k, ...
-                obj.gamma_km1, obj.T);
-            % Pr(Gamma(k)|Y(k-1))
-            obj.p_seq_g_Ykm1 = nan(obj.n_filt, 1);
-
-            % Initialize state and output estimates
-            % Note: At initialization at time k = 0, xkp1_est and
-            % ykp1_est represent prior estimates of the states,
-            % i.e. x_est(k|k-1) and y_est(k|k-1).
-            obj.Pkp1 = obj.P0;
-            obj.xkp1_est = obj.x0;
-            obj.ykp1_est = obj.y0;
-            obj.Pkp1f = repmat(obj.P0, 1, 1, obj.n_filt);
-            obj.Xkp1f_est = repmat(obj.x0, 1, 1, obj.n_filt);
-            obj.Ykp1f_est = repmat(obj.y0, 1, 1, obj.n_filt);
-
-            % Arrays to store variables for each filter
-            obj.Skf = nan(obj.n, obj.ny, obj.n_filt);
-            obj.Kf = nan(obj.n, obj.ny, obj.n_filt);
-            obj.Pkf = nan(obj.n, obj.n, obj.n_filt);
-            obj.Xkf_est = nan(obj.n, 1, obj.n_filt);
-            obj.Ykf_est = nan(obj.ny, 1, obj.n_filt);
-
-        end
         function update(obj, yk, uk)
-        % obj.update(yk, uk)
-        % updates the multi-model Kalman filter and calculates the
-        % estimates of the states and output at the next sample
-        % time.
+        % obj.update(yk, uk, rk)
+        % updates the estimates of the switching Kalman filter
+        % and calculates the predictions of the states and output
+        % at the next sample time.
         %
         % Arguments:
         %   obs : struct containing the multi-model Kalman filter
@@ -187,30 +93,34 @@ classdef MKFObserverGPB2 < AbstractMKFObserver
         %       at the current sample time.
         %
 
+            % Check size of arguments passed
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
+            % Vector of system modes does not change
+            obj.rk = obj.r0;
+
             % Update state and output estimates based on current
-            % measurement
+            % measurement and prior predictions
             [obj.xk_est, obj.yk_est, obj.Pk, obj.p_seq_g_Yk] = ...
-                GPB2_update(obj.models, obj.T, obj.Xkp1f_est, ...
-                    obj.Ykp1f_est, obj.Pkp1f, yk, obj.p_seq_g_Yk);
+                GPB2_update(obj.models, obj.T, obj.filters.Xkp1_est, ...
+                    obj.filters.Pkp1f, yk, obj.p_seq_g_Yk);
 
             % Calculate predictions of each filter
-            % GBP2 ....
-            %  when making predictions for next:
+            % GBP2 branches the estimates from previous time
+            % instant when making predictions for next:
             %   xi_est(k+1|k) = Ai(k) * x_est(k|k-1) + Bi(k) * u(k);
             %   Pi(k+1|k) = Ai(k) * P(k|k-1) * Ai(k)' + Qi(k);
             %
-            for j = 1:obj.n_filt
-                m = obj.models{obj.gamma_k(j) + 1};
-                [obj.Xkp1f_est(:,:,j), obj.Ykp1f_est(:,:,j), ...
-                 obj.Pkp1f(:,:,j)] = kalman_predict_f(m.A, m.B, m.C, ...
-                    m.Q, obj.xk_est, obj.Pk, uk);
+            % Note: output estimates cannot be predicted because they
+            % depend on the system mode in the next time instant, which
+            % is not known.
+            for j = 1:obj.nh
+                m = obj.models{obj.rk(j)};
+                [obj.filters.Xkp1_est(:,:,j), obj.filters.Pkp1(:,:,j)] = ...
+                    kalman_predict_f(m.A, m.B, m.Q, obj.xk_est, obj.Pk, uk);
             end
 
         end
-
     end
-
 end

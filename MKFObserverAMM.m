@@ -1,6 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverAMM(models,P0,T,label,x0,p_seq_g_Yk_init)
+% obs = MKFObserverAMM(models,P0,label,x0,p_seq_g_Yk_init)
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system. 
 % 
@@ -39,8 +39,6 @@
 %   P0 : (n, n) double
 %       Initial covariance matrix of the state estimates
 %       (same for each filter).
-%   T : Transition probabity matrix of the Markov switching
-%       process.
 %   label : string
 %       Arbitrary name to identify the observer.
 %   x0 : (n, 1) double (optional, default zeros)
@@ -53,11 +51,10 @@
 
 classdef MKFObserverAMM < MKFObserver
     methods
-        function obj = MKFObserverAMM(models,P0,T,label,x0,p_seq_g_Yk_init)
+        function obj = MKFObserverAMM(models,P0,label,x0,p_seq_g_Yk_init)
             arguments
                 models (1, :) cell
                 P0 double
-                T double
                 label (1, 1) string = ""
                 x0 = []
                 p_seq_g_Yk_init = []
@@ -68,6 +65,9 @@ classdef MKFObserverAMM < MKFObserver
 
             % System modes to be modelled
             r0 = (1:nj)';
+
+            % Transition probabilities are all zero
+            T = eye(nj);
 
             % Create super-class observer instance
             obj = obj@MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init);

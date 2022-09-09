@@ -3,7 +3,8 @@
 % obs = MKFObserverGPB1(models,P0,T,label,x0,p_seq_g_Yk_init)
 % Class for simulating the generalised pseudo-Bayes multi-
 % model Kalman filter for state estimation of Markov jump
-% linear systems.
+% linear systems. This is the first-order version of the
+% algorithm (GPB1).
 %
 % This is the filtering form of the observer which 
 % produces posterior estimates of the states and
@@ -106,7 +107,7 @@ classdef MKFObserverGPB1 < MKFObserver
                     obj.filters.Pkp1, yk, obj.p_seq_g_Yk);
 
             % Calculate predictions of each filter in next time instant
-            % GBP1 merges the estimates from previous time
+            % GBP1 branches the estimates from previous time
             % instant when making predictions for next:
             %   xi_est(k+1|k) = Ai(k) * x_est(k|k-1) + Bi(k) * u(k);
             %   Pi(k+1|k) = Ai(k) * P(k|k-1) * Ai(k)' + Qi(k);

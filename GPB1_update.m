@@ -13,7 +13,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
 %    and Fei Liu, 2019.
 %
 
-    % All models are assumed to be of same dimensions
+    % All models must have the same dimensions (this is not checked)
     nj = numel(models);  % number of models (modes)
     n = size(models{1}.A, 1);
     ny = size(models{1}.C, 1);
