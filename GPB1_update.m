@@ -1,7 +1,7 @@
 function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
-    Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk)
-% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
-%     xkp1_est,ykp1_est,Pkp1,yk,p_seq_g_Yk)
+    Xkp1f_est,Pkp1f,yk,p_seq_g_Yk)
+% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T,xkp1_est, ...
+%     Pkp1,yk,p_seq_g_Yk)
 % Update equations for simulating the first-order 
 % generalised pseudo-Bayes (GPB1) multi-model Kalman 
 % filter for state estimation of Markov jump linear
@@ -26,7 +26,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
     for j = 1:nj
 
         xkp1_est = Xkp1f_est(:,:,j);
-        ykp1_est = Ykp1f_est(:,:,j);
+        ykp1_est = models{j}.C * xkp1_est;
         Pkp1 = Pkp1f(:,:,j);
 
         Sk = models{j}.C * Pkp1 * models{j}.C' + models{j}.R';

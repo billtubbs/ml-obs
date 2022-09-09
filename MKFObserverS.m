@@ -111,9 +111,9 @@ classdef MKFObserverS < MKFObserver
         end
         function update(obj, yk, uk)
         % obj.update(yk, uk)
-        % updates the multi-model Kalman filter and calculates the
-        % estimates of the states and output at the next sample
-        % time.
+        % updates the estimates of the multi-model Kalman filter
+        % and calculates the predictions of the states and output
+        % at the next sample time.
         %
         % Arguments:
         %   obs : struct containing the multi-model Kalman filter

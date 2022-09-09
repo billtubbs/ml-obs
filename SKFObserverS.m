@@ -1,4 +1,4 @@
-% Kalman Filter class definition
+% Switching Kalman Filter class definition
 %
 % obs = SKFObserverS(models,P0,seq,label,x0)
 % Class for simulating a dynamic Kalman filter

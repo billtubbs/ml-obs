@@ -201,9 +201,9 @@ classdef MKFObserver < matlab.mixin.Copyable
         end
         function update(obj, yk, uk, rk)
         % obj.update(yk, uk, rk)
-        % updates the multi-model Kalman filter and calculates the
-        % estimates of the states and output at the next sample
-        % time.
+        % updates the estimates of the multi-model Kalman filter
+        % and calculates the predictions of the states and output
+        % at the next sample time.
         %
         % Arguments:
         %   obs : struct containing the multi-model Kalman filter
@@ -238,19 +238,17 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % using posterior PDF (normal distribution) and
                 % estimates computed in previous timestep
 
-                % System mode
+                % Current system mode for this hypothesis
                 r = obj.rk(f);
-                A = obj.models{r}.A;
-                B = obj.models{r}.B;
-                C = obj.models{r}.C;
-                R = obj.models{r}.R;
-                Q = obj.models{r}.Q;
+
+                % Select system model for this mode
+                m = obj.models{r};
 
                 % Output estimate y_f_est(k/k-1)
-                yk_pred = C * obj.filters.Xkp1_est(:,:,f);
+                yk_pred = m.C * obj.filters.Xkp1_est(:,:,f);
 
                 % Estimate covariance of the output estimation error
-                cov_yk = C * obj.filters.Pkp1(:,:,f) * C' + R;
+                cov_yk = m.C * obj.filters.Pkp1(:,:,f) * m.C' + m.R;
 
                 % Make sure covariance matrix is symmetric
                 if ~isscalar(cov_yk)
@@ -265,12 +263,13 @@ classdef MKFObserver < matlab.mixin.Copyable
                 [obj.filters.Xk_est(:,:,f), obj.filters.Pk(:,:,f), ...
                     obj.filters.Yk_est(:,:,f), obj.filters.Kf(:,:,f), ...
                     obj.filters.Sk(:,:,f)] = kalman_update_f( ...
-                        C, R, obj.filters.Xkp1_est(:,:,f), ...
+                        m.C, m.R, obj.filters.Xkp1_est(:,:,f), ...
                         obj.filters.Pkp1(:,:,f), yk);
     
                 % Predict states at next time instant
                 [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
-                    kalman_predict_f(A, B, Q, obj.filters.Xk_est(:,:,f), ...
+                    kalman_predict_f(m.A, m.B, m.Q, ...
+                        obj.filters.Xk_est(:,:,f), ...
                         obj.filters.Pk(:,:,f), uk);
 
             end

@@ -80,10 +80,10 @@ classdef MKFObserverAMM < MKFObserver
 
         end
         function update(obj, yk, uk)
-        % obj.update(yk, uk)
-        % updates the multi-model Kalman filter and calculates the
-        % estimates of the states and output at the next sample
-        % time.
+        % obj.update(yk, uk, rk)
+        % updates the estimates of the multi-model Kalman filter
+        % and calculates the predictions of the states and output
+        % at the next sample time.
         %
         % Arguments:
         %   obs : struct containing the multi-model Kalman filter
@@ -101,7 +101,7 @@ classdef MKFObserverAMM < MKFObserver
             % Vector of system modes does not change
             obj.rk = obj.r0;
 
-            % Call reset method of super class object
+            % Call update method of super class object
             update@MKFObserver(obj, yk, uk, obj.rk);
 
         end

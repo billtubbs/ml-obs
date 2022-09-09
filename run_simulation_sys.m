@@ -1,6 +1,12 @@
 function [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT,x0)
 % [X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT,x0)
-% Simulate switching system
+% Simulate switching system - used by the following test 
+% scripts:
+%
+%  - test_MKFObservers_JS.m
+%  - test_MKFObservers_2x2.m
+%
+
     arguments
         models (1, :) cell
         U double
