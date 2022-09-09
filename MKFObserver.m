@@ -240,35 +240,37 @@ classdef MKFObserver < matlab.mixin.Copyable
 
                 % System mode
                 r = obj.rk(f);
-
-                % Calculate output estimate y_f_est(k/k-1)
+                A = obj.models{r}.A;
+                B = obj.models{r}.B;
                 C = obj.models{r}.C;
-                yk_est = C * obj.xkp1_est;
+                R = obj.models{r}.R;
+                Q = obj.models{r}.Q;
+
+                % Output estimate y_f_est(k/k-1)
+                yk_pred = C * obj.filters.Xkp1_est(:,:,f);
 
                 % Estimate covariance of the output estimation error
-                R = obj.models{r}.R;
-                yk_cov = C * obj.filters.Pkp1(:,:,f) * C' + R;
+                cov_yk = C * obj.filters.Pkp1(:,:,f) * C' + R;
 
                 % Make sure covariance matrix is symmetric
-                if ~isscalar(yk_cov)
-                    yk_cov = triu(yk_cov.',1) + tril(yk_cov);
+                if ~isscalar(cov_yk)
+                    cov_yk = triu(cov_yk.',1) + tril(cov_yk);
                 end
 
-                % Calculate normal probability density (multivariate)
-                obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
+                % Probability density of output prediction (assuming a
+                % multivariate normal distribution)
+                obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_pred, cov_yk);
 
                 % Update estimates based on current measurement
                 [obj.filters.Xk_est(:,:,f), obj.filters.Pk(:,:,f), ...
                     obj.filters.Yk_est(:,:,f), obj.filters.Kf(:,:,f), ...
                     obj.filters.Sk(:,:,f)] = kalman_update_f( ...
-                        obj.models{r}.C, obj.models{r}.R, ...
-                        obj.filters.Xkp1_est(:,:,f), ...
+                        C, R, obj.filters.Xkp1_est(:,:,f), ...
                         obj.filters.Pkp1(:,:,f), yk);
     
                 % Predict states at next time instant
                 [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
-                    kalman_predict_f(obj.models{r}.A, obj.models{r}.B, ...
-                        obj.models{r}.Q, obj.filters.Xk_est(:,:,f), ...
+                    kalman_predict_f(A, B, Q, obj.filters.Xk_est(:,:,f), ...
                         obj.filters.Pk(:,:,f), uk);
 
             end
