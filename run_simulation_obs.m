@@ -20,7 +20,7 @@ function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
 
     if ~isempty(f_mkf)
         obs_mkf = observers{f_mkf};
-        nh = size(obs_mkf.seq, 1);
+        nh = obs_mkf.nh;
         MKF_Xk_est = cell(nT+1, nh);
         MKF_Yk_est = cell(nT+1, nh);
         MKF_K_obs = cell(nT+1, nh);
@@ -36,7 +36,9 @@ function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
         MKF_p_seq_g_Yk = nan;
     end
 
-    seq = cell2mat(seq);  % makes it easier to index
+    if iscell(seq)
+        seq = cell2mat(seq);  % makes it easier to index
+    end
 
     for i = 1:nT+1
 
@@ -47,10 +49,7 @@ function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
         for f = 1:n_obs
             obs = observers{f};
             switch obs.type
-                case "SKF"
-                    rk = Gamma(i) + 1;
-                    obs.update(yk, uk, rk);
-                case "MKF"
+                case {"SKF", "MKF"}
                     rk = seq(:, i);
                     obs.update(yk, uk, rk);
                 otherwise

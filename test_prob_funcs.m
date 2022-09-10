@@ -58,11 +58,25 @@ assert(max(abs(prob_w_given_gamma(w, 1, sigma_w) - p2)) < 1e-12);
 assert(max(abs(prob_w(w, epsilon, sigma_w) - (epsilon(2)*p2 + epsilon(1)*p1))) < 1e-12);
 
 %% Test Markov model transition probabilities
+
+% Binary variable
 T = [0.95 0.05; 0.01 0.99];
-gamma_km1 = [0 1 0 1]';
-gamma_k = [0 0 1 1]';
+gamma_km1 = [1 2 1 2]';
+gamma_k =   [1 1 2 2]';
 assert(isequal(prob_transitions(gamma_k, gamma_km1, T), ...
     [0.95 0.01 0.05 0.99]'))
+
+% Discrete random variable with 3 modes
+% m1 : Bull market
+% m2 : Bear market
+% m3 : Stagnant market
+T = [0.975 0.02  0.005
+     0.3   0.5   0.2;
+     0.02  0.4   0.58];
+r_km1 = [1 2 3 1 2 3 1 2 3]';
+r_k   = [1 1 1 2 2 2 3 3 3]';
+assert(isequal(prob_transitions(r_k, r_km1, T), ...
+    [0.975 0.3 0.02 0.02 0.5 0.4 0.005 0.2 0.58]'))
 
 
 %% Test probability funcs - two discrete binary variables

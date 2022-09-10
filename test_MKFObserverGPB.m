@@ -134,30 +134,30 @@ KF1 = KalmanFilterF(m1,P0,'KF1',x0);
 KF2 = KalmanFilterF(m2,P0,'KF2',x0);
 
 % Define scheduled MKF filter
-seq = Gamma';
-SKF_S = SKFObserverS(models,P0,seq,"SKF_S");
+seq = Gamma' + 1;
+SKF = SKFObserverS(models,P0,seq,"SKF_S");
 
-assert(strcmp(SKF_S.type, "SKF_S"))
-assert(isequal(SKF_S.models, models))
-assert(isequal(SKF_S.P0, P0))
-assert(isequaln(SKF_S.seq, seq))
-assert(strcmp(SKF_S.label, "SKF_S"))
-assert(isequal(SKF_S.x0, zeros(n, 1)))
-assert(SKF_S.n == n)
-assert(SKF_S.nu == nu)
-assert(SKF_S.ny == ny)
-assert(SKF_S.nj == nj)
-assert(isequal(SKF_S.xkp1_est, zeros(n, 1)))
-assert(isequal(SKF_S.Pkp1, P0))
-assert(isequal(SKF_S.rk, seq(:, 1)))
-assert(isequaln(SKF_S.xk_est, nan(n, 1)))
-assert(isequaln(SKF_S.Pk, nan(n)))
-assert(isequaln(SKF_S.yk_est, nan(ny, 1)))
-assert(isequaln(SKF_S.Kf, nan(n, ny)))
-assert(isequaln(SKF_S.Sk, nan(ny)))
-assert(isequaln(SKF_S.nf, size(seq, 2)))
-assert(isequaln(SKF_S.i, 0))
-assert(isequaln(SKF_S.i_next, 1))
+assert(strcmp(SKF.type, "SKF_S"))
+assert(isequal(SKF.models, models))
+assert(isequal(SKF.P0, P0))
+assert(isequaln(SKF.seq, seq))
+assert(strcmp(SKF.label, "SKF_S"))
+assert(isequal(SKF.x0, zeros(n, 1)))
+assert(SKF.n == n)
+assert(SKF.nu == nu)
+assert(SKF.ny == ny)
+assert(SKF.nj == nj)
+assert(isequal(SKF.xkp1_est, zeros(n, 1)))
+assert(isequal(SKF.Pkp1, P0))
+assert(isequal(SKF.rk, seq(:, 1)))
+assert(isequaln(SKF.xk_est, nan(n, 1)))
+assert(isequaln(SKF.Pk, nan(n)))
+assert(isequaln(SKF.yk_est, nan(ny, 1)))
+assert(isequaln(SKF.Kf, nan(n, ny)))
+assert(isequaln(SKF.Sk, nan(ny)))
+assert(isequaln(SKF.nf, size(seq, 2)))
+assert(isequaln(SKF.i, 0))
+assert(isequaln(SKF.i_next, 1))
 
 % Transition probabilities
 T = [0.95 0.05; 0.01 0.99];
@@ -231,47 +231,39 @@ assert(isequal(MKF_GPB1.Pkp1, P0))
 assert(isequaln(MKF_GPB1.xk_est, nan(n, 1)))
 assert(isequaln(MKF_GPB1.Pk, nan(n)))
 assert(isequaln(MKF_GPB1.yk_est, nan(ny, 1)))
-assert(isequaln(MKF_GPB1.rk, [0 1]'))
+assert(isequaln(MKF_GPB1.rk, [1 2]'))
 assert(isequaln(MKF_GPB1.p_yk_g_seq_Ykm1, nan(MKF_GPB1.nh, 1)))
-assert(isequaln(MKF_GPB1.p_gammak_g_Ykm1, nan(MKF_GPB1.nh, 1)))
-assert(isequaln(MKF_GPB1.p_gamma_k_g_gamma_km1, [0.95 0.99]'))  % This doesn't make sense
+assert(isequaln(MKF_GPB1.p_seq_g_Ykm1, nan(MKF_GPB1.nh, 1)))
+assert(isequaln(MKF_GPB1.p_rk, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.p_seq_g_Ykm1, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.x0, zeros(n, 1)))
 assert(isequal(MKF_GPB1.p_seq_g_Yk_init, [0.5 0.5]'))
-assert(isequaln(MKF_GPB1.Skf, nan(n, ny, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Kf, nan(n, ny, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Pkf, nan(n, n, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Xkf_est, nan(n, 1, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Ykf_est, nan(ny, 1, MKF_GPB1.nh)));
-assert(isequal(MKF_GPB1.Pkp1f, repmat(P0, 1, 1, MKF_GPB1.nh)));
-assert(isequal(MKF_GPB1.Xkp1f_est, zeros(n, 1, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Sk, nan(n, ny, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Kf, nan(n, ny, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Pk, nan(n, n, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Xk_est, nan(n, 1, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Yk_est, nan(ny, 1, MKF_GPB1.nh)));
+assert(isequal(MKF_GPB1.filters.Pkp1, repmat(P0, 1, 1, MKF_GPB1.nh)));
+assert(isequal(MKF_GPB1.filters.Xkp1_est, zeros(n, 1, MKF_GPB1.nh)));
 
 % Redefine this time with initial conditions
-MKF_GPB1x0 = MKFObserverGPB1(models,Ts,P0,T,"MKF_GPB1x0",x0);
+MKF_GPB1x0 = MKFObserverGPB1(models,P0,T,"MKF_GPB1x0",x0);
 assert(isequaln(MKF_GPB1x0.x0, x0))
 assert(isequal(MKF_GPB1x0.xkp1_est, x0))
 assert(isequal(MKF_GPB1x0.Pkp1, P0))
-assert(isequal(MKF_GPB1x0.ykp1_est, C1 * x0))
 assert(isequal(MKF_GPB1x0.p_seq_g_Yk_init, [0.5; 0.5]))
-MKF_GPB1x0y0 = MKFObserverGPB1(models,Ts,P0,T,'MKF_AMM1x0',x0,y0);
-assert(isequaln(MKF_GPB1x0y0.x0, x0))
-assert(isequaln(MKF_GPB1x0y0.y0, y0))
-assert(isequal(MKF_GPB1x0y0.xkp1_est, x0))
-assert(isequal(MKF_GPB1x0y0.ykp1_est, y0))
 
 % Also with initial prior probability values
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF_GPB1x0y0p0 = MKFObserverGPB1(models,Ts,P0,T,"MKF_GPB1x0",x0,y0, ...
+MKF_GPB1x0p0 = MKFObserverGPB1(models,P0,T,"MKF_GPB1x0",x0, ...
     p_seq_g_Yk_init);
-assert(isequaln(MKF_GPB1x0y0p0.x0, x0))
-assert(isequaln(MKF_GPB1x0y0p0.y0, y0))
-assert(isequaln(MKF_GPB1x0y0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
-assert(isequal(MKF_GPB1x0y0p0.xkp1_est, x0))
-assert(isequal(MKF_GPB1x0y0p0.ykp1_est, y0))
-assert(isequal(MKF_GPB1x0y0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
+assert(isequaln(MKF_GPB1x0p0.x0, x0))
+assert(isequaln(MKF_GPB1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
+assert(isequal(MKF_GPB1x0p0.xkp1_est, x0))
+assert(isequal(MKF_GPB1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % Define GPB2
-MKF_GPB2 = MKFObserverGPB2(models,Ts,P0,T,"MKF_GPB2");
+MKF_GPB2 = MKFObserverGPB2(models,P0,T,"MKF_GPB2");
 
 assert(strcmp(MKF_GPB2.type, "MKF_GPB2"))
 assert(isequal(MKF_GPB2.models, models))
@@ -287,39 +279,39 @@ assert(MKF_GPB2.nj == 2)
 assert(isequal(MKF_GPB2.T, T))
 assert(isequal(MKF_GPB2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_GPB2.Pkp1, P0))
-assert(isequal(MKF_GPB2.ykp1_est, 0))
 assert(isequaln(MKF_GPB2.xk_est, nan(n, 1)))
 assert(isequaln(MKF_GPB2.Pk, nan(n)))
 assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
-assert(isequaln(MKF_GPB2.gamma_km1, [0 1 0 1]'))
-assert(isequaln(MKF_GPB2.gamma_k, [0 0 1 1]'))
-assert(isequaln(MKF_GPB2.p_yk_g_seq_Ykm1, nan(MKF_GPB2.nh, 1)))
-assert(isequaln(MKF_GPB2.p_gammak_g_Ykm1, nan(MKF_GPB2.nh, 1)))
-assert(isequaln(MKF_GPB2.p_gamma_k_g_gamma_km1, [0.95 0.01 0.05 0.99]'))
-assert(isequaln(MKF_GPB2.p_seq_g_Ykm1, nan(MKF_GPB2.nh, 1)))
-assert(isequaln(MKF_GPB2.x0, zeros(n, 1)))
-assert(isequaln(MKF_GPB2.y0, zeros(ny, 1)))
-assert(isequal(MKF_GPB2.p_seq_g_Yk_init, ones(4, 1) ./ 4))
-assert(isequaln(MKF_GPB2.Skf, nan(n, ny, MKF_GPB2.nh)));
-assert(isequaln(MKF_GPB2.Kf, nan(n, ny, MKF_GPB2.nh)));
-assert(isequaln(MKF_GPB2.Pkf, nan(n, n, MKF_GPB2.nh)));
-assert(isequaln(MKF_GPB2.Xkf_est, nan(n, 1, MKF_GPB2.nh)));
-assert(isequaln(MKF_GPB2.Ykf_est, nan(ny, 1, MKF_GPB2.nh)));
-assert(isequal(MKF_GPB2.Pkp1f, repmat(P0, 1, 1, MKF_GPB2.nh)));
-assert(isequal(MKF_GPB2.Xkp1f_est, zeros(n, 1, MKF_GPB2.nh)));
-assert(isequal(MKF_GPB2.Ykp1f_est, zeros(ny, 1, MKF_GPB2.nh)));
+% assert(isequaln(MKF_GPB2.rkm1, [0 1 0 1]'))
+% assert(isequaln(MKF_GPB2.rk, [0 0 1 1]'))
+% assert(isequal(MKF_GPB2.rk, r0))
+nh = 4;
+assert(MKF_GPB2.nh == nh)
+assert(isequal(MKF_GPB2.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
+assert(isequaln(MKF_GPB2.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_GPB2.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_GPB2.p_seq_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_GPB2.filters.Xkp1_est, zeros(n, 1, nh)))
+assert(isequaln(MKF_GPB2.filters.Pkp1, repmat(P0, 1, 1, nh)))
+assert(isequaln(MKF_GPB2.filters.Kf, nan(n, ny, nh)))
+assert(isequaln(MKF_GPB2.filters.Sk, repmat(nan(ny), 1, 1, nh)))
+assert(isequaln(MKF_GPB2.merged.Xk_est, nan(n, 1, nh)))
+assert(isequaln(MKF_GPB2.merged.Pk, nan(n, n, nh)))
+assert(isequaln(MKF_GPB2.merged.Yk_est, nan(ny, 1, nh)))
+assert(isequaln(MKF_GPB2.xk_est, nan(n, 1)))
+assert(isequaln(MKF_GPB2.Pk, nan(n)))
+assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, MKF_AMM1, MKF_GPB1, SKF};
+observers = {KF1, KF2, MKF_AMM1, MKF_GPB1, SKF, MKF_GPB2};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
 % Identify which observer to log MKF data for
-f_mkf = 4;
+f_mkf = [];
 
 % Simulate observers - without measurement noise (Y)
-[Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
-    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Y,U,observers,f_mkf);
+[Xk_est,Yk_est,DiagP,MKF_vars] = run_simulation_obs(Y,U,Gamma,seq,observers,f_mkf);
 
 % Output estimation errors
 E_obs = Y - Yk_est;
@@ -680,14 +672,14 @@ assert(isequal(MKF_GPB1x0y0.ykp1_est, y0))
 
 % Also with initial prior probability values
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF_GPB1x0y0p0 = MKFObserverGPB1(models,Ts,P0,T,"MKF_GPB1x0",x0,y0, ...
+MKF_GPB1x0p0 = MKFObserverGPB1(models,Ts,P0,T,"MKF_GPB1x0",x0,y0, ...
     p_seq_g_Yk_init);
-assert(isequaln(MKF_GPB1x0y0p0.x0, x0))
-assert(isequaln(MKF_GPB1x0y0p0.y0, y0))
-assert(isequaln(MKF_GPB1x0y0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
-assert(isequal(MKF_GPB1x0y0p0.xkp1_est, x0))
-assert(isequal(MKF_GPB1x0y0p0.ykp1_est, y0))
-assert(isequal(MKF_GPB1x0y0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
+assert(isequaln(MKF_GPB1x0p0.x0, x0))
+assert(isequaln(MKF_GPB1x0p0.y0, y0))
+assert(isequaln(MKF_GPB1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
+assert(isequal(MKF_GPB1x0p0.xkp1_est, x0))
+assert(isequal(MKF_GPB1x0p0.ykp1_est, y0))
+assert(isequal(MKF_GPB1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -904,91 +896,89 @@ assert(MKF_copy ~= MKF)  % must not be same object
 MKF.label = "New name";
 assert(~isequal(MKF_copy.label, "New name"))
 
-%END
 
-
-function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
-    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf)
-% Simulate observers
-
-    nT = size(Ym, 1) - 1;
-    ny = size(Ym, 2);
-    n_obs = numel(observers);
-    n = size(observers{1}.xkp1_est, 1);
-
-    obs_mkf = observers{f_mkf};
-    n_filters = obs_mkf.nh;
-
-    Xk_est = zeros(nT+1, n*n_obs);
-    Yk_est = zeros(nT+1, ny*n_obs);
-    Xkp1_est = zeros(nT+1, n*n_obs);
-    Ykp1_est = zeros(nT+1, ny*n_obs);
-    DiagPk = nan(nT+1, n*n_obs);
-    DiagPkp1 = nan(nT+1, n*n_obs);
-    MKF_K_obs = cell(nT+1, n*n_filters);
-    MKF_trP_obs = nan(nT+1, n_filters);
-    MKF_i = nan(nT+1, 2);
-    MKF_p_seq_g_Yk = nan(nT+1, n_filters);
-
-    for i = 1:nT+1
-
-        yk = Ym(i, :)';
-        uk = U(i, :)';
-
-        % Arrays to store results
-        xk_est = nan(1, n*n_obs);
-        yk_est = nan(1, ny*n_obs);
-        xkp1_est = nan(1, n*n_obs);
-        ykp1_est = nan(1, ny*n_obs);
-        diagPk = nan(1, n*n_obs);
-        diagPkp1 = nan(1, n*n_obs);
-
-        % Update observers
-        for f = 1:n_obs
-            obs = observers{f};
-            obs.update(yk, uk);
-            if f == f_mkf
-                if isprop(obs, "i")
-                    MKF_i(i, :) = obs.i;
-                else
-                    MKF_i(i, :) = nan;
-                end
-                MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-                for j = 1:obs.nh
-                    switch obs.type
-                        case {"KF", "SKF", "MKF"}
-                            % Only works for ny = 1
-                            %MKF_K_obs{i, j} = obs.filters{j}.K';
-                            MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
-                        case {"KFF", "SKFF"}
-                            %MKF_K_obs{i, j} = obs.filters{j}.Kf';
-                            MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
-                        case {"MKF_AMM", "MKF_GPB1"}
-                            MKF_trP_obs(i, j) = trace(obs.Pkf(:, :, j));
-                    end
-                end
-                switch obs.type
-                end
-            end
-            if isprop(obs,'xk_est')
-                xk_est(1, (f-1)*n+1:f*n) = obs.xk_est';
-                yk_est(1, (f-1)*ny+1:f*ny) = obs.yk_est';
-                diagPk(1, (f-1)*n+1:f*n) = diag(obs.Pk)';
-            end
-            if isprop(obs,'xkp1_est')
-                xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
-                ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
-                diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.Pkp1)';
-            end
-        end
-
-        % Record observer estimates
-        Xk_est(i, :) = xk_est;
-        Yk_est(i, :) = yk_est;
-        Xkp1_est(i, :) = xkp1_est;
-        Ykp1_est(i, :) = ykp1_est;
-        DiagPk(i, :) = diagPk;
-        DiagPkp1(i, :) = diagPkp1;
-
-    end
-end
+% function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
+%     MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,observers,f_mkf)
+% % Simulate observers
+% 
+%     nT = size(Ym, 1) - 1;
+%     ny = size(Ym, 2);
+%     n_obs = numel(observers);
+%     n = size(observers{1}.xkp1_est, 1);
+% 
+%     obs_mkf = observers{f_mkf};
+%     n_filters = obs_mkf.nh;
+% 
+%     Xk_est = zeros(nT+1, n*n_obs);
+%     Yk_est = zeros(nT+1, ny*n_obs);
+%     Xkp1_est = zeros(nT+1, n*n_obs);
+%     Ykp1_est = zeros(nT+1, ny*n_obs);
+%     DiagPk = nan(nT+1, n*n_obs);
+%     DiagPkp1 = nan(nT+1, n*n_obs);
+%     MKF_K_obs = cell(nT+1, n*n_filters);
+%     MKF_trP_obs = nan(nT+1, n_filters);
+%     MKF_i = nan(nT+1, 2);
+%     MKF_p_seq_g_Yk = nan(nT+1, n_filters);
+% 
+%     for i = 1:nT+1
+% 
+%         yk = Ym(i, :)';
+%         uk = U(i, :)';
+% 
+%         % Arrays to store results
+%         xk_est = nan(1, n*n_obs);
+%         yk_est = nan(1, ny*n_obs);
+%         xkp1_est = nan(1, n*n_obs);
+%         ykp1_est = nan(1, ny*n_obs);
+%         diagPk = nan(1, n*n_obs);
+%         diagPkp1 = nan(1, n*n_obs);
+% 
+%         % Update observers
+%         for f = 1:n_obs
+%             obs = observers{f};
+%             obs.update(yk, uk);
+%             if f == f_mkf
+%                 if isprop(obs, "i")
+%                     MKF_i(i, :) = obs.i;
+%                 else
+%                     MKF_i(i, :) = nan;
+%                 end
+%                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
+%                 for j = 1:obs.nh
+%                     switch obs.type
+%                         case {"KF", "SKF", "MKF"}
+%                             % Only works for ny = 1
+%                             %MKF_K_obs{i, j} = obs.filters{j}.K';
+%                             MKF_trP_obs(i, j) = trace(obs.filters{j}.P);
+%                         case {"KFF", "SKFF"}
+%                             %MKF_K_obs{i, j} = obs.filters{j}.Kf';
+%                             MKF_trP_obs(i, j) = trace(obs.filters{j}.Pkp1);
+%                         case {"MKF_AMM", "MKF_GPB1"}
+%                             MKF_trP_obs(i, j) = trace(obs.Pkf(:, :, j));
+%                     end
+%                 end
+%                 switch obs.type
+%                 end
+%             end
+%             if isprop(obs,'xk_est')
+%                 xk_est(1, (f-1)*n+1:f*n) = obs.xk_est';
+%                 yk_est(1, (f-1)*ny+1:f*ny) = obs.yk_est';
+%                 diagPk(1, (f-1)*n+1:f*n) = diag(obs.Pk)';
+%             end
+%             if isprop(obs,'xkp1_est')
+%                 xkp1_est(1, (f-1)*n+1:f*n) = obs.xkp1_est';
+%                 ykp1_est(1, (f-1)*ny+1:f*ny) = obs.ykp1_est';
+%                 diagPkp1(1, (f-1)*n+1:f*n) = diag(obs.Pkp1)';
+%             end
+%         end
+% 
+%         % Record observer estimates
+%         Xk_est(i, :) = xk_est;
+%         Yk_est(i, :) = yk_est;
+%         Xkp1_est(i, :) = xkp1_est;
+%         Ykp1_est(i, :) = ykp1_est;
+%         DiagPk(i, :) = diagPk;
+%         DiagPkp1(i, :) = diagPkp1;
+% 
+%     end
+% end

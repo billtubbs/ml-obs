@@ -1,7 +1,7 @@
-function [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
+function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk] = ...
     GPB2_update(models,T,Xkp1f_est,Pkp1f,yk,p_seq_g_Yk)
-% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB2_update(models,T, ...
-%     xkp1_est,ykp1_est,Pkp1,yk,p_seq_g_Yk)
+% [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
+%     GPB2_update(models,T,Xkp1f_est,Pkp1f,yk,p_seq_g_Yk)
 % Update equations for simulating the second-order 
 % generalised pseudo-Bayes (GPB2) multi-model Kalman 
 % filter for state estimation of Markov jump linear
@@ -48,20 +48,22 @@ function [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
     p_yk_g_seq_Ykm1 = nan(nh, 1);
 
     % Transitions modelled
-    gamma_km1 = [0 1 0 1]';
-    gamma_k = [0 0 1 1]';
+    rkm1 = [1 2 1 2]';
+    rk = [1 1 2 2]';
 
     % Transition probabilities
-    p_gamma_k_g_gamma_km1 = prob_transitions(gamma_k, gamma_km1, T);
+    p_rk_g_rkm1 = prob_transitions(rk, rkm1, T);
 
     for f = 1:nh
 
         xkp1_est = Xkp1f_est(:,:,f);
-        ykp1_est = Ykp1f_est(:,:,f);
         Pkp1 = Pkp1f(:,:,f);
 
         % Select model according to sequence
-        m = models{gamma_k(f) + 1};  % TODO: Change to gamma_km1 later
+        m = models{rk(f)};
+
+        % Output estimate
+        ykp1_est = m.C * xkp1_est;
 
         % Error covariance of output estimate
         Sk = m.C * Pkp1 * m.C' + m.R';
@@ -82,13 +84,13 @@ function [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
 
     end
 
-    % Split prior probabilities from m modes to m^2
-    p_seq_g_Yk = p_seq_g_Yk(gamma_km1 + 1);
+    % Split prior probabilities from nj modes to nj^2
+    p_seq_g_Yk = p_seq_g_Yk(rkm1 + 1);
 
     % Compute Pr(Gamma(k)|Y(k-1)) in current timestep from
     % previous estimate (Pr(Gamma(k-1)|Y(k-1))) and transition
     % probabilities
-    p_seq_g_Ykm1 = p_gamma_k_g_gamma_km1 .* p_seq_g_Yk;
+    p_seq_g_Ykm1 = p_rk_g_rkm1 .* p_seq_g_Yk;
 
     % Compute likelihoods of models given Y(k)
     cond_pds = p_yk_g_seq_Ykm1 .* p_seq_g_Ykm1;
@@ -96,9 +98,9 @@ function [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
     % Mixing probabilities
     p_seq_g_Yk = cond_pds / sum(cond_pds);
 
-    % Create masks to merge the m^2 estimates into m modes
-    [Xkm_est,Ykm_est,Pk,p_seq_g_Yk] = merge_estimates(Xkp1f_est, Pkp1f, ...
-        Ykp1f_est, p_seq_g_Yk, gamma_k, nj)
+    % Merge the nj^2 estimates into nj modes
+    [Xk_est_m,Pk_m,p_seq_g_Yk] = merge_estimates(Xkp1f_est, Pkp1f, ...
+        p_seq_g_Yk, rk, nj);
 
     % Compute updated merged estimates
     % xk_est_out = updx * p_seq_g_Yk;
@@ -111,17 +113,11 @@ function [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
 %             (updx(:,i) - xk_est_out) * (updx(:,i) - xk_est_out)');
 %     end
 
-    % Compute updated semi-merged estimates
-    %xk_est = sum((updx' .* p_seq_g_Yk) .* mask, 1);
-    %yk_est = sum((updy' .* p_seq_g_Yk) .* mask, 1);
-    Xkm_est = zeros(n, nj);
-    Ykm_est = zeros(ny, nj);
-    Pk = zeros(n, n, nj);
-    %xk_est_out = zeros(n, 1);
-    %yk_est_out = zeros(ny, 1);
-    %Pk_out = zeros(n, n);
+    xk_est = zeros(n, 1);
+    yk_est = zeros(ny, 1);
+    Pk = zeros(n, n);
     for j = 1:nh
-        m_ind = gamma_k(j) + 1;
+        m_ind = rk(j);
         Xkm_est(:, m_ind) = Xkm_est(:, m_ind) + updx(:, j) .* p_seq_g_Yk(j);
         Ykm_est(:, m_ind) = Ykm_est(:, m_ind) + updy(:, j) .* p_seq_g_Yk(j);
         Pk(:,:,m_ind) = Pk(:,:,m_ind) + p_seq_g_Yk(j) * (updP(:, :, j) + ...
@@ -129,6 +125,6 @@ function [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
     end
 
     %[xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, ...
-    %gamma_k, nj);
+    %r_k, nj);
 
 end

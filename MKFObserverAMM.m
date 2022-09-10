@@ -101,7 +101,7 @@ classdef MKFObserverAMM < MKFObserver
             % Vector of system modes does not change
             obj.rk = obj.r0;
 
-            % Call update method of super class object
+            % Call update method of super class
             update@MKFObserver(obj, yk, uk, obj.rk);
 
         end

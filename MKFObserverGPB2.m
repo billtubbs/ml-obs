@@ -50,6 +50,9 @@
 %
 
 classdef MKFObserverGPB2 < MKFObserver
+    properties
+        merged struct
+    end
     methods
         function obj = MKFObserverGPB2(models,P0,T,label,x0, ...
                 p_seq_g_Yk_init)
@@ -66,16 +69,39 @@ classdef MKFObserverGPB2 < MKFObserver
             nj = check_models(models);
 
             % System modes to be modelled
-            r0 = (1:nj)';
+            r0 = reshape(repmat(1:nj, nj, 1), [], 1);
+
+            % Split prior probabilities into nj^2 copies
+            p_seq_g_Yk_init = reshape( ...
+                repmat(p_seq_g_Yk_init ./ nj, nj, 1), [], 1);
 
             % Create super-class observer instance
             obj = obj@MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init);
 
             % Store parameters
-            obj.type = "MKF_GPB1";
+            obj.type = "MKF_GPB2";
 
             % Initialize all variables
             obj.reset()
+
+        end
+        function reset(obj)
+        % obj.reset()
+        % Initialize all variables to initial values specified
+        % when observer object was created.
+        %
+
+            % Call reset method of super class
+            reset@MKFObserver(obj);
+
+            % Initialize estimate covariance
+            obj.Pkp1 = obj.P0;
+
+            % Create struct to store merged estimates
+            obj.merged = struct();
+            obj.merged.Xk_est = nan(obj.n, 1, obj.nh);
+            obj.merged.Pk = nan(obj.n, obj.n, obj.nh);
+            obj.merged.Yk_est = nan(obj.ny, 1, obj.nh);
 
         end
         function update(obj, yk, uk)
@@ -97,14 +123,15 @@ classdef MKFObserverGPB2 < MKFObserver
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-            % Vector of system modes does not change
-            obj.rk = obj.r0;
+            % Vector of current system modes
+            %obj.rk = obj.r0;  % not used
 
             % Update state and output estimates based on current
             % measurement and prior predictions
-            [obj.xk_est, obj.yk_est, obj.Pk, obj.p_seq_g_Yk] = ...
+            [obj.xk_est, obj.yk_est, obj.Pk, obj.merged.Xk_est, ...
+                obj.merged.Yk_est, obj.merged.Pk, obj.p_seq_g_Yk] = ...
                 GPB2_update(obj.models, obj.T, obj.filters.Xkp1_est, ...
-                    obj.filters.Pkp1f, yk, obj.p_seq_g_Yk);
+                obj.filters.Pkp1, yk, obj.p_seq_g_Yk);
 
             % Calculate predictions of each filter
             % GBP2 branches the estimates from previous time
@@ -112,9 +139,6 @@ classdef MKFObserverGPB2 < MKFObserver
             %   xi_est(k+1|k) = Ai(k) * x_est(k|k-1) + Bi(k) * u(k);
             %   Pi(k+1|k) = Ai(k) * P(k|k-1) * Ai(k)' + Qi(k);
             %
-            % Note: output estimates cannot be predicted because they
-            % depend on the system mode in the next time instant, which
-            % is not known.
             for j = 1:obj.nh
                 m = obj.models{obj.rk(j)};
                 [obj.filters.Xkp1_est(:,:,j), obj.filters.Pkp1(:,:,j)] = ...
