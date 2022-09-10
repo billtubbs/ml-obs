@@ -49,7 +49,10 @@ function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
         for f = 1:n_obs
             obs = observers{f};
             switch obs.type
-                case {"SKF", "MKF"}
+                case "SKF"
+                    rk = Gamma(i) + 1;
+                    obs.update(yk, uk, rk);
+                case "MKF"
                     rk = seq(:, i);
                     obs.update(yk, uk, rk);
                 otherwise

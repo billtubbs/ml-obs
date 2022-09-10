@@ -291,14 +291,20 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Compute multi-model observer state and output estimates
             % and estimated state error covariance using the weighted-
             % averages based on the conditional probabilities.
-            weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
-            obj.xk_est = sum(weights .* obj.filters.Xk_est, 3);
-            assert(~any(isnan(obj.xk_est)))
-            Xk_devs = obj.xk_est - obj.filters.Xk_est;
-            obj.Pk = sum(weights .* (obj.filters.Pk + ...
-                pagemtimes(Xk_devs, pagetranspose(Xk_devs))), 3);
-            obj.yk_est = sum(weights .* obj.filters.Yk_est, 3);
+%             weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
+%             obj.xk_est = sum(weights .* obj.filters.Xk_est, 3);
+%             assert(~any(isnan(obj.xk_est)))
+%             Xk_devs = obj.xk_est - obj.filters.Xk_est;
+%             obj.Pk = sum(weights .* (obj.filters.Pk + ...
+%                 pagemtimes(Xk_devs, pagetranspose(Xk_devs))), 3);
+%             obj.yk_est = sum(weights .* obj.filters.Yk_est, 3);
 
+            [obj.xk_est, obj.Pk, obj.yk_est, ~] = merge_estimates( ...
+                obj.filters.Xk_est, obj.filters.Pk, obj.filters.Yk_est, ...
+                obj.p_seq_g_Yk);
+
+            % TODO: Do we need an xkp1 estimate?
+            weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
             obj.xkp1_est = sum(weights .* obj.filters.Xkp1_est, 3);
             assert(~any(isnan(obj.xkp1_est)))
             Xkp1_devs = obj.xkp1_est - obj.filters.Xkp1_est;

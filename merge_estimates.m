@@ -1,4 +1,4 @@
-function [Xk_m, Pk_m, p_seq_g_Yk_m] = merge_estimates(Xk, Pk, ...
+function [Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = merge_estimates(Xk, Pk, Yk, ...
     p_seq_g_Yk, rk, nj)
 % [Xk_m, Pk_m, p_seq_g_Yk_m] = merge_estimates(Xk, Pk, ...
 %     p_seq_g_Yk, rk, nj)
@@ -11,10 +11,11 @@ function [Xk_m, Pk_m, p_seq_g_Yk_m] = merge_estimates(Xk, Pk, ...
 % Example:
 % >> Xk = cat(3, 1, 2, 2, 3);
 % >> Pk = cat(3, 10, 11, 12, 13);
+% >> Yk = cat(3, 2, 4, 4, 6);
 % >> p_seq_g_Yk = [0.8 0.2 0.2 0.8]';
 % >> rk = [1 1 2 2]'; nj = 2;
-% >> [Xk_m,Pk_m,p_seq_g_Yk_m] = ...
-%     merge_estimates(xk_est,Pk,p_seq_g_Yk,rk, nj)
+% >> [Xk_m,Pk_m,Yk_m,p_seq_g_Yk_m] = ...
+%     merge_estimates(Xk,Pk,Yk,p_seq_g_Yk,rk, nj)
 % 
 % Xk_m(:,:,1) =
 % 
@@ -36,6 +37,16 @@ function [Xk_m, Pk_m, p_seq_g_Yk_m] = merge_estimates(Xk, Pk, ...
 %    12.9600
 % 
 % 
+% Yk_m(:,:,1) =
+% 
+%     2.4000
+% 
+% 
+% Yk_m(:,:,2) =
+% 
+%     5.6000
+% 
+% 
 % p_seq_g_Yk_m =
 % 
 %      1
@@ -45,25 +56,54 @@ function [Xk_m, Pk_m, p_seq_g_Yk_m] = merge_estimates(Xk, Pk, ...
     % Number of states
     n = size(Xk, 1);
 
+    % Number of Outputs
+    ny = size(Yk, 1);
+
     % Number of hypothesis
-    nh = size(rk, 1);
+    nh = size(p_seq_g_Yk, 1);
 
-    % Create mask to allow vectorized merging calculation
-    mask = false(1, 1, nh, nj);
-    mask(sub2ind(size(mask), ones(nh, 1), ones(nh, 1), (1:nh)', rk)) = true;
-    
-    % Normalisation constants
-    C = sum(reshape(p_seq_g_Yk, 1, 1, nh) .* mask, 3);
-    
-    % Merge state estimates
-    Xk_m = reshape(sum(Xk .* reshape(p_seq_g_Yk, 1, 1, nh) .* mask, 3) ./ C, n, 1, []);
-    
-    % Merge state estimation error covariance
-    X_diffs = Xk_m(:, :, rk) - Xk;
-    to_add = pagemtimes(X_diffs, pagetranspose(X_diffs));
-    Pk_m = reshape(sum((Pk + to_add) .* reshape(p_seq_g_Yk, 1, 1, nh) .* mask, 3) ./ C, n, n, []);
+    % Weighting to apply to hypotheses
+    weights = reshape(p_seq_g_Yk, 1, 1, nh);
 
-    % Merged probabilities
-    p_seq_g_Yk_m = reshape(C, [nj 1]);
+    if nargin == 4
+        % If p_seq_g_Yk, rk, and nj are not provided, do
+        % a complete merge to one set of estimates
+
+        % Merge state and output estimates
+        Xk_m = sum(weights .* Xk, 3);
+        Yk_m = sum(weights .* Yk, 3);
+
+        % Merge state estimation error covariance
+        X_diffs = Xk_m - Xk;
+        Pk_m = sum(weights .* (Pk + ...
+            pagemtimes(X_diffs, pagetranspose(X_diffs))), 3);
+
+        % Merged probabilities (sum to 1)
+        p_seq_g_Yk_m = 1;
+
+    else
+
+        % Partial merge based on index vector rk
+
+        % Create mask to allow vectorized merging calculation
+        mask = false(1, 1, nh, nj);
+        mask(sub2ind(size(mask), ones(nh, 1), ones(nh, 1), (1:nh)', rk)) = true;
+
+        % Normalisation constants
+        C = sum(weights .* mask, 3);
+
+        % Merge state and output estimates
+        Xk_m = reshape(sum(weights .* Xk .* mask, 3) ./ C, n, 1, []);
+        Yk_m = reshape(sum(weights .* Yk .* mask, 3) ./ C, ny, 1, []);
+
+        % Merge state estimation error covariance
+        X_diffs = Xk_m(:, :, rk) - Xk;
+        to_add = pagemtimes(X_diffs, pagetranspose(X_diffs));
+        Pk_m = reshape(sum(weights .* (Pk + to_add) .* mask, 3) ./ C, n, n, []);
+
+        % Merged probabilities
+        p_seq_g_Yk_m = reshape(C, [nj 1]);
+
+    end
 
 end

@@ -41,62 +41,73 @@ assert(isequal(p_gamma_k_g_rkm1, T(idx)))
 % Simple tests with number of states, n = 1
 % 1
 Xk = cat(3, 1, 1, 2, 2, 5);
+Yk = cat(3, 2, 2, 4, 4, 10);
 Pk = cat(3, 10, 10, 20, 20, 50);
 p_seq_g_Yk = ones(5, 1) / 5;
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk);
+
+% Partial merge based on merge index
 rk = [1 1 2 2 3]';
 nj = 3;
-[Xk_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(Xk, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 assert(all(abs(Xk_m - cat(3, 1, 2, 5)) < 1e-15))
 assert(all(abs(Pk_m - cat(3, 10, 20, 50)) < 1e-15))
+assert(all(abs(Yk_m - cat(3, 2, 4, 10)) < 1e-15))
 assert(isequal(p_seq_g_Yk_m, [0.4 0.4 0.2]'))
 
 % 2
 rk = [1 1 2 2 2]';
 nj = 2;
-[Xk_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(Xk, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 assert(all(abs(Xk_m - cat(3, 1, 3)) < 1e-15))
 assert(all(abs(Pk_m - cat(3, 10, 32)) < 1e-15))
+assert(all(abs(Yk_m - cat(3, 2, 6)) < 1e-15))
 assert(all(abs(p_seq_g_Yk_m - [0.4 0.6]') < 1e-15))
 
 % 3
 rk = [2 2 1 1 1]';
 nj = 2;
-[Xk_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(Xk, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 assert(all(abs(Xk_m - cat(3, 3, 1)) < 1e-15))
 assert(all(abs(Pk_m - cat(3, 32, 10)) < 1e-15))
+assert(all(abs(Yk_m - cat(3, 6, 2)) < 1e-15))
 assert(all(abs(p_seq_g_Yk_m - [0.6 0.4]') < 1e-15))
 
 % 4
-p_seq_g_Yk = [2 2 1 1 0.4] / 6.4;
+p_seq_g_Yk = [2 2 1 1 0.4]' / 6.4;
 rk = [1 1 2 2 3]';
 nj = 3;
-[Xk_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(Xk, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 assert(all(abs(Xk_m - cat(3, 1, 2, 5)) < 1e-15))
 assert(all(abs(Pk_m - cat(3, 10, 20, 50)) < 1e-15))
+assert(all(abs(Yk_m - cat(3, 2, 4, 10)) < 1e-15))
 assert(isequal(p_seq_g_Yk_m, [0.625 0.3125 0.0625]'))
 
 % 5
 p_seq_g_Yk = [0.2 0.2 0.2 0.2 0.2]';
 rk = [1 2 2 3 3]';
 nj = 3;
-[Xk_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(Xk, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 assert(all(abs(Xk_m - cat(3, 1, 1.5, 3.5)) < 1e-15))
 assert(all(abs(Pk_m - cat(3, 10, 15.25, 37.25)) < 2e-15))
+assert(all(abs(Yk_m - cat(3, 2, 3, 7)) < 1e-15))
 assert(isequal(p_seq_g_Yk_m, [0.2 0.4 0.4]'))
 
 % 6
 p_seq_g_Yk = [1 1 1 1 1]' / 5;
 rk = [1 1 1 1 1]';
 nj = 1;
-[Xk_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(Xk, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 assert(Xk_m == mean(Xk))
 assert(abs(Pk_m - 24.16) < 1e-12)
+assert(Yk_m == mean(Yk))
 assert(p_seq_g_Yk_m == 1)
 
 % With n = 2
@@ -113,26 +124,28 @@ p_seq_g_Yk = [0.3 0.2 0.1 0.4]';
 nj = 2;
 
 % 1. Single state and output
-xk_est = cat(3, 1.1, 1.2, 1.4, 5);
-Pk = cat(3,100,110,120,130);
+Xk = cat(3, 1.1, 1.2, 1.4, 5);
+Pk = cat(3, 100, 110, 120, 130);
+Yk = cat(3, -2.2, -2.4, -2.8, -10);
 p_seq_g_Yk = [0.2 0.2 0.5 0.1]';
 rk = [1 1 2 2]';
 nj = 2;
 
 % Function to test
-[xk_est_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(xk_est, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 
 % Test outputs
-xk_est_m_test = cat(3, (0.2*1.1+0.2*1.2)/0.4, (0.5*1.4+0.1*5)/0.6);
-assert(isequal(xk_est_m, xk_est_m_test))
+Xk_m_test = cat(3, (0.2*1.1+0.2*1.2)/0.4, (0.5*1.4+0.1*5)/0.6);
+assert(isequal(Xk_m, Xk_m_test))
+assert(isequal(Yk_m, -2 * Xk_m_test))
 Pk_m_test = cat(3, 0, 0);
 Pk_m_test(:,:,1) = ...
-      p_seq_g_Yk(1) .* (Pk(:,:,1) + (1.1 - xk_est_m(:,:,1)).^2) / 0.4 ...
-    + p_seq_g_Yk(2) .* (Pk(:,:,2) + (1.2 - xk_est_m(:,:,1)).^2) / 0.4;
+      p_seq_g_Yk(1) .* (Pk(:,:,1) + (1.1 - Xk_m(:,:,1)).^2) / 0.4 ...
+    + p_seq_g_Yk(2) .* (Pk(:,:,2) + (1.2 - Xk_m(:,:,1)).^2) / 0.4;
 Pk_m_test(:,:,2) = ...
-      p_seq_g_Yk(3) .* (Pk(:,:,3) + (1.4 - xk_est_m(:,:,2)).^2) / 0.6 ...
-    + p_seq_g_Yk(4) .* (Pk(:,:,4) + (5.0 - xk_est_m(:,:,2)).^2) / 0.6;
+      p_seq_g_Yk(3) .* (Pk(:,:,3) + (1.4 - Xk_m(:,:,2)).^2) / 0.6 ...
+    + p_seq_g_Yk(4) .* (Pk(:,:,4) + (5.0 - Xk_m(:,:,2)).^2) / 0.6;
 assert(isequal(Pk_m, Pk_m_test))
 assert(isequal(p_seq_g_Yk_m, [0.4 0.6]'))
 
@@ -150,8 +163,8 @@ rk = [1 1 2 2]';
 nj = 2;
 
 % Function to test
-[Xk_m, Pk_m, p_seq_g_Yk_m] = ...
-    merge_estimates(Xk, Pk, p_seq_g_Yk, rk, nj);
+[Xk_m, Pk_m, Yk_m, p_seq_g_Yk_m] = ...
+    merge_estimates(Xk, Pk, Yk, p_seq_g_Yk, rk, nj);
 
 % Compare with this code adapted from GPB2_estimation.m
 Mix_u = reshape(p_seq_g_Yk, nj, nj);
