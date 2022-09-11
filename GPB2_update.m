@@ -1,4 +1,4 @@
-function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk] = ...
+function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk_m] = ...
     GPB2_update(models,T,Xkp1f_est,Pkp1f,yk,p_seq_g_Yk)
 % [xk_est,yk_est,Pk,Xkm_est,Ykm_est,Pkm,p_seq_g_Yk] = ...
 %     GPB2_update(models,T,Xkp1f_est,Pkp1f,yk,p_seq_g_Yk)
@@ -42,9 +42,9 @@ function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk] = ...
     ny = size(models{1}.C, 1);
     nh = nj * nj;
 
-    updx = nan(n, nh);
-    updy = nan(ny, nh);
-    updP = nan(n, n, nh);
+    Xkf_est = nan(n, 1, nh);
+    Ykf_est = nan(ny, 1, nh);
+    Pkf = nan(n, n, nh);
     p_yk_g_seq_Ykm1 = nan(nh, 1);
 
     % Transitions modelled
@@ -72,9 +72,9 @@ function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk] = ...
         Kf = Pkp1 * m.C' / Sk;
 
         % Update Kalman filters
-        updx(:,f) = xkp1_est + Kf * (yk - ykp1_est);
-        updy(:,f) = m.C * updx(:,f);
-        updP(:,:,f) = Pkp1 - Kf * m.C * Pkp1;
+        Xkf_est(:,:,f) = xkp1_est + Kf * (yk - ykp1_est);
+        Ykf_est(:,:,f) = m.C * Xkf_est(:,:,f);
+        Pkf(:,:,f) = Pkp1 - Kf * m.C * Pkp1;
 
         if ~isscalar(Sk)
             % Make covariance matrix symmetric
@@ -85,7 +85,7 @@ function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk] = ...
     end
 
     % Split prior probabilities from nj modes to nj^2
-    p_seq_g_Yk = p_seq_g_Yk(rkm1 + 1);
+    p_seq_g_Yk = p_seq_g_Yk(rkm1);
 
     % Compute Pr(Gamma(k)|Y(k-1)) in current timestep from
     % previous estimate (Pr(Gamma(k-1)|Y(k-1))) and transition
@@ -99,32 +99,26 @@ function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk] = ...
     p_seq_g_Yk = cond_pds / sum(cond_pds);
 
     % Merge the nj^2 estimates into nj modes
-    [Xk_est_m, Pk_m, Yk_est_m, p_seq_g_Yk] = merge_estimates(Xkp1f_est, Pkp1f, ...
-        p_seq_g_Yk, rk, nj);
+    [Xk_est_m, Pk_m, Yk_est_m, p_seq_g_Yk_m] = ...
+        merge_estimates( ...
+            Xkf_est, ...
+            Pkf, ...
+            Ykf_est, ...
+            p_seq_g_Yk, ...
+            rk, ...
+            nj ...
+        );
 
-    % Compute updated merged estimates
-    % xk_est_out = updx * p_seq_g_Yk;
-    % Above is equivalent to:
-    %   sum(updx .* repmat(p_seq_g_Yk',n,1), 2)
-%     yk_est_out = updy * p_seq_g_Yk;
-%     Pk_out = zeros(n,n);
-%     for i = 1:nj
-%         Pk_out = Pk_out + p_seq_g_Yk(i) * (updP(:,:,i) + ...
-%             (updx(:,i) - xk_est_out) * (updx(:,i) - xk_est_out)');
-%     end
-
-    xk_est = zeros(n, 1);
-    yk_est = zeros(ny, 1);
-    Pk = zeros(n, n);
-    for j = 1:nh
-        m_ind = rk(j);
-        Xkm_est(:, m_ind) = Xkm_est(:, m_ind) + updx(:, j) .* p_seq_g_Yk(j);
-        Ykm_est(:, m_ind) = Ykm_est(:, m_ind) + updy(:, j) .* p_seq_g_Yk(j);
-        Pk(:,:,m_ind) = Pk(:,:,m_ind) + p_seq_g_Yk(j) * (updP(:, :, j) + ...
-            (updx(:, j) - Xkm_est) * (updx(:, j) - Xkm_est)');
-    end
-
-    %[xk_est,yk_est,Pk,p_seq_g_Yk] = merge_estimates(xk_est, Pk, yk_est, p_seq_g_Yk, ...
-    %r_k, nj);
+        % Compute merged state and output estimates and 
+        % estimated state error covariance using the 
+        % weighted-averages based on the conditional 
+        % probabilities.
+        [xk_est, Pk, yk_est, ~] = ...
+            merge_estimates( ...
+                Xkf_est, ...
+                Pkf, ...
+                Ykf_est, ...
+                p_seq_g_Yk ...
+            );
 
 end

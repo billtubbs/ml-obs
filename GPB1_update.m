@@ -26,19 +26,29 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
     for j = 1:nj
 
         xkp1_est = Xkp1f_est(:,:,j);
-        ykp1_est = models{j}.C * xkp1_est;
         Pkp1 = Pkp1f(:,:,j);
 
-        Sk = models{j}.C * Pkp1 * models{j}.C' + models{j}.R';
-        Kf = Pkp1 * models{j}.C' / Sk;
+        % Select model
+        m = models{j};
+
+        % Output estimate
+        ykp1_est = m.C * xkp1_est;
+
+        % Error covariance of output estimate
+        Sk = m.C * Pkp1 * m.C' + m.R';
+
+        % KF correction gain
+        Kf = Pkp1 * m.C' / Sk;
+
+        updx(:,j) = xkp1_est + Kf * (yk - ykp1_est);
+        updy(:,j) = m.C * updx(:,j);
+        updP(:,:,j) = Pkp1 - Kf * m.C * Pkp1;
+
         if ~isscalar(Sk)
             % Make sure covariance matrix is symmetric
             Sk = triu(Sk.',1) + tril(Sk);
         end
         p_yk_g_seq_Ykm1(j) = mvnpdf(yk, ykp1_est, Sk);
-        updx(:,j) = xkp1_est + Kf * (yk - ykp1_est);
-        updy(:,j) = models{j}.C * updx(:,j);
-        updP(:,:,j) = Pkp1 - Kf * models{j}.C * Pkp1;
 
     end
 
