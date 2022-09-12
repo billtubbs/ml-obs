@@ -1,7 +1,7 @@
 function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
     Xkp1f_est,Pkp1f,yk,p_seq_g_Yk)
-% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T,xkp1_est, ...
-%     Pkp1,yk,p_seq_g_Yk)
+% [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T,Xkp1f_est, ...
+%     Pkp1f,yk,p_seq_g_Yk)
 % Update equations for simulating the first-order 
 % generalised pseudo-Bayes (GPB1) multi-model Kalman 
 % filter for state estimation of Markov jump linear
@@ -14,7 +14,7 @@ function [xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T, ...
 %
 
     % All models must have the same dimensions (this is not checked)
-    nj = numel(models);  % number of models (modes)
+    nj = numel(models);  % number of models (= no. of system modes)
     n = size(models{1}.A, 1);
     ny = size(models{1}.C, 1);
 

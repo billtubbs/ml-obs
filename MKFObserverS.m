@@ -83,7 +83,8 @@ classdef MKFObserverS < MKFObserver
             r0 = cellfun(@(s) s(:, 1), seq);
 
             % Create super-class observer instance
-            obj = obj@MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init);
+            obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
+                p_seq_g_Yk_init,false);
 
             % Store parameters
             obj.seq = seq;

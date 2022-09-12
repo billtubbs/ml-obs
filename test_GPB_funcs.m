@@ -236,9 +236,9 @@ assert(isequal(Pk, Pk_m_test))
 %% Test mode_transitions_all.m
 
 [rkm1, rk] = mode_transitions_all(2);
-assert(isequal(rkm1, [0 1 0 1]'))
-assert(isequal(rk, [0 0 1 1]'))
+assert(isequal(rkm1, [1 2 1 2]'))
+assert(isequal(rk, [1 1 2 2]'))
 
 [rkm1, rk] = mode_transitions_all(3);
-assert(isequal(rkm1, [0 1 2 0 1 2 0 1 2]'))
-assert(isequal(rk, [0 0 0 1 1 1 2 2 2]'))
+assert(isequal(rkm1, [1 2 3 1 2 3 1 2 3]'))
+assert(isequal(rk, [1 1 1 2 2 2 3 3 3]'))

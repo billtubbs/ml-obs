@@ -234,11 +234,11 @@ assert(isequaln(MKF_GPB1.yk_est, nan(ny, 1)))
 assert(isequaln(MKF_GPB1.rk, [1 2]'))
 assert(isequaln(MKF_GPB1.p_yk_g_seq_Ykm1, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.p_seq_g_Ykm1, nan(MKF_GPB1.nh, 1)))
-assert(isequaln(MKF_GPB1.p_rk, nan(MKF_GPB1.nh, 1)))
+assert(isequaln(MKF_GPB1.p_rk_g_rkm1, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.p_seq_g_Ykm1, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.x0, zeros(n, 1)))
 assert(isequal(MKF_GPB1.p_seq_g_Yk_init, [0.5 0.5]'))
-assert(isequaln(MKF_GPB1.filters.Sk, nan(n, ny, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Sk, nan(ny, ny, MKF_GPB1.nh)));
 assert(isequaln(MKF_GPB1.filters.Kf, nan(n, ny, MKF_GPB1.nh)));
 assert(isequaln(MKF_GPB1.filters.Pk, nan(n, n, MKF_GPB1.nh)));
 assert(isequaln(MKF_GPB1.filters.Xk_est, nan(n, 1, MKF_GPB1.nh)));
@@ -294,7 +294,7 @@ assert(isequaln(MKF_GPB2.p_seq_g_Ykm1, nan(nh, 1)))
 assert(isequaln(MKF_GPB2.filters.Xkp1_est, zeros(n, 1, nh)))
 assert(isequaln(MKF_GPB2.filters.Pkp1, repmat(P0, 1, 1, nh)))
 assert(isequaln(MKF_GPB2.filters.Kf, nan(n, ny, nh)))
-assert(isequaln(MKF_GPB2.filters.Sk, repmat(nan(ny), 1, 1, nh)))
+assert(isequaln(MKF_GPB2.filters.Sk, nan(ny, ny, nh)))
 assert(isequaln(MKF_GPB2.merged.Xk_est, nan(n, 1, nh)))
 assert(isequaln(MKF_GPB2.merged.Pk, nan(n, n, nh)))
 assert(isequaln(MKF_GPB2.merged.Yk_est, nan(ny, 1, nh)))
@@ -303,7 +303,7 @@ assert(isequaln(MKF_GPB2.Pk, nan(n)))
 assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, MKF_AMM1, MKF_GPB1, SKF, MKF_GPB2};
+observers = {KF1, KF2, MKF_AMM1, MKF_GPB1, SKF};  % TODO: Add MKF_GPB2
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
@@ -311,7 +311,7 @@ obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 f_mkf = [];
 
 % Simulate observers - without measurement noise (Y)
-[Xk_est,Yk_est,DiagP,MKF_vars] = run_simulation_obs(Y,U,Gamma,seq,observers,f_mkf);
+[Xk_est,Yk_est,DiagPk,MKF_vars] = run_simulation_obs(Y,U,Gamma,seq,observers,f_mkf);
 
 % Output estimation errors
 E_obs = Y - Yk_est;
@@ -387,7 +387,7 @@ assert(isequal(MKF_GPB1.Pkp1, MKF_GPB1.P0))
 assert(isequal(MKF_GPB1.p_seq_g_Yk, MKF_GPB1.p_seq_g_Yk_init))
 assert(isequaln(MKF_GPB1.p_yk_g_seq_Ykm1, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.p_rk_g_Ykm1, nan(MKF_GPB1.nh, 1)))
-%assert(isequaln(MKF_GPB1.p_rk_g_rkm1, [1 1]'))  % TODO: Is this correct?
+assert(isequaln(MKF_GPB1.p_rk_g_rkm1, nan(MKF_GPB1.nh, 1)))  % TODO: Is this correct?
 assert(isequaln(MKF_GPB1.p_seq_g_Ykm1, nan(MKF_GPB1.nh, 1)))
 
 % Redefine a new observer (identical to above)
@@ -442,9 +442,6 @@ assert(isequal(round(DiagPk(t == t(end), :), 6), test_DiagP))
 % Compute mean-squared error
 mses = nanmean(E_obs.^2);
 %array2table(mses,'VariableNames',obs_labels)
-
-% Check MKF observer estimation error
-assert(round(mses(f_mkf), 6) == 0.000959)
 
 % Check all observer estimation errors
 assert(isequal(round(mses, 6), ...
@@ -545,29 +542,32 @@ m1.B = Bu;
 m1.C = C;
 m1.Q = Qj{1};
 m1.R = R;
+m1.Ts = Ts;
 m2.A = A;
 m2.B = Bu;
 m2.C = C;
 m2.Q = Qj{2};
 m2.R = R;
+m2.Ts = Ts;
 m3.A = A;
 m3.B = Bu;
 m3.C = C;
 m3.Q = Qj{3};
 m3.R = R;
+m3.Ts = Ts;
 models = {m1, m2, m3};
 
 % Custom MKF observer with correct shock sequence
-seq = {zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1)};
-seq{2}(t == t_shock(1)) = 1;  % shock 1
-seq{3}(t == t_shock(2)) = 2;  % shock 2
-seq{4}(t == t_shock(1)) = 1;  % both
-seq{4}(t == t_shock(2)) = 2;
-p_gamma = [1-epsilon epsilon]';
-Z = [0 0; 1 0; 0 1];  % combinations
-p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-p_gamma = p_gamma ./ sum(p_gamma);  % normalized
-T = repmat(p_gamma', nj, 1);
+seq = repmat({ones(1, nT+1)}, 4, 1);
+seq{2}(t == t_shock(1)) = 2;  % shock 1
+seq{3}(t == t_shock(2)) = 3;  % shock 2
+seq{4}(t == t_shock(1)) = 2;  % both
+seq{4}(t == t_shock(2)) = 3;
+p_rk = [1-epsilon epsilon]';
+Z = [1 1; 2 1; 1 2];  % combinations
+p_rk = prod(prob_rk(Z', p_rk), 1)';
+p_rk = p_rk ./ sum(p_rk);  % normalized
+T = repmat(p_rk', nj, 1);
 
 % Define MKF observers
 
@@ -586,12 +586,10 @@ assert(MKF_AMM1.ny == ny)
 assert(MKF_AMM1.nj == 3)
 assert(isequal(MKF_AMM1.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_AMM1.Pkp1, P0))
-assert(isequal(MKF_AMM1.ykp1_est, zeros(ny, 1)))
 assert(isequaln(MKF_AMM1.xk_est, nan(n, 1)))
 assert(isequaln(MKF_AMM1.Pk, nan(n)))
 assert(isequaln(MKF_AMM1.yk_est, nan(ny, 1)))
 assert(isequaln(MKF_AMM1.x0, zeros(n, 1)))
-assert(isequaln(MKF_AMM1.y0, zeros(ny, 1)))
 assert(isequal(MKF_AMM1.p_seq_g_Yk_init, ones(3, 1) ./ 3))
 
 % Redefine this time with initial conditions
@@ -599,23 +597,14 @@ MKF_AMM1x0 = MKFObserverAMM(models,P0,'MKF_AMM1x0',x0);
 assert(isequaln(MKF_AMM1x0.x0, x0))
 assert(isequal(MKF_AMM1x0.xkp1_est, x0))
 assert(isequal(MKF_AMM1x0.Pkp1, P0))
-assert(isequal(MKF_AMM1x0.ykp1_est, C * x0))
-assert(isequal(MKF_AMM1x0.p_seq_g_Yk_init, ones(3, 1) ./ 3))
-MKF_AMM1x0y0 = MKFObserverAMM(models,P0,'MKF_AMM1x0',x0,y0);
-assert(isequaln(MKF_AMM1x0y0.x0, x0))
-assert(isequaln(MKF_AMM1x0y0.y0, y0))
-assert(isequal(MKF_AMM1x0y0.xkp1_est, x0))
-assert(isequal(MKF_AMM1x0y0.ykp1_est, y0))
 
 % Also with initial prior probability values
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF_AMM1x0p0 = MKFObserverAMM(models,P0,"MKF_GPB1x0",x0,y0, ...
+MKF_AMM1x0p0 = MKFObserverAMM(models,P0,"MKF_GPB1x0",x0, ...
     p_seq_g_Yk_init);
 assert(isequaln(MKF_AMM1x0p0.x0, x0))
-assert(isequaln(MKF_AMM1x0p0.y0, y0))
 assert(isequaln(MKF_AMM1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
 assert(isequal(MKF_AMM1x0p0.xkp1_est, x0))
-assert(isequal(MKF_AMM1x0p0.ykp1_est, y0))
 assert(isequal(MKF_AMM1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % 2. MKF_GPB1
@@ -635,49 +624,37 @@ assert(MKF_GPB1.nj == 3)
 assert(isequal(MKF_GPB1.T, T))
 assert(isequal(MKF_GPB1.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_GPB1.Pkp1, P0))
-assert(isequal(MKF_GPB1.ykp1_est, zeros(ny, 1)))
 assert(isequaln(MKF_GPB1.xk_est, nan(n, 1)))
 assert(isequaln(MKF_GPB1.Pk, nan(n)))
 assert(isequaln(MKF_GPB1.yk_est, nan(ny, 1)))
 assert(isequaln(MKF_GPB1.p_yk_g_seq_Ykm1, nan(MKF_GPB1.nh, 1)))
-assert(isequaln(MKF_GPB1.p_gammak_g_Ykm1, nan(MKF_GPB1.nh, 1)))
-assert(isequaln(round(MKF_GPB1.p_gamma_k_g_gamma_km1, 6), ...
-    [0.980198 0.009901 0.009901]'))  % Doesn this make sense?
+assert(isequaln(MKF_GPB1.p_rk_g_Ykm1, nan(MKF_GPB1.nh, 1)))
+assert(isequaln(MKF_GPB1.p_rk_g_rkm1, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.p_seq_g_Ykm1, nan(MKF_GPB1.nh, 1)))
 assert(isequaln(MKF_GPB1.x0, zeros(n, 1)))
-assert(isequaln(MKF_GPB1.y0, zeros(ny, 1)))
 assert(isequal(MKF_GPB1.p_seq_g_Yk_init, ones(3, 1) ./ 3))
-assert(isequaln(MKF_GPB1.Skf, nan(n, ny, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Kf, nan(n, ny, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Pkf, nan(n, n, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Xkf_est, nan(n, 1, MKF_GPB1.nh)));
-assert(isequaln(MKF_GPB1.Ykf_est, nan(ny, 1, MKF_GPB1.nh)));
-assert(isequal(MKF_GPB1.Pkp1f, repmat(P0, 1, 1, MKF_GPB1.nh)));
-assert(isequal(MKF_GPB1.Xkp1f_est, zeros(n, 1, MKF_GPB1.nh)));
-assert(isequal(MKF_GPB1.Ykp1f_est, zeros(ny, 1, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Sk, nan(ny, ny, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Kf, nan(n, ny, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Pk, nan(n, n, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Xk_est, nan(n, 1, MKF_GPB1.nh)));
+assert(isequaln(MKF_GPB1.filters.Yk_est, nan(ny, 1, MKF_GPB1.nh)));
+assert(isequal(MKF_GPB1.filters.Pkp1, repmat(P0, 1, 1, MKF_GPB1.nh)));
+assert(isequal(MKF_GPB1.filters.Xkp1_est, zeros(n, 1, MKF_GPB1.nh)));
 
 % Redefine this time with initial conditions
 MKF_GPB1x0 = MKFObserverGPB1(models,P0,T,"MKF_GPB1x0",x0);
 assert(isequaln(MKF_GPB1x0.x0, x0))
 assert(isequal(MKF_GPB1x0.xkp1_est, x0))
 assert(isequal(MKF_GPB1x0.Pkp1, P0))
-assert(isequal(MKF_GPB1x0.ykp1_est, C * x0))
 assert(isequal(MKF_GPB1x0.p_seq_g_Yk_init, ones(3, 1) ./ 3))
-MKF_GPB1x0y0 = MKFObserverGPB1(models,P0,T,'MKF_AMM1x0',x0,y0);
-assert(isequaln(MKF_GPB1x0y0.x0, x0))
-assert(isequaln(MKF_GPB1x0y0.y0, y0))
-assert(isequal(MKF_GPB1x0y0.xkp1_est, x0))
-assert(isequal(MKF_GPB1x0y0.ykp1_est, y0))
 
 % Also with initial prior probability values
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF_GPB1x0p0 = MKFObserverGPB1(models,P0,T,"MKF_GPB1x0",x0,y0, ...
+MKF_GPB1x0p0 = MKFObserverGPB1(models,P0,T,"MKF_GPB1x0",x0, ...
     p_seq_g_Yk_init);
 assert(isequaln(MKF_GPB1x0p0.x0, x0))
-assert(isequaln(MKF_GPB1x0p0.y0, y0))
 assert(isequaln(MKF_GPB1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
 assert(isequal(MKF_GPB1x0p0.xkp1_est, x0))
-assert(isequal(MKF_GPB1x0p0.ykp1_est, y0))
 assert(isequal(MKF_GPB1x0p0.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % Define scheduled Kalman filter
@@ -692,7 +669,7 @@ Aj = repmat({A}, 1, nj);
 Buj = repmat({Bu}, 1, nj);
 Cj = repmat({C}, 1, nj);
 Rj = repmat({R}, 1, nj);
-SKF = MKFObserverSchedF(Aj,Buj,Cj,Ts,P0,Qj,Rj,seq{4},"SKF");
+SKF = SKFObserverS(models,P0,seq{4},"SKF");
 
 % Choose observers to test
 observers = {MKF_AMM1, MKF_GPB1, SKF};
@@ -734,8 +711,7 @@ Ym = Y + sigma_MP'.*randn(nT+1, ny);
 f_mkf = 1;
 
 % Simulate observers
-[Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
-    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Ym,U,Gamma,seq,observers,f_mkf);
+[Xk_est,Yk_est,DiagPk,MKF_vars] = run_simulation_obs(Ym,U,Gamma,seq,observers,f_mkf);
 
 % Output estimation errors
 E_obs = repmat(Y, 1, n_obs) - Yk_est;

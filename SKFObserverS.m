@@ -74,7 +74,7 @@ classdef SKFObserverS < SKFObserver
             r0 = seq(:, 1);
 
             % Create super-class observer instance
-            obj = obj@SKFObserver(models,P0,label,x0,r0);
+            obj = obj@SKFObserver(models,P0,label,x0,r0,false);
 
             % Store parameters
             obj.seq = seq;

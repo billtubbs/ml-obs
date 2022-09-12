@@ -73,18 +73,20 @@ classdef MKFObserver < matlab.mixin.Copyable
         p_seq_g_Yk double
         p_yk_g_seq_Ykm1 double
         p_rk_g_Ykm1 double
-        p_rk double
+        p_rk_g_rkm1 double
         filters  struct
         xk_est (:, 1) double
         Pk double
         yk_est (:, 1) double
         xkp1_est (:, 1) double
         Pkp1 double
-        rk (:, 1) double {mustBeInteger}
+        rk (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(rk, 1)}
+        rkm1 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(rkm1, 1)}
         type (1, 1) string
     end
     methods
-        function obj = MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init)
+        function obj = MKFObserver(models,P0,T,r0,label,x0, ...
+                p_seq_g_Yk_init,reset)
             arguments
                 models (1, :) cell
                 P0 double
@@ -93,6 +95,7 @@ classdef MKFObserver < matlab.mixin.Copyable
                 label (1, 1) string = ""
                 x0 = []
                 p_seq_g_Yk_init = []
+                reset logical = true
             end
 
             % Get number of system models and check their dimensions
@@ -112,7 +115,7 @@ classdef MKFObserver < matlab.mixin.Copyable
                 % Initial values of prior conditional probabilities at 
                 % k = -1. In absence of prior knowledge, assume all 
                 % equally likely
-                p_seq_g_Yk_init = ones(nh, 1) ./ double(nh);
+                p_seq_g_Yk_init = ones(nh, 1) ./ nh;
             end
 
             % Determine initial state values
@@ -145,8 +148,10 @@ classdef MKFObserver < matlab.mixin.Copyable
             end
             obj.label = label;
 
-            % Initialize all variables
-            obj.reset()
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function reset(obj)
@@ -168,6 +173,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.xkp1_est = obj.x0;
             obj.Pkp1 = obj.P0;
             obj.rk = obj.r0;
+            obj.rkm1 = [];
 
             % Initial values of prior conditional probabilities at k = -1 
             obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
@@ -178,7 +184,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             % Pr(r(k)|Y(k-1))
             obj.p_rk_g_Ykm1 = nan(obj.nh, 1);
             % Pr(R(k))
-            obj.p_rk = nan(obj.nh, 1);
+            obj.p_rk_g_rkm1 = nan(obj.nh, 1);
             % Pr(R(k)|Y(k-1))
             obj.p_seq_g_Ykm1 = nan(obj.nh, 1);
 
@@ -199,7 +205,93 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.Pk = nan(obj.n);
 
         end
-        function update(obj, yk, uk, rk)
+        function KF_update(obj, yk)
+        % Update Kalman filter estimates using current 
+        % measurement, y(k).
+            for f = 1:obj.nh
+                m = obj.models{obj.rk(f)};
+                [obj.filters.Xk_est(:,:,f), obj.filters.Pk(:,:,f), ...
+                    obj.filters.Yk_est(:,:,f), obj.filters.Kf(:,:,f), ...
+                    obj.filters.Sk(:,:,f)] = ...
+                        kalman_update_f( ...
+                            m.C, m.R, ...
+                            obj.filters.Xkp1_est(:,:,f), ...
+                            obj.filters.Pkp1(:,:,f), ...
+                            yk ...
+                        );
+            end
+            % TODO: For testing only - remove later
+            assert(~any(isnan(obj.filters.Xk_est), 'all'))
+            assert(~any(isnan(obj.filters.Pk), 'all'))
+        end
+        function KF_predict(obj, uk)
+        % Calculate Kalman filter predictions of
+        % states at next time instant using current
+        % input u(k).
+            for f = 1:obj.nh
+                m = obj.models{obj.rk(f)};
+                [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
+                    kalman_predict_f( ...
+                        m.A, m.B, m.Q, ...
+                        obj.filters.Xk_est(:,:,f), ...
+                        obj.filters.Pk(:,:,f), ...
+                        uk ...
+                    );
+            end
+            % TODO: For testing only - remove later
+            assert(~any(isnan(obj.filters.Xkp1_est(:,:,f)), 'all'))
+            assert(~any(isnan(obj.filters.Pkp1(:,:,f)), 'all'))
+        end
+        function MKF_prob_update(obj, yk)
+        % % Bayesian updates to conditional probability
+        % estimates of each hypothesis
+
+            % Compute Pr(r(k)|r(k-1)) based on Markov transition
+            % probability matrix
+            obj.p_rk_g_rkm1 = prob_rk(obj.rk, obj.T(obj.rkm1, :)');
+
+            % Loop over each hypothesis
+            for f = 1:obj.nh
+
+                % Current system mode for this hypothesis
+                r = obj.rk(f);
+
+                % Select system model for this mode
+                m = obj.models{r};
+
+                % Output prediction y_f_est(k|k-1)
+                yk_pred = m.C * obj.filters.Xkp1_est(:,:,f);
+
+                % Covariance of the output prediction error
+                cov_yk = m.C * obj.filters.Pkp1(:,:,f) * m.C' + m.R;
+
+                % Make sure covariance matrix is symmetric
+                if ~isscalar(cov_yk)
+                    cov_yk = triu(cov_yk.',1) + tril(cov_yk);
+                end
+
+                % Probability density of output prediction (assuming a
+                % multivariate normal distribution) based on prior
+                % estimates computed in previous timestep
+                obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_pred, cov_yk);
+
+            end
+            assert(~any(isnan(obj.p_yk_g_seq_Ykm1)))
+            assert(~all(obj.p_yk_g_seq_Ykm1 == 0))
+
+            % Compute Pr(r(k)|Y(k-1)) in current timestep from
+            % previous estimate (Pr(r(k-1)|Y(k-1))) and transition
+            % probabilities
+            obj.p_seq_g_Ykm1 = obj.p_rk_g_rkm1 .* obj.p_seq_g_Yk;
+
+            % Bayesian update of Pr(r(k)|Y(k))
+            cond_pds = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;
+            obj.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
+            % Note: above calculation normalizes p_seq_g_Yk so that
+            % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
+
+        end
+        function update(obj, yk, uk, rk, rkm1)
         % obj.update(yk, uk, rk)
         % updates the estimates of the multi-model Kalman filter
         % and calculates the predictions of the states and output
@@ -214,6 +306,10 @@ classdef MKFObserver < matlab.mixin.Copyable
         %       at the current sample time.
         %   rk : vector, size (nj, 1)
         %       System modes at current time k.
+        %   rkm1 : vector, size (nj, 1) (optional)
+        %       System modes at time k - 1. If not specified,
+        %       rkm1 is set to the values stored in obj.rk
+        %       from the last call to this function.
         %
 
             % Check size of arguments passed
@@ -221,71 +317,22 @@ classdef MKFObserver < matlab.mixin.Copyable
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
             assert(isequal(size(rk), [obj.nh 1]), "ValueError: size(rk)")
 
-            % Update system modes, r(k-1), r(k)
-            rkm1 = obj.rk;
+            if nargin < 5
+                % Default: set r(k-1) to previous values of r(k)
+                obj.rkm1 = obj.rk;
+            else
+                % Use provided value for r(k-1)
+                obj.rkm1 = rkm1;
+            end
+
+            % System modes at current time r(k)
             obj.rk = rk;
 
-            % Compute Pr(r(k)|r(k-1)) based on Markov transition
-            % probability matrix
-            % TODO: This doesn't need to be a property since rk
-            % and p_rk are properties.
-            obj.p_rk = prob_rk(obj.rk, obj.T(rkm1, :)');
+            % Kalman filter update step
+            obj.KF_update(yk)
 
-            % Bayesian update to conditional probabilities
-            for f = 1:obj.nh
-
-                % Compute posterior probability density of y(k)
-                % using posterior PDF (normal distribution) and
-                % estimates computed in previous timestep
-
-                % Current system mode for this hypothesis
-                r = obj.rk(f);
-
-                % Select system model for this mode
-                m = obj.models{r};
-
-                % Output estimate y_f_est(k/k-1)
-                yk_pred = m.C * obj.filters.Xkp1_est(:,:,f);
-
-                % Estimate covariance of the output estimation error
-                cov_yk = m.C * obj.filters.Pkp1(:,:,f) * m.C' + m.R;
-
-                % Make sure covariance matrix is symmetric
-                if ~isscalar(cov_yk)
-                    cov_yk = triu(cov_yk.',1) + tril(cov_yk);
-                end
-
-                % Probability density of output prediction (assuming a
-                % multivariate normal distribution)
-                obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_pred, cov_yk);
-
-                % Update estimates based on current measurement
-                [obj.filters.Xk_est(:,:,f), obj.filters.Pk(:,:,f), ...
-                    obj.filters.Yk_est(:,:,f), obj.filters.Kf(:,:,f), ...
-                    obj.filters.Sk(:,:,f)] = kalman_update_f( ...
-                        m.C, m.R, obj.filters.Xkp1_est(:,:,f), ...
-                        obj.filters.Pkp1(:,:,f), yk);
-    
-                % Predict states at next time instant
-                [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
-                    kalman_predict_f(m.A, m.B, m.Q, ...
-                        obj.filters.Xk_est(:,:,f), ...
-                        obj.filters.Pk(:,:,f), uk);
-
-            end
-            assert(~any(isnan(obj.p_yk_g_seq_Ykm1)))
-            assert(~all(obj.p_yk_g_seq_Ykm1 == 0))
-
-            % Compute Pr(Gamma(k)|Y(k-1)) in current timestep from
-            % previous estimate (Pr(Gamma(k-1)|Y(k-1))) and transition
-            % probabilities
-            obj.p_seq_g_Ykm1 = obj.p_rk .* obj.p_seq_g_Yk;
-
-            % Bayesian update of Pr(Gamma(k)|Y(k))
-            cond_pds = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;
-            obj.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
-            % Note: above calculation normalizes p_seq_g_Yk so that
-            % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
+            % Bayesian updating of hypothesis probabilities
+            obj.MKF_prob_update(yk)
 
             % Compute multi-model observer state and output estimates
             % and estimated state error covariance using the weighted-
@@ -298,7 +345,10 @@ classdef MKFObserver < matlab.mixin.Copyable
                     obj.p_seq_g_Yk ...
                 );
 
-            % TODO: Do we need a merged xkp1 estimate?
+            % Kalman filter prediction step
+            obj.KF_predict(uk)
+
+            % TODO: Do we still need a merged xkp1 estimate?
             weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
             obj.xkp1_est = sum(weights .* obj.filters.Xkp1_est, 3);
             assert(~any(isnan(obj.xkp1_est)))

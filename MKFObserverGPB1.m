@@ -69,7 +69,8 @@ classdef MKFObserverGPB1 < MKFObserver
             r0 = (1:nj)';
 
             % Create super-class observer instance
-            obj = obj@MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init);
+            obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
+                p_seq_g_Yk_init,false);
 
             % Store parameters
             obj.type = "MKF_GPB1";
@@ -97,14 +98,20 @@ classdef MKFObserverGPB1 < MKFObserver
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-            % Vector of system modes does not change
+            % Vector of system modes (same at all timesteps)
             obj.rk = obj.r0;
 
             % Update state and output estimates based on current
             % measurement and prior predictions
             [obj.xk_est, obj.yk_est, obj.Pk, obj.p_seq_g_Yk] = ...
-                GPB1_update(obj.models, obj.T, obj.filters.Xkp1_est, ...
-                    obj.filters.Pkp1, yk, obj.p_seq_g_Yk);
+                GPB1_update( ...
+                    obj.models, ...
+                    obj.T, ...
+                    obj.filters.Xkp1_est, ...
+                    obj.filters.Pkp1, ...
+                    yk, ...
+                    obj.p_seq_g_Yk ...
+                );
 
             % Calculate predictions of each filter in next time instant
             % GBP1 branches the estimates from previous time
@@ -112,9 +119,6 @@ classdef MKFObserverGPB1 < MKFObserver
             %   xi_est(k+1|k) = Ai(k) * x_est(k|k-1) + Bi(k) * u(k);
             %   Pi(k+1|k) = Ai(k) * P(k|k-1) * Ai(k)' + Qi(k);
             %
-            % Note: output estimates cannot be predicted because they
-            % depend on the system mode in the next time instant, which
-            % is not known.
             for j = 1:obj.nh
                 m = obj.models{obj.rk(j)};
                 [obj.filters.Xkp1_est(:,:,j), obj.filters.Pkp1(:,:,j)] = ...

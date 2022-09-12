@@ -43,7 +43,7 @@
 %       Arbitrary name to identify the observer.
 %   x0 : (n, 1) double (optional, default zeros)
 %       Initial state estimates.
-%   p_seq_g_Yk_init : (optional, default uniform)
+%   p_seq_g_Yk_init : (nj, 1) (optional, default uniform)
 %       Initial prior hypothesis probabilities at time k-1.
 %       If not specified, default is equal, i.e. uniform,
 %       probability assigned to each hypothesis.
@@ -52,7 +52,6 @@
 classdef MKFObserverGPB2 < MKFObserver
     properties
         merged struct
-        rkm1 (:, 1) double {mustBeInteger}
     end
     methods
         function obj = MKFObserverGPB2(models,P0,T,label,x0, ...
@@ -69,17 +68,33 @@ classdef MKFObserverGPB2 < MKFObserver
             % Get number of system models and check their dimensions
             nj = check_models(models);
 
-            % System modes to be modelled
-            r0 = reshape(repmat(1:nj, nj, 1), [], 1);
+            % Initial modes of system at time k = 0
+            [~, r0] = mode_transitions_all(nj);
+            % r0 is not used after initialization. Only needed here for
+            % passing to MKFObserver to set the number of hypotheses
 
-            % Split prior probabilities into nj^2 copies
-            p_seq_g_Yk_init = reshape( ...
-                repmat(p_seq_g_Yk_init ./ nj, nj, 1), [], 1);
+            if isempty(p_seq_g_Yk_init)
+                % Initial values of prior conditional probabilities at 
+                % k = -1. In absence of prior knowledge, assume all 
+                % equally likely
+                p_seq_g_Yk_init = ones(nj, 1) ./ nj;
+            end
+
+            % Split prior mode probabilities into nj^2 probabilities
+            p_seq_g_Yk_init2 = reshape( ...
+                repmat(p_seq_g_Yk_init ./ nj, nj, 1), ...
+                [], 1 ...
+            );
 
             % Create super-class observer instance
-            obj = obj@MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init);
+            obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
+                p_seq_g_Yk_init2,false);
+
+            % Initialize merged estimates struct
+            merged.p_seq_g_Yk_init = p_seq_g_Yk_init;
 
             % Store parameters
+            obj.merged = merged;
             obj.type = "MKF_GPB2";
 
             % Initialize all variables
@@ -95,15 +110,17 @@ classdef MKFObserverGPB2 < MKFObserver
             % Call reset method of super class
             reset@MKFObserver(obj);
 
+            % Vectors of mode transitions to be modelled
+            [obj.rkm1, obj.rk] = mode_transitions_all(obj.nj);
+
             % Initialize estimate covariance
             obj.Pkp1 = obj.P0;
 
             % Create struct to store merged estimates
-            obj.merged = struct();
             obj.merged.Xk_est = nan(obj.n, 1, obj.nh);
             obj.merged.Pk = nan(obj.n, obj.n, obj.nh);
             obj.merged.Yk_est = nan(obj.ny, 1, obj.nh);
-            obj.merged.p_seq_g_Yk = nan;
+            obj.merged.p_seq_g_Yk = obj.merged.p_seq_g_Yk_init;
 
         end
         function update(obj, yk, uk)
@@ -121,29 +138,23 @@ classdef MKFObserverGPB2 < MKFObserver
         %       at the current sample time.
         %
 
-            % Check size of arguments passed
-            assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
-            assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
-
-            % Vectors of transitions modelled
-            obj.rkm1 = [1 2 1 2]';
-            obj.rk = [1 1 2 2]';
-
             % Update state and output estimates based on current
             % measurement and prior predictions
-            [obj.xk_est, obj.yk_est, obj.Pk, obj.merged.Xk_est, ...
-                obj.merged.Yk_est, obj.merged.Pk, obj.merged.p_seq_g_Yk] = ...
-                GPB2_update( ...
-                    obj.models, ...
-                    obj.T, ...
-                    obj.filters.Xkp1_est, ...
-                    obj.filters.Pkp1, ...
-                    yk, ...
-                    obj.p_seq_g_Yk ...
-                );
-            assert(~any(isnan(obj.xk_est)))
-            assert(~any(isnan(obj.merged.Xk_est)))
-            assert(~any(isnan(obj.p_seq_g_Yk)))
+%             [obj.xk_est, obj.yk_est, obj.Pk, obj.merged.Xk_est, ...
+%                 obj.merged.Yk_est, obj.merged.Pk, obj.merged.p_seq_g_Yk] = ...
+%                 GPB2_update( ...
+%                     obj.models, ...
+%                     obj.T, ...
+%                     obj.filters.Xkp1_est, ...
+%                     obj.filters.Pkp1, ...
+%                     yk, ...
+%                     obj.p_seq_g_Yk ...
+%                 );
+%             assert(~any(isnan(obj.xk_est)))
+%             assert(~any(isnan(obj.merged.Xk_est)))
+%             assert(~any(isnan(obj.p_seq_g_Yk)))
+
+            update@MKFObserver(obj, yk, uk, obj.rk, obj.rkm1)
 
             % Calculate predictions of each filter
             % GBP2 branches the estimates from previous time

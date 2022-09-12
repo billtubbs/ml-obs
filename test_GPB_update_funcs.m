@@ -95,14 +95,17 @@ Xkp1f_est = nan(n, 1, n_filt);
 Pkp1f = nan(n, n, n_filt);
 Ykp1f_est = nan(ny, 1, n_filt);
 for j = 1:n_filt
-    [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
-     kalman_predict_f(models{j}.A, models{j}.B, models{j}.C, ...
-        models{j}.Q, xk_est, Pk, uk);
+    [Xkp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
+        kalman_predict_f( ...
+            models{j}.A, models{j}.B, models{j}.Q, ...
+            xk_est, Pk, uk ...
+        );
+    Ykp1f_est(:,:,j) = models{j}.C * Xkp1f_est(:,:,j);
 end
 
 % Update step
-[xk_est1,yk_est1,Pk1,p_seq_g_Yk1] = GPB1_update(models,T,Xkp1f_est, ...
-    Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
+[xk_est1,yk_est,Pk1,p_seq_g_Yk1] = GPB1_update(models,T,Xkp1f_est, ...
+    Pkp1f,yk,p_seq_g_Yk);
 
 % Compare to code from Zhao et al.
 Model.A = {A1, A2};
@@ -123,59 +126,65 @@ assert(isequal(P_test, Pk1))
 assert(isequal(u_test, p_seq_g_Yk1))
 
 
-% Test GPB2 update and prediction steps
+% TODO: Finish GPB2 tests
 
-% Inputs
-xk_est = x0;
-uk = 0;
-yk = round(sigma_M .* randn(), 3);
-
-% Merged estimates from last time instant
-xki_est = repmat(x0, 1, 1, nj);
-xki_est(:,:,2) = xki_est(:,:,2) + 0.1;  % make a slight difference in xk2_est
-Pki = repmat(P0, 1, 1, nj);
-Pki(:,:,2) = Pki(:,:,2) + 1000;  % slight difference in xk2_est
-p_seqi_g_Yk = [0.4; 0.6];
-
-% Mode transitions
-gamma_km1 = [0 1 0 1];
-gamma_k = [0 0 1 1];
-
-% Do prediction step first to calculate prior estimates (k|k-1)
-n_filt = nj*nj;
-for f = 1:n_filt
-    i = gamma_km1(f) + 1;
-    j = gamma_k(f) + 1;
-    m = models{j};  % TODO: Change to gamma_km1 later
-    [Xkp1f_est(:,:,f), Ykp1f_est(:,:,f), Pkp1f(:,:,f)] = ...
-     kalman_predict_f(m.A, m.B, m.C, m.Q, xki_est(:,:,i), Pki(:,:,i), uk);
-end
-
-% Update step
-[xk_est2,yk_est2,Pk2,p_seq_g_Yk2,xk_est_out,yk_est_out,Pk_out] = ...
-    GPB2_update(models,T,Xkp1f_est,Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
-
-% Compare to code from Zhao et al.
-% Note: GPB2_estimation model does not include known inputs u(k)
-% 'u' here stands for mu which is the posterior likelihood
-u = p_seq_g_Yk;
-x = xki_est;
-P = Pki;
-[x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
-
-assert(isequal(round(x_test, 4), [0.61 -0.61]))
-assert(isequal(round(P_test, 4), cat(3, 0.1111, 0.1111)))
-assert(isequal(round(u_test, 4), [0.4582 0.5418]))
-assert(isequal(round(Out_x_test, 6), -0.050945))
-assert(isequal(round(Out_P_test, 6), 0.480601))
-
-% Compare GPB2 estimates
-assert(isequal(x_test, xk_est2))
-assert(isequal(P_test, Pk2))
-assert(isequal(u_test, p_seq_g_Yk2))
-assert(isequal(Out_x_test, xk_est_out))
-assert(isequal(Out_P_test, Pk1))
-
+% % Test GPB2 update and prediction steps
+% 
+% % Inputs
+% xk_est = x0;
+% uk = 0;
+% yk = round(sigma_M .* randn(), 3);
+% 
+% % Merged estimates from last time instant
+% xki_est = repmat(x0, 1, 1, nj);
+% xki_est(:,:,2) = xki_est(:,:,2) + 0.1;  % make a slight difference in xk2_est
+% Pki = repmat(P0, 1, 1, nj);
+% Pki(:,:,2) = Pki(:,:,2) + 1000;  % slight difference in xk2_est
+% p_seqi_g_Yk = [0.4; 0.6];
+% 
+% % Mode transitions
+% gamma_km1 = [0 1 0 1];
+% gamma_k = [0 0 1 1];
+% 
+% % Do prediction step first to calculate prior estimates (k|k-1)
+% n_filt = nj*nj;
+% for f = 1:n_filt
+%     i = gamma_km1(f) + 1;
+%     j = gamma_k(f) + 1;
+%     m = models{j};  % TODO: Change to gamma_km1 later
+%     [Xkp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
+%         kalman_predict_f( ...
+%             models{j}.A, models{j}.B, models{j}.Q, ...
+%             xki_est(:,:,i), Pki(:,:,i), uk ...
+%         );
+%     Ykp1f_est(:,:,j) = models{j}.C * Xkp1f_est(:,:,j);
+% end
+% 
+% % Update step
+% [xk_est_out,yk_est_out,Pk_out,xk_est2,yk_est2,Pk2,p_seq_g_Yk2] = ...
+%       GPB2_update(models,T,Xkp1f_est,Pkp1f,yk,p_seq_g_Yk);
+% 
+% % Compare to code from Zhao et al.
+% % Note: GPB2_estimation model does not include known inputs u(k)
+% % 'u' here stands for mu which is the posterior likelihood
+% u = p_seq_g_Yk;
+% x = xki_est;
+% P = Pki;
+% [x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
+% 
+% assert(isequal(round(x_test, 4), [0.61 -0.61]))
+% assert(isequal(round(P_test, 4), cat(3, 0.1111, 0.1111)))
+% assert(isequal(round(u_test, 4), [0.4582 0.5418]))
+% assert(isequal(round(Out_x_test, 6), -0.050945))
+% assert(isequal(round(Out_P_test, 6), 0.480601))
+% 
+% % Compare GPB2 estimates
+% assert(isequal(x_test, xk_est2))
+% assert(isequal(P_test, Pk2))
+% assert(isequal(u_test, p_seq_g_Yk2))
+% assert(isequal(Out_x_test, xk_est_out))
+% assert(isequal(Out_P_test, Pk1))
+% 
 
 
 
@@ -200,7 +209,6 @@ B = [    1 -0.2  0  0;
 C = [ 0.1110 0         0  0;
              0  0.1110 0  0];
 D = zeros(2, 4);
-Gpss = ss(A,B,C,D,Ts);
 
 % Dimensions
 n = size(A, 1);
@@ -211,13 +219,7 @@ ny = size(C, 1);
 u_meas = [true; true; false; false];
 y_meas = [true; true];
 
-% Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
-
-% Disturbance input
+% Disturbance inputs to system
 Bw = B(:, ~u_meas);
 nw = sum(~u_meas);
 
@@ -226,18 +228,28 @@ epsilon = [0.01; 0.01];
 sigma_M = [0.1; 0.1];
 sigma_wp = [0.01 1; 0.01 1];
 
-% Observer parameters
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Du = D(:, u_meas);
+nu = sum(u_meas);
+nw = sum(~u_meas);
+model.A = A;
+model.B = Bu;
+model.C = C;
+assert(all(D == 0, [1 2]))
+nj = 3;
+models = repmat({model}, 1, nj);
+models{1}.Q = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
+models{2}.Q = diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]);
+models{3}.Q = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2]);
+models{1}.R = diag(sigma_M.^2); 
+models{2}.R = diag(sigma_M.^2);
+models{3}.R = diag(sigma_M.^2);
+
+% Observer initialization parameters
 x0 = [0.5; -0.1; 0.05; -0.05];
-Aj = repmat({A}, 1, 3);
-Buj = repmat({Bu}, 1, 3);
-Cj = repmat({C}, 1, 3);
-Duj = repmat({Du}, 1, 3);
-nj = numel(Aj);
 P0 = 1000*eye(n);
-Qj = {diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]), ...
-      diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]), ...
-      diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2])};
-Rj = {diag(sigma_M.^2), diag(sigma_M.^2), diag(sigma_M.^2)};
+
 p_gamma = [1-epsilon epsilon]';
 Z = [0 0; 1 0; 0 1];  % combinations
 p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
@@ -245,12 +257,12 @@ p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 3, 1);
 
 % Compare to code from Zhao et al.
-Model.A = Aj;
-Model.B = Buj;
-Model.C = Cj;
+Model.A = cellfun(@(m) m.A, models, 'UniformOutput', false);
+Model.B = cellfun(@(m) m.B, models, 'UniformOutput', false);
+Model.C = cellfun(@(m) m.C, models, 'UniformOutput', false);
 Model.D = repmat({eye(n)},1,nj);  % D is used for different purpose
-Model.Q = Qj;
-Model.R = Rj;
+Model.Q = cellfun(@(m) m.Q, models, 'UniformOutput', false);
+Model.R = cellfun(@(m) m.R, models, 'UniformOutput', false);
 Model.TP = T;
 xk_est = x0;
 yk = sigma_M .* randn(ny,1);
@@ -264,20 +276,24 @@ uk = zeros(nu,1);
 p_seq_g_Yk = u;
 
 % Prepare cell array of structs to store data
-n_filt = nj;
-Xkp1f_est = nan(n, 1, n_filt);
-Pkp1f = nan(n, n, n_filt);
-Ykp1f_est = nan(ny, 1, n_filt);
+nh = nj;
+Xkp1f_est = nan(n, 1, nh);
+Pkp1f = nan(n, n, nh);
+Ykp1f_est = nan(ny, 1, nh);
 
 % Do prediction step first
-for j = 1:n_filt
-    [Xkp1f_est(:,:,j), Ykp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
-     kalman_predict_f(Aj{j}, Buj{j}, Cj{j}, Qj{j}, xk_est, Pk, uk);
+for j = 1:nh
+    [Xkp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
+        kalman_predict_f( ...
+            models{j}.A, models{j}.B, models{j}.Q, ...
+            xk_est, Pk, uk ...
+        );
+    Ykp1f_est(:,:,j) = models{j}.C * Xkp1f_est(:,:,j);
 end
 
 % Update step
-[xk_est,yk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T,Xkp1f_est, ...
-    Ykp1f_est,Pkp1f,yk,p_seq_g_Yk);
+[xk_est,Pk,p_seq_g_Yk] = GPB1_update(models,T,Xkp1f_est, ...
+    Pkp1f,yk,p_seq_g_Yk);
 
 % Compare
 assert(isequal(x_test, xk_est))

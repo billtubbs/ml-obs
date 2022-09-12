@@ -14,7 +14,7 @@
 %  - MKFObserverAMM
 %      Autonomous (no switching) multiple-model KF with one
 %      hypothesis for each system mode (i.e. nh = nj).
-%  - SKFObserverGPB1
+%  - MKFObserverGPB1
 %      Suboptimal observer using generalised pseudo-Bayes 
 %      algorithm - first order.
 %
@@ -154,7 +154,7 @@ assert(SKF.n == n)
 assert(isequal(SKF.xkp1_est, zeros(n, 1)))
 assert(isequal(SKF.Pkp1, P0))
 assert(isequal(SKF.rk, r0))
-assert(isequal(SKF.rk, r0))
+assert(isempty(SKF.rkm1))
 assert(isequaln(SKF.xk_est, nan(n, 1)))
 assert(isequaln(SKF.Pk, nan(n)))
 assert(isequaln(SKF.yk_est, nan(ny, 1)))
@@ -170,6 +170,7 @@ assert(isequal(SKF.x0, x0))
 assert(isequal(SKF.xkp1_est, x0))
 assert(isequal(SKF.r0, r0))
 assert(isequal(SKF.rk, r0))
+assert(isempty(SKF.rkm1))
 
 % Finally, again with default initial conditions
 SKF = SKFObserver(models,P0,"SKF");
@@ -191,6 +192,7 @@ assert(SKF_S.nj == nj)
 assert(isequal(SKF_S.xkp1_est, zeros(n, 1)))
 assert(isequal(SKF_S.Pkp1, P0))
 assert(isequal(SKF_S.rk, seq(:, 1)))
+assert(isempty(SKF_S.rkm1))
 assert(isequaln(SKF_S.xk_est, nan(n, 1)))
 assert(isequaln(SKF_S.Pk, nan(n)))
 assert(isequaln(SKF_S.yk_est, nan(ny, 1)))
@@ -238,13 +240,15 @@ assert(isequal(MKF.xkp1_est, zeros(n, 1)))
 assert(MKF.nh == nh)
 assert(isequal(MKF.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
 assert(isequal(MKF.rk, r0))
+assert(isempty(MKF.rkm1))
 assert(isequaln(MKF.p_yk_g_seq_Ykm1, nan(nh, 1)))
 assert(isequaln(MKF.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF.p_rk_g_rkm1, nan(nh, 1)))
 assert(isequaln(MKF.p_seq_g_Ykm1, nan(nh, 1)))
 assert(isequaln(MKF.filters.Xkp1_est, zeros(n, 1, nh)))
 assert(isequaln(MKF.filters.Pkp1, repmat(P0, 1, 1, nh)))
 assert(isequaln(MKF.filters.Kf, nan(n, ny, nh)))
-assert(isequaln(MKF.filters.Sk, repmat(nan(ny), 1, 1, nh)))
+assert(isequaln(MKF.filters.Sk, nan(ny, ny, nh)))
 assert(isequaln(MKF.xk_est, nan(n, 1)))
 assert(isequaln(MKF.Pk, nan(n)))
 assert(isequaln(MKF.yk_est, nan(ny, 1)))
@@ -255,6 +259,7 @@ assert(isequal(MKF.x0, x0))
 assert(isequal(MKF.r0, r0))
 assert(isequal(MKF.xkp1_est, x0))
 assert(isequal(MKF.rk, r0))
+assert(isempty(MKF.rkm1))
 assert(isequaln(MKF.filters.Xkp1_est, repmat(x0, 1, 1, nh)))
 assert(isequal(MKF.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
 assert(isequal(MKF.p_seq_g_Yk, MKF.p_seq_g_Yk_init))
@@ -266,6 +271,7 @@ assert(isequal(MKF.x0, x0))
 assert(isequal(MKF.r0, r0))
 assert(isequal(MKF.xkp1_est, x0))
 assert(isequal(MKF.rk, r0))
+assert(isempty(MKF.rkm1))
 assert(isequal(MKF.p_seq_g_Yk_init, p_seq_g_Yk_init))
 assert(isequal(MKF.p_seq_g_Yk, p_seq_g_Yk_init))
 
@@ -294,13 +300,15 @@ assert(isequal(MKF_S.xkp1_est, zeros(n, 1)))
 assert(MKF_S.nh == nh)
 assert(isequal(MKF_S.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
 assert(isequal(MKF_S.rk, r0))
+assert(isempty(MKF_S.rkm1))
 assert(isequaln(MKF_S.p_yk_g_seq_Ykm1, nan(nh, 1)))
 assert(isequaln(MKF_S.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_S.p_rk_g_rkm1, nan(nh, 1)))
 assert(isequaln(MKF_S.p_seq_g_Ykm1, nan(nh, 1)))
 assert(isequaln(MKF_S.filters.Xkp1_est, zeros(n, 1, nh)))
 assert(isequaln(MKF_S.filters.Pkp1, repmat(P0, 1, 1, nh)))
 assert(isequaln(MKF_S.filters.Kf, nan(n, ny, nh)))
-assert(isequaln(MKF_S.filters.Sk, repmat(nan(ny), 1, 1, nh)))
+assert(isequaln(MKF_S.filters.Sk, nan(n, ny, nh)))
 assert(isequaln(MKF_S.xk_est, nan(n, 1)))
 assert(isequaln(MKF_S.Pk, nan(n)))
 assert(isequaln(MKF_S.yk_est, nan(ny, 1)))
@@ -327,8 +335,10 @@ assert(isequal(MKF_AMM.xkp1_est, zeros(n, 1)))
 assert(MKF_AMM.nh == nj)
 assert(isequal(MKF_AMM.p_seq_g_Yk_init, ones(nj, 1) ./ nj))
 assert(isequal(MKF_AMM.rk, [1 2]'))
+assert(isempty(MKF_AMM.rkm1))
 assert(isequaln(MKF_AMM.p_yk_g_seq_Ykm1, nan(nj, 1)))
 assert(isequaln(MKF_AMM.p_rk_g_Ykm1, nan(nj, 1)))
+assert(isequaln(MKF_AMM.p_rk_g_rkm1, nan(nj, 1)))
 assert(isequaln(MKF_AMM.p_seq_g_Ykm1, nan(nj, 1)))
 assert(isequaln(MKF_AMM.filters.Xkp1_est, zeros(n, 1, nj)))
 assert(isequaln(MKF_AMM.filters.Pkp1, repmat(P0, 1, 1, nj)))
@@ -338,7 +348,7 @@ assert(isequaln(MKF_AMM.xk_est, nan(n, 1)))
 assert(isequaln(MKF_AMM.Pk, nan(n)))
 assert(isequaln(MKF_AMM.yk_est, nan(ny, 1)))
 
-% Define SKF observer 2 - with GPB1 algorithm
+% Define MKF observer with GPB1 algorithm
 
 % First, define with no initial state specified (should be set to zero)
 MKF_GPB1 = MKFObserverGPB1(models,P0,T,"MKF_GPB1");
@@ -354,12 +364,14 @@ assert(MKF_GPB1.n == n)
 assert(MKF_GPB1.nu == nu)
 assert(MKF_GPB1.ny == ny)
 assert(MKF_GPB1.nj == nj)
-assert(isequal(MKF_GPB1.xkp1_est, zeros(n, 1)))
 assert(MKF_GPB1.nh == nj)
+assert(isequal(MKF_GPB1.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_GPB1.p_seq_g_Yk_init, ones(nj, 1) ./ nj))
 assert(isequal(MKF_GPB1.rk, [1 2]'))
+assert(isempty(MKF_GPB1.rkm1))
 assert(isequaln(MKF_GPB1.p_yk_g_seq_Ykm1, nan(nj, 1)))
 assert(isequaln(MKF_GPB1.p_rk_g_Ykm1, nan(nj, 1)))
+assert(isequaln(MKF_GPB1.p_rk_g_rkm1, nan(nj, 1)))
 assert(isequaln(MKF_GPB1.p_seq_g_Ykm1, nan(nj, 1)))
 assert(isequaln(MKF_GPB1.filters.Xkp1_est, zeros(n, 1, nj)))
 assert(isequaln(MKF_GPB1.filters.Pkp1, repmat(P0, 1, 1, nj)))
@@ -369,8 +381,43 @@ assert(isequaln(MKF_GPB1.xk_est, nan(n, 1)))
 assert(isequaln(MKF_GPB1.Pk, nan(n)))
 assert(isequaln(MKF_GPB1.yk_est, nan(ny, 1)))
 
+% Define MKF observer with GPB2 algorithm
+
+% First, define with no initial state specified (should be set to zero)
+MKF_GPB2 = MKFObserverGPB2(models,P0,T,"MKF_GPB2");
+
+% Test initialisation
+assert(strcmp(MKF_GPB2.type, "MKF_GPB2"))
+assert(isequal(MKF_GPB2.models, models))
+assert(isequal(MKF_GPB2.P0, P0))
+assert(isequal(MKF_GPB2.Pkp1, P0))
+assert(strcmp(MKF_GPB2.label, "MKF_GPB2"))
+assert(isequal(MKF_GPB2.x0, zeros(n, 1)))
+assert(MKF_GPB2.n == n)
+assert(MKF_GPB2.nu == nu)
+assert(MKF_GPB2.ny == ny)
+assert(MKF_GPB2.nj == nj)
+assert(MKF_GPB2.nh == nj*nj)
+assert(isequal(MKF_GPB2.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_GPB2.p_seq_g_Yk_init, ones(4, 1) ./ 4))
+assert(isequal(MKF_GPB2.rk, [1 1 2 2]'))
+assert(isequal(MKF_GPB2.rkm1, [1 2 1 2]'))
+assert(isequaln(MKF_GPB2.p_yk_g_seq_Ykm1, nan(4, 1)))
+assert(isequaln(MKF_GPB2.p_rk_g_Ykm1, nan(4, 1)))
+assert(isequaln(MKF_GPB2.p_rk_g_rkm1, nan(4, 1)))
+assert(isequaln(MKF_GPB2.p_seq_g_Ykm1, nan(4, 1)))
+assert(isequaln(MKF_GPB2.filters.Xkp1_est, zeros(n, 1, 4)))
+assert(isequaln(MKF_GPB2.filters.Pkp1, repmat(P0, 1, 1, 4)))
+assert(isequaln(MKF_GPB2.filters.Kf, nan(n, ny, 4)))
+assert(isequaln(MKF_GPB2.filters.Sk, nan(ny, 1, 4)))
+assert(isequaln(MKF_GPB2.xk_est, nan(n, 1)))
+assert(isequaln(MKF_GPB2.Pk, nan(n)))
+assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
+
+
+
 % Choose observers to include in simulation
-observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_S, MKF_AMM, MKF_GPB1};
+observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_S, MKF_AMM, MKF_GPB1, MKF_GPB2};
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
@@ -387,11 +434,15 @@ E_obs = Y - Yk_est;
 % Combine and display results
 sim_results1 = table(t,Gamma,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
 
-% Show in two seperate plots so they are not too crowded
-% figure(2); clf
-% plot_obs_estimates(t,X,Xk_est(:, 1:4),Y,Yk_est(:, 1:4),obs_labels(1:4))
-% figure(3); clf
-% plot_obs_estimates(t,X,Xk_est(:, 5:end),Y,Yk_est(:, 5:end),obs_labels(5:end))
+% Show in seperate plots so they are not too crowded
+figure(2); clf
+plot_obs_estimates(t,X,Xk_est(:, 1:4),Y,Yk_est(:, 1:4),obs_labels(1:4))
+figure(3); clf
+plot_obs_estimates(t,X,Xk_est(:, 5:end-1),Y,Yk_est(:, 5:end-1),obs_labels(5:end-1))
+figure(4); clf
+plot_obs_estimates(t,X,Xk_est(:, 7),Y,Yk_est(:, 7),obs_labels(7))
+figure(5); clf
+plot_obs_estimates(t,X,Xk_est(:, end),Y,Yk_est(:, end),obs_labels(end))
 
 % Check KF1 was accurate before system switched
 assert(nanmean(E_obs(t < 10, 1).^2) < 0.0001)
@@ -402,18 +453,18 @@ assert(mean(E_obs(t > 12, 2).^2) < 0.001)
 % Check which observers match KF1 before system switched
 KF1_x_est = Xk_est(t == 9.5, 1);
 assert(isequal(abs(Xk_est(t == 9.5, :) - KF1_x_est) < 0.0001, ...
-    [true false true true true true true true]))
+    [true false true true true true true true true]))
 KF1_diagP = sum(DiagP(t == 9.5, 1));
 assert(isequal(abs(DiagP(t == 9.5, :) - KF1_diagP) < 0.0001, ...
-    [true false true true true true true true]))
+    [true false true true true true true true true]))
 
 % Check which observers match KF2 after system switched
 KF2_x_est = Xk_est(t == 30, 2);
 assert(isequal(abs(Xk_est(t == 30, :) - KF2_x_est) < 0.0001, ...
-    [false true true true true true false true]))
+    [false true true true true true false true true]))
 KF2_diagP = sum(DiagP(t == 30, 2));
 assert(isequal(abs(DiagP(t == 30, :) - KF2_diagP) < 0.0001, ...
-    [false true true true true true false true]))
+    [false true true true true true false true true]))
 
 % Check MKF_AMM estimates match KF1 estimates
 KF1_x_est = Xk_est(:, 1);
@@ -467,6 +518,11 @@ assert(SKF_S.rk == 1)
 assert(isequal(MKF.rk, [1 1 1 2]'))
 assert(isequal(MKF_S.rk, [1 1 1 2]'))
 assert(isequal(MKF_AMM.rk, [1 2]'))
+assert(isempty(SKF.rkm1))
+assert(isempty(SKF_S.rkm1))
+assert(isempty(MKF.rkm1))
+assert(isempty(MKF_S.rkm1))
+assert(isempty(MKF_AMM.rkm1))
 assert(isequal([SKF_S.i SKF_S.i_next], [0 1]))
 assert(isequal([MKF_S.i MKF_S.i_next], [0 1]))
 assert(isequal(MKF.p_seq_g_Yk, [0.25 0.25 0.25 0.25]'))

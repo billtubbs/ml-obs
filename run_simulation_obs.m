@@ -1,6 +1,6 @@
-function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
+function [Xk_est,Yk_est,DiagPk,MKF_vars] = ...
     run_simulation_obs(Ym,U,Gamma,seq,observers,f_mkf)
-% [Xk_est,Yk_est,DiagP,MKF_vars] = ...
+% [Xk_est,Yk_est,DiagPk,MKF_vars] = ...
 %     run_simulation_obs(Ym,U,Gamma,seq,observers,f_mkf)
 % Simulate a set of observers on a switching system. Used by the 
 % following test scripts:
@@ -16,7 +16,7 @@ function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
 
     Xk_est = zeros(nT+1, n*n_obs);
     Yk_est = zeros(nT+1, ny*n_obs);
-    DiagP = zeros(nT+1, n*n_obs);
+    DiagPk = zeros(nT+1, n*n_obs);
 
     if ~isempty(f_mkf)
         obs_mkf = observers{f_mkf};
@@ -59,7 +59,9 @@ function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
                     obs.update(yk, uk);
             end
             if f == f_mkf
-                MKF_i(i, :) = obs.i;
+                if isprop(obs, "i")
+                    MKF_i(i, :) = obs.i;
+                end
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
                 for j = 1:obs.nh
                     MKF_Xk_est{i, j} = obs.filters.Xk_est(:, :, j);
@@ -76,7 +78,7 @@ function [Xk_est,Yk_est,DiagP,MKF_vars] = ...
         % Record observer estimates
         Xk_est(i, :) = xk_est;
         Yk_est(i, :) = yk_est;
-        DiagP(i, :) = diagP;
+        DiagPk(i, :) = diagP;
 
         % Store MKF results in struct
         MKF_vars.Xk_est = MKF_Xk_est;

@@ -222,11 +222,11 @@ seq{4}(t == t_shock(2)) = 3;
 % seq{2}(t == t_shock(2)) = 3;
 
 % Build probability transition matrix
-p_rk = [1-epsilon epsilon]';
+p_rk_g_rkm1 = [1-epsilon epsilon]';
 Z = [1 1; 2 1; 1 2];  % combinations
-p_rk = prod(prob_rk(Z', p_rk), 1)';
-p_rk = p_rk ./ sum(p_rk);  % normalized
-T = repmat(p_rk', 3, 1);
+p_rk_g_rkm1 = prod(prob_rk(Z', p_rk_g_rkm1), 1)';
+p_rk_g_rkm1 = p_rk_g_rkm1 ./ sum(p_rk_g_rkm1);  % normalized
+T = repmat(p_rk_g_rkm1', 3, 1);
 
 MKF3 = MKFObserverS(models,P0,seq,T,'MKF3');
 assert(MKF3.nh == size(seq, 1))
@@ -264,7 +264,7 @@ f_mkf = 1;
 E_obs = repmat(Y, 1, n_obs) - Yk_est;
 
 % Combine and display results
-sim_results = table(t,alpha,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
+%sim_results = table(t,alpha,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
 %disp(sim_results)
 
 % % Plot observer estimates
@@ -351,10 +351,10 @@ MSE_test_values = struct( ...
 );
 
 labels = fieldnames(MSE);
-% for i = 1:numel(labels)
-%     fprintf("%s: %.6f, %.6f (%.6f, %.6f)\n", labels{i}, MSE.(labels{i}), ...
-%         MSE_test_values.(labels{i}))
-% end
+for i = 1:numel(labels)
+    fprintf("%s: %.6f, %.6f (%.6f, %.6f)\n", labels{i}, MSE.(labels{i}), ...
+        MSE_test_values.(labels{i}))
+end
 for i = 1:numel(labels)
     assert(isequal(round(MSE.(labels{i}), 6), MSE_test_values.(labels{i})))
 end
@@ -480,7 +480,7 @@ MSE = struct();
 for i = 1:n_obs
     MSE.(observers{i}.label) = mean(E_obs(:, i*ny-1:i*ny).^2);
 end
-disp(MSE)
+disp(MSE);
 
 % Check final state estimates are close to true system values
 assert(all(abs(repmat(X(end, :), 1, n_obs) - Xk_est(end, :)) < 0.2))

@@ -68,17 +68,19 @@ classdef SKFObserver < matlab.mixin.Copyable
         xkp1_est (:, 1) double
         Pkp1 double
         Sk double
-        rk (1, 1) double
+        rk (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(rk, 1)}
+        rkm1 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(rkm1, 1)}
         type (1, 1) string  % is this still needed? use classdef
     end
     methods
-        function obj = SKFObserver(models,P0,label,x0,r0)
+        function obj = SKFObserver(models,P0,label,x0,r0,reset)
             arguments
                 models (1, :) cell
                 P0 double
                 label (1, 1) string = ""
                 x0 (:, 1) double = []
                 r0 (1, 1) double {mustBeInteger} = 1
+                reset logical = true
             end
 
             % Get number of system models and check their dimensions
@@ -114,8 +116,10 @@ classdef SKFObserver < matlab.mixin.Copyable
             end
             obj.label = label;
 
-            % Initialize variables
-            obj.reset()
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function reset(obj)
@@ -130,6 +134,7 @@ classdef SKFObserver < matlab.mixin.Copyable
             % i.e. x_est(k|k-1) and r(k|k-1).
             obj.xkp1_est = obj.x0;
             obj.rk = obj.r0;
+            obj.rkm1 = [];
 
             % Initialize estimate covariance
             obj.Pkp1 = obj.P0;
