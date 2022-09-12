@@ -52,6 +52,7 @@
 classdef MKFObserverGPB2 < MKFObserver
     properties
         merged struct
+        rkm1 (:, 1) double {mustBeInteger}
     end
     methods
         function obj = MKFObserverGPB2(models,P0,T,label,x0, ...
@@ -124,8 +125,9 @@ classdef MKFObserverGPB2 < MKFObserver
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-            % Vector of current system modes
-            %obj.rk = obj.r0;  % not used
+            % Vectors of transitions modelled
+            obj.rkm1 = [1 2 1 2]';
+            obj.rk = [1 1 2 2]';
 
             % Update state and output estimates based on current
             % measurement and prior predictions
@@ -149,9 +151,9 @@ classdef MKFObserverGPB2 < MKFObserver
             %   xi_est(k+1|k) = Ai(k) * x_est(k|k-1) + Bi(k) * u(k);
             %   Pi(k+1|k) = Ai(k) * P(k|k-1) * Ai(k)' + Qi(k);
             %
-            for j = 1:obj.nh
-                m = obj.models{obj.rk(j)};
-                [obj.filters.Xkp1_est(:,:,j), obj.filters.Pkp1(:,:,j)] = ...
+            for f = 1:obj.nh
+                m = obj.models{obj.rk(f)};
+                [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
                     kalman_predict_f( ...
                         m.A, m.B, m.Q, ...
                         obj.xk_est, ...
