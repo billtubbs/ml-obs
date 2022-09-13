@@ -18,7 +18,7 @@ function p = prob_rk(rk, p_rk)
 %     0.0100
 %
 % Example 2 - a sequence of two discrete variables with three states
-% >> prob_rk([1 0 0 0; 0 2 0 0], [0.98 0.95; 0.01 0.03; 0.01 0.02])
+% >> prob_rk([2 1 1 1; 1 3 1 1], [0.98 0.95; 0.01 0.03; 0.01 0.02])
 % 
 % ans =
 %

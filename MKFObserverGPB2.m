@@ -113,14 +113,16 @@ classdef MKFObserverGPB2 < MKFObserver
             % Vectors of mode transitions to be modelled
             [obj.rkm1, obj.rk] = mode_transitions_all(obj.nj);
 
-            % Initialize estimate covariance
-            obj.Pkp1 = obj.P0;
-
-            % Create struct to store merged estimates
-            obj.merged.Xk_est = nan(obj.n, 1, obj.nh);
-            obj.merged.Pk = nan(obj.n, obj.n, obj.nh);
-            obj.merged.Yk_est = nan(obj.ny, 1, obj.nh);
-            obj.merged.p_seq_g_Yk = obj.merged.p_seq_g_Yk_init;
+            % Create struct to store merged estimates and
+            % initialize with initial state values
+            obj.merged.Xk_est = nan(obj.n, 1, obj.nj);
+            obj.merged.Pk = nan(obj.n, obj.n, obj.nj);
+            obj.merged.Yk_est = nan(obj.ny, 1, obj.nj);
+            obj.merged.p_seq_g_Yk = nan(obj.nj, 1);
+%             obj.merged.Xk_est = repmat(obj.x0, 1, 1, obj.nj);
+%             obj.merged.Pk = repmat(obj.P0, 1, 1, obj.nj);
+%             obj.merged.Yk_est = nan(obj.ny, 1, obj.nj);
+%             obj.merged.p_seq_g_Yk = obj.merged.p_seq_g_Yk_init;
 
         end
         function update(obj, yk, uk)
@@ -138,6 +140,11 @@ classdef MKFObserverGPB2 < MKFObserver
         %       at the current sample time.
         %
 
+            % Check size of arguments passed
+            assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
+            assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
+
+% External function based on code from Zhao et al.
             % Update state and output estimates based on current
             % measurement and prior predictions
 %             [obj.xk_est, obj.yk_est, obj.Pk, obj.merged.Xk_est, ...
@@ -154,26 +161,70 @@ classdef MKFObserverGPB2 < MKFObserver
 %             assert(~any(isnan(obj.merged.Xk_est)))
 %             assert(~any(isnan(obj.p_seq_g_Yk)))
 
-            update@MKFObserver(obj, yk, uk, obj.rk, obj.rkm1)
+            % Kalman filter update step
+            % Inputs:
+            %   - obj.filters.Xkp1_est
+            %   - obj.filters.Pkp1
+            %   - yk
+            % Calculates:
+            %   - obj.filters.Xk_est 
+            %   - obj.filters.Pk
+            %   - obj.filters.Yk_est
+            obj.KF_update(yk, obj.rk)
 
-            % Calculate predictions of each filter
-            % GBP2 branches the estimates from previous time
-            % instant when making predictions for next:
+            % Bayesian updating of hypothesis probabilities
+            % Calculates:
+            %   - obj.p_seq_g_Yk
+            obj.MKF_prob_update(yk)
+
+            % Merge the nj^2 estimates into nj modes
+            [obj.merged.Xk_est, obj.merged.Pk, obj.merged.Yk_est, ...
+                obj.merged.p_seq_g_Yk] = ...
+                merge_estimates( ...
+                    obj.filters.Xk_est, ...
+                    obj.filters.Pk, ...
+                    obj.filters.Yk_est, ...
+                    obj.p_seq_g_Yk, ...
+                    obj.rk, ...
+                    obj.nj ...
+                );
+            assert(~any(isnan(obj.merged.Xk_est), 'all'))
+            assert(~any(isnan(obj.merged.Pk), 'all'))
+            assert(~any(isnan(obj.merged.Yk_est), 'all'))
+            assert(~any(isnan(obj.merged.p_seq_g_Yk), 'all'))
+
+            % Merge the estimates and error covariances again into 
+            % a single set estimate and error covariance matrix
+            [obj.xk_est, obj.Pk, obj.yk_est, ~] = ...
+                merge_estimates( ...
+                    obj.merged.Xk_est, ...
+                    obj.merged.Pk, ...
+                    obj.merged.Yk_est, ...
+                    obj.merged.p_seq_g_Yk ...
+                );
+            assert(~any(isnan(obj.xk_est), 'all'))
+            assert(~any(isnan(obj.Pk), 'all'))
+            assert(~any(isnan(obj.yk_est), 'all'))
+
+            % GBP2 branches the nj merged estimates and uses these 
+            % for making the nj^2 predictions at the next time 
+            % instant:
             %   xi_est(k+1|k) = Ai(k) * x_est(k|k-1) + Bi(k) * u(k);
             %   Pi(k+1|k) = Ai(k) * P(k|k-1) * Ai(k)' + Qi(k);
-            %
-            for f = 1:obj.nh
-                m = obj.models{obj.rk(f)};
-                [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
-                    kalman_predict_f( ...
-                        m.A, m.B, m.Q, ...
-                        obj.xk_est, ...
-                        obj.Pk, ...
-                        uk ...
-                    );
-            end
+            obj.filters.Xk_est = obj.merged.Xk_est(obj.rkm1);
+            obj.filters.Pk = obj.merged.Pk(obj.rkm1);
+            obj.p_seq_g_Yk = obj.merged.p_seq_g_Yk(obj.rkm1);
 
-            % TODO: Do we need a merged xkp1 estimate?
+            % Kalman filter prediction step - computes estimates
+            % of states and error covariances at the next time
+            % instant
+            % Calculates:
+            %   - obj.filters.Xkp1_est
+            %   - obj.filters.Pkp1
+            obj.KF_predict(uk, obj.rk)
+
+            % TODO: Do we still need merged xkp1_est and
+            % Pkp1 estimates?
             weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
             obj.xkp1_est = sum(weights .* obj.filters.Xkp1_est, 3);
             assert(~any(isnan(obj.xkp1_est)))

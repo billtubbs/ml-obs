@@ -47,9 +47,8 @@ function [xk_est,yk_est,Pk,Xk_est_m,Yk_est_m,Pk_m,p_seq_g_Yk_m] = ...
     Pkf = nan(n, n, nh);
     p_yk_g_seq_Ykm1 = nan(nh, 1);
 
-    % Transitions modelled
-    rkm1 = [1 2 1 2]';
-    rk = [1 1 2 2]';
+    % Vectors of mode transitions to be modelled
+    [rkm1, rk] = mode_transitions_all(nj);
 
     % Transition probabilities
     p_rk_g_rkm1 = prob_transitions(rk, rkm1, T);

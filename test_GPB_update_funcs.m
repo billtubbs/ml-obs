@@ -128,55 +128,55 @@ assert(isequal(u_test, p_seq_g_Yk1))
 
 % TODO: Finish GPB2 tests
 
-% % Test GPB2 update and prediction steps
-% 
-% % Inputs
-% xk_est = x0;
-% uk = 0;
-% yk = round(sigma_M .* randn(), 3);
-% 
-% % Merged estimates from last time instant
-% xki_est = repmat(x0, 1, 1, nj);
-% xki_est(:,:,2) = xki_est(:,:,2) + 0.1;  % make a slight difference in xk2_est
-% Pki = repmat(P0, 1, 1, nj);
-% Pki(:,:,2) = Pki(:,:,2) + 1000;  % slight difference in xk2_est
-% p_seqi_g_Yk = [0.4; 0.6];
-% 
-% % Mode transitions
-% gamma_km1 = [0 1 0 1];
-% gamma_k = [0 0 1 1];
-% 
-% % Do prediction step first to calculate prior estimates (k|k-1)
-% n_filt = nj*nj;
-% for f = 1:n_filt
-%     i = gamma_km1(f) + 1;
-%     j = gamma_k(f) + 1;
-%     m = models{j};  % TODO: Change to gamma_km1 later
-%     [Xkp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
-%         kalman_predict_f( ...
-%             models{j}.A, models{j}.B, models{j}.Q, ...
-%             xki_est(:,:,i), Pki(:,:,i), uk ...
-%         );
-%     Ykp1f_est(:,:,j) = models{j}.C * Xkp1f_est(:,:,j);
-% end
-% 
-% % Update step
+% Test GPB2 update and prediction steps
+
+% Inputs
+xk_est = x0;
+uk = 0;
+yk = round(sigma_M .* randn(), 3);
+
+% Merged estimates from last time instant
+xki_est = repmat(x0, 1, 1, nj);
+xki_est(:,:,2) = xki_est(:,:,2) + 0.1;  % make a slight difference in xk2_est
+Pki = repmat(P0, 1, 1, nj);
+Pki(:,:,2) = Pki(:,:,2) + 1000;  % slight difference in xk2_est
+p_seqi_g_Yk = [0.4; 0.6];
+
+% Mode transitions
+gamma_km1 = [0 1 0 1];
+gamma_k = [0 0 1 1];
+
+% Do prediction step first to calculate prior estimates (k|k-1)
+n_filt = nj*nj;
+for f = 1:n_filt
+    i = gamma_km1(f) + 1;
+    j = gamma_k(f) + 1;
+    m = models{j};  % TODO: Change to gamma_km1 later
+    [Xkp1f_est(:,:,j), Pkp1f(:,:,j)] = ...
+        kalman_predict_f( ...
+            models{j}.A, models{j}.B, models{j}.Q, ...
+            xki_est(:,:,i), Pki(:,:,i), uk ...
+        );
+    Ykp1f_est(:,:,j) = models{j}.C * Xkp1f_est(:,:,j);
+end
+
+% Update step
 % [xk_est_out,yk_est_out,Pk_out,xk_est2,yk_est2,Pk2,p_seq_g_Yk2] = ...
 %       GPB2_update(models,T,Xkp1f_est,Pkp1f,yk,p_seq_g_Yk);
-% 
-% % Compare to code from Zhao et al.
-% % Note: GPB2_estimation model does not include known inputs u(k)
-% % 'u' here stands for mu which is the posterior likelihood
-% u = p_seq_g_Yk;
-% x = xki_est;
-% P = Pki;
-% [x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
-% 
-% assert(isequal(round(x_test, 4), [0.61 -0.61]))
-% assert(isequal(round(P_test, 4), cat(3, 0.1111, 0.1111)))
-% assert(isequal(round(u_test, 4), [0.4582 0.5418]))
-% assert(isequal(round(Out_x_test, 6), -0.050945))
-% assert(isequal(round(Out_P_test, 6), 0.480601))
+
+% Compare to code from Zhao et al.
+% Note: GPB2_estimation model does not include known inputs u(k)
+% 'u' here stands for mu which is the posterior likelihood
+u = p_seq_g_Yk;
+x = xki_est;
+P = Pki;
+[x_test,P_test,u_test,Out_x_test,Out_P_test] = GPB2_estimation(x,P,yk,Model,u);
+
+assert(isequal(round(x_test, 4), [0.61 -0.61]))
+assert(isequal(round(P_test, 4), cat(3, 0.1111, 0.1111)))
+assert(isequal(round(u_test, 4), [0.4582 0.5418]))
+assert(isequal(round(Out_x_test, 6), -0.050945))
+assert(isequal(round(Out_P_test, 6), 0.480601))
 % 
 % % Compare GPB2 estimates
 % assert(isequal(x_test, xk_est2))

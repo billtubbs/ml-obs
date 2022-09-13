@@ -400,8 +400,8 @@ assert(MKF_GPB2.nj == nj)
 assert(MKF_GPB2.nh == nj*nj)
 assert(isequal(MKF_GPB2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF_GPB2.p_seq_g_Yk_init, ones(4, 1) ./ 4))
-assert(isequal(MKF_GPB2.rk, [1 1 2 2]'))
-assert(isequal(MKF_GPB2.rkm1, [1 2 1 2]'))
+assert(isequal(MKF_GPB2.rk, [1 2 1 2]'))
+assert(isequal(MKF_GPB2.rkm1, [1 1 2 2]'))
 assert(isequaln(MKF_GPB2.p_yk_g_seq_Ykm1, nan(4, 1)))
 assert(isequaln(MKF_GPB2.p_rk_g_Ykm1, nan(4, 1)))
 assert(isequaln(MKF_GPB2.p_rk_g_rkm1, nan(4, 1)))
@@ -413,8 +413,6 @@ assert(isequaln(MKF_GPB2.filters.Sk, nan(ny, 1, 4)))
 assert(isequaln(MKF_GPB2.xk_est, nan(n, 1)))
 assert(isequaln(MKF_GPB2.Pk, nan(n)))
 assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
-
-
 
 % Choose observers to include in simulation
 observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_S, MKF_AMM, MKF_GPB1, MKF_GPB2};
@@ -477,7 +475,7 @@ mses = nanmean(E_obs.^2);
 
 % Check MKF and SKF observer estimation errors
 assert(isequal(round(mses, 6), ...
-    [3.806151 0.269363 0 0 0 0 3.806151 0.000959]))
+    [3.806151 0.269363 0 0 0 0 3.806151 0.000959 0.000959]))
 
 % Check final values
 XYk_est = cell2mat(cellfun(@(obs) [obs.xk_est obs.yk_est], ...
@@ -490,6 +488,7 @@ assert(isequal(round(XYk_est, 6), [ ...
       9.901227  -2.970368
       9.901227  -2.970368
      -1.191082  -0.357325
+      9.901228  -2.970368
       9.901228  -2.970368 ...
 ]))
 
@@ -563,6 +562,8 @@ assert(all(sim_results2.Xk_est(:, 1) == sim_results2.Xk_est, [1 2]))
 
 % figure(4); clf
 % plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
+
+return
 
 
 %% Test copy methods

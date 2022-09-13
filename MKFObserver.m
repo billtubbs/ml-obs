@@ -205,11 +205,11 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.Pk = nan(obj.n);
 
         end
-        function KF_update(obj, yk)
+        function KF_update(obj, yk, rk)
         % Update Kalman filter estimates using current 
         % measurement, y(k).
             for f = 1:obj.nh
-                m = obj.models{obj.rk(f)};
+                m = obj.models{rk(f)};
                 [obj.filters.Xk_est(:,:,f), obj.filters.Pk(:,:,f), ...
                     obj.filters.Yk_est(:,:,f), obj.filters.Kf(:,:,f), ...
                     obj.filters.Sk(:,:,f)] = ...
@@ -224,12 +224,12 @@ classdef MKFObserver < matlab.mixin.Copyable
             assert(~any(isnan(obj.filters.Xk_est), 'all'))
             assert(~any(isnan(obj.filters.Pk), 'all'))
         end
-        function KF_predict(obj, uk)
+        function KF_predict(obj, uk, rk)
         % Calculate Kalman filter predictions of
         % states at next time instant using current
         % input u(k).
             for f = 1:obj.nh
-                m = obj.models{obj.rk(f)};
+                m = obj.models{rk(f)};
                 [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
                     kalman_predict_f( ...
                         m.A, m.B, m.Q, ...
@@ -325,18 +325,18 @@ classdef MKFObserver < matlab.mixin.Copyable
                 obj.rkm1 = rkm1;
             end
 
-            % System modes at current time r(k)
+            % Store system modes at current time r(k)
             obj.rk = rk;
 
             % Kalman filter update step
-            obj.KF_update(yk)
+            obj.KF_update(yk, rk)
 
             % Bayesian updating of hypothesis probabilities
             obj.MKF_prob_update(yk)
 
-            % Compute multi-model observer state and output estimates
-            % and estimated state error covariance using the weighted-
-            % averages based on the conditional probabilities.
+            % Merge the Kalman filter estimates and error covariances
+            % using a weighted-average based on the hypothesis
+            % probabilities
             [obj.xk_est, obj.Pk, obj.yk_est, ~] = ...
                 merge_estimates( ...
                     obj.filters.Xk_est, ...
@@ -345,8 +345,10 @@ classdef MKFObserver < matlab.mixin.Copyable
                     obj.p_seq_g_Yk ...
                 );
 
-            % Kalman filter prediction step
-            obj.KF_predict(uk)
+            % Kalman filter prediction step - computes estimates
+            % of states and error covariances at the next time
+            % instant
+            obj.KF_predict(uk, rk)
 
             % TODO: Do we still need a merged xkp1 estimate?
             weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
