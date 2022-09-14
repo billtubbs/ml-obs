@@ -317,6 +317,39 @@ assert(isequaln(MKF_S.nf, size(seq{1}, 2)))
 assert(isequaln(MKF_S.i, 0))
 assert(isequaln(MKF_S.i_next, 1))
 
+% Define MKF_F observer which uses switching Kalman filter objects
+r0 = cellfun(@(s) s(:, 1), seq1);
+MKF_F = MKFObserverF(models,P0,T,r0,"MKF_F");
+
+% Test initialisation
+assert(strcmp(MKF_F.type, "MKF_F"))
+assert(isequal(MKF_F.models, models))
+assert(isequal(MKF_F.P0, P0))
+assert(isequal(MKF_F.Pkp1, P0))
+assert(strcmp(MKF_F.label, "MKF_F"))
+assert(MKF_F.n == n)
+assert(MKF_F.nu == nu)
+assert(MKF_F.ny == ny)
+assert(MKF_F.nj == nj)
+assert(isequal(MKF_F.xkp1_est, zeros(n, 1)))
+assert(MKF_F.nh == nh)
+assert(isequal(MKF_F.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
+assert(isequal(MKF_F.rk, r0))
+assert(isempty(MKF_F.rkm1))
+assert(isequaln(MKF_F.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_F.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_F.p_rk_g_rkm1, nan(nh, 1)))
+assert(isequaln(MKF_F.p_seq_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_F.filters.Xkp1_est, zeros(n, 1, nh)))
+assert(isequaln(MKF_F.filters.Pkp1, repmat(P0, 1, 1, nh)))
+assert(iscell(MKF_F.filters.objects))
+assert(isa(MKF_F.filters.objects{nh}, "SKFObserver"))
+assert(isequal(MKF_F.filters.objects{1}.xkp1_est, 0))
+assert(isequal(MKF_F.filters.objects{1}.Pkp1, P0))
+assert(isequaln(MKF_F.xk_est, nan(n, 1)))
+assert(isequaln(MKF_F.Pk, nan(n)))
+assert(isequaln(MKF_F.yk_est, nan(ny, 1)))
+
 % Define autonomous multi-model (AMM) observer 
 MKF_AMM = MKFObserverAMM(models,P0,"MKF_AMM");
 
@@ -415,12 +448,13 @@ assert(isequaln(MKF_GPB2.Pk, nan(n)))
 assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
 
 % Choose observers to include in simulation
-observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_S, MKF_AMM, MKF_GPB1, MKF_GPB2};
+%observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_F};
+observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_F, MKF_S, MKF_AMM, MKF_GPB1};  % TODO: Add , MKF_GPB2
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 
 % Identify which observer to log MKF data for
-f_mkf = [];
+f_mkf = find(strcmp(obs_labels, "MKF_AMM"));
 
 % Simulate observers - without measurement noise (Y)
 [Xk_est,Yk_est,DiagP,MKF_vars] = ...
@@ -432,15 +466,18 @@ E_obs = Y - Yk_est;
 % Combine and display results
 sim_results1 = table(t,Gamma,U,X,Y,Ym,Xk_est,Yk_est,E_obs);
 
-% Show in seperate plots so they are not too crowded
+% Show results in seperate plots
 figure(2); clf
-plot_obs_estimates(t,X,Xk_est(:, 1:4),Y,Yk_est(:, 1:4),obs_labels(1:4))
-figure(3); clf
-plot_obs_estimates(t,X,Xk_est(:, 5:end-1),Y,Yk_est(:, 5:end-1),obs_labels(5:end-1))
-figure(4); clf
-plot_obs_estimates(t,X,Xk_est(:, 7),Y,Yk_est(:, 7),obs_labels(7))
-figure(5); clf
-plot_obs_estimates(t,X,Xk_est(:, end),Y,Yk_est(:, end),obs_labels(end))
+selection = ismember(obs_labels, ["KF1" "KF2" "SKF"]);
+plot_obs_estimates(t,X,Xk_est(:, selection),Y,Yk_est(:, selection), ...
+    obs_labels(selection))
+
+for i = 4:n_obs
+    figure(3+i-4); clf
+    selection = ismember(obs_labels, ["SKF" obs_labels(i)]);
+    plot_obs_estimates(t,X,Xk_est(:, selection),Y,Yk_est(:, selection), ...
+        obs_labels(selection))
+end
 
 % Check KF1 was accurate before system switched
 assert(nanmean(E_obs(t < 10, 1).^2) < 0.0001)
@@ -449,48 +486,88 @@ assert(nanmean(E_obs(t < 10, 1).^2) < 0.0001)
 assert(mean(E_obs(t > 12, 2).^2) < 0.001)
 
 % Check which observers match KF1 before system switched
-KF1_x_est = Xk_est(t == 9.5, 1);
-assert(isequal(abs(Xk_est(t == 9.5, :) - KF1_x_est) < 0.0001, ...
-    [true false true true true true true true true]))
-KF1_diagP = sum(DiagP(t == 9.5, 1));
-assert(isequal(abs(DiagP(t == 9.5, :) - KF1_diagP) < 0.0001, ...
-    [true false true true true true true true true]))
+test_results = array2table( ...
+    [true false true true true true true true true true], ...
+    'VariableNames', ...
+    {'KF1', 'KF2', 'SKF', 'SKF_S', 'MKF', 'MKF_S', 'MKF_F', 'MKF_FS', ...
+     'MKF_AMM', 'MKF_GPB1'} ...
+);
+KF1_x_est = Xk_est(t == 9.5, strcmp(obs_labels, "KF1"));
+comparison = array2table((abs(Xk_est(t == 9.5, :) - KF1_x_est) < 1e-6), ...
+    'VariableNames', obs_labels);
+assert(isequal(comparison.Variables, ...
+    test_results{:, comparison.Properties.VariableNames}))
+KF1_diagP = DiagP(t == 9.5, strcmp(obs_labels, "KF1"));
+comparison = array2table((abs(DiagP(t == 9.5, :) - KF1_diagP) < 1e-6), ...
+    'VariableNames', obs_labels);
+assert(isequal(comparison.Variables, ...
+    test_results{:, comparison.Properties.VariableNames}))
 
 % Check which observers match KF2 after system switched
-KF2_x_est = Xk_est(t == 30, 2);
-assert(isequal(abs(Xk_est(t == 30, :) - KF2_x_est) < 0.0001, ...
-    [false true true true true true false true true]))
-KF2_diagP = sum(DiagP(t == 30, 2));
-assert(isequal(abs(DiagP(t == 30, :) - KF2_diagP) < 0.0001, ...
-    [false true true true true true false true true]))
+test_results = array2table( ...
+    [false true true true true true true true false true], ...
+    'VariableNames', ...
+    {'KF1', 'KF2', 'SKF', 'SKF_S', 'MKF', 'MKF_S', 'MKF_F', 'MKF_FS', ...
+     'MKF_AMM', 'MKF_GPB1'} ...
+);
+KF2_x_est = Xk_est(t == 30, strcmp(obs_labels, "KF2"));
+comparison = array2table((abs(Xk_est(t == 30, :) - KF2_x_est) < 0.0001), ...
+    'VariableNames', obs_labels);
+assert(isequal(comparison.Variables, ...
+    test_results{:, comparison.Properties.VariableNames}))
+KF1_diagP = DiagP(t == 30, strcmp(obs_labels, "KF2"));
+comparison = array2table((abs(DiagP(t == 30, :) - KF1_diagP) < 1e-6), ...
+    'VariableNames', obs_labels);
+assert(isequal(comparison.Variables, ...
+    test_results{:, comparison.Properties.VariableNames}))
 
-% Check MKF_AMM estimates match KF1 estimates
-KF1_x_est = Xk_est(:, 1);
-MKF_AMM_x_est = Xk_est(:, 7);
-assert(all(abs(KF1_x_est - MKF_AMM_x_est) < 0.0001))
+% Check MKF_AMM estimates and KF1 estimates are identical
+KF1_x_est = Xk_est(t == 9.5, strcmp(obs_labels, "KF1"));
+MKF_AMM_x_est = Xk_est(t == 9.5, strcmp(obs_labels, "MKF_AMM"));
+assert(all(abs(KF1_x_est - MKF_AMM_x_est) < 1e-15))
 
 % Compute mean-squared error
-mses = nanmean(E_obs.^2);
-%disp(array2table(mses, 'RowNames', {'MSE'}, 'VariableNames', obs_labels))
+mses = array2table(nanmean(E_obs.^2), 'VariableNames', obs_labels, ...
+    'RowNames',{'MSE'});
 
-% Check MKF and SKF observer estimation errors
-assert(isequal(round(mses, 6), ...
-    [3.806151 0.269363 0 0 0 0 3.806151 0.000959 0.000959]))
+test_mses = array2table( ...
+    [3.806151 0.269363 0 0 0 0 0 0 3.806151 0.000959 0.000959], ...
+    'VariableNames', ...
+    {'KF1', 'KF2', 'SKF', 'SKF_S', 'MKF', 'MKF_S', 'MKF_F', 'MKF_FS', ...
+     'MKF_AMM', 'MKF_GPB1', 'MKF_GPB2'} ...
+);
+disp(mses)
+
+% Check MSEs
+assert(isequal(round(mses.Variables, 6), ...
+    test_mses{:, mses.Properties.VariableNames}))
 
 % Check final values
-XYk_est = cell2mat(cellfun(@(obs) [obs.xk_est obs.yk_est], ...
-    observers', 'UniformOutput', false));
-assert(isequal(round(XYk_est, 6), [ ...
+XYk_est = cell2table(cellfun(@(obs) [obs.xk_est' obs.yk_est'], ...
+    observers', 'UniformOutput', false), ...
+    'RowNames', obs_labels);
+test_XYk_est = array2table( ...
+    [ ...
      -1.191082  -0.357325
       9.901224  -2.970367
       9.901227  -2.970368
       9.901227  -2.970368
       9.901227  -2.970368
       9.901227  -2.970368
+      9.901227  -2.970368
+      9.901227  -2.970368
      -1.191082  -0.357325
       9.901228  -2.970368
-      9.901228  -2.970368 ...
-]))
+      9.901228  -2.970368
+    ], 'RowNames', ...
+    {'KF1', 'KF2', 'SKF', 'SKF_S', 'MKF', 'MKF_S', 'MKF_F', 'MKF_FS', ...
+     'MKF_AMM', 'MKF_GPB1', 'MKF_GPB2'} ...
+);
+assert(isequal(round(XYk_est.Variables, 6), ...
+    test_XYk_est{XYk_est.Properties.RowNames, :}))
+
+return
+
 
 % Reset observer states to initial conditions
 for f = 1:n_obs

@@ -62,7 +62,6 @@ classdef MKFObserver < matlab.mixin.Copyable
     end
     properties
         models (1, :) cell
-        K double
         P0 double
         T double
         r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)}
@@ -162,9 +161,6 @@ classdef MKFObserver < matlab.mixin.Copyable
 
             % Initialize estimate covariance
             obj.Pkp1 = obj.P0;
-
-            % Gain will be calculated dynamically
-            obj.K = nan(obj.n, 1);
 
             % Initialize state and output estimates
             % Note: At initialization at time k = 0, xkp1_est and

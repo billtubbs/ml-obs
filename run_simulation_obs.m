@@ -20,6 +20,7 @@ function [Xk_est,Yk_est,DiagPk,MKF_vars] = ...
 
     if ~isempty(f_mkf)
         obs_mkf = observers{f_mkf};
+        MKF_label = obs_mkf.label;
         nh = obs_mkf.nh;
         MKF_Xk_est = cell(nT+1, nh);
         MKF_Yk_est = cell(nT+1, nh);
@@ -52,7 +53,7 @@ function [Xk_est,Yk_est,DiagPk,MKF_vars] = ...
                 case "SKF"
                     rk = Gamma(i) + 1;
                     obs.update(yk, uk, rk);
-                case "MKF"
+                case {"MKF", "MKF_F"}
                     rk = seq(:, i);
                     obs.update(yk, uk, rk);
                 otherwise
@@ -81,6 +82,7 @@ function [Xk_est,Yk_est,DiagPk,MKF_vars] = ...
         DiagPk(i, :) = diagP;
 
         % Store MKF results in struct
+        MKF_vars.label = MKF_label;
         MKF_vars.Xk_est = MKF_Xk_est;
         MKF_vars.Yk_est = MKF_Yk_est;
         MKF_vars.K_obs = MKF_K_obs;

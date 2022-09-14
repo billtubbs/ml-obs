@@ -150,19 +150,59 @@ classdef SKFObserver < matlab.mixin.Copyable
             obj.Kf = nan(obj.n, obj.ny);
 
         end
+        function update_step(obj, yk, rk)
+        % Calculate updated state estimates, x_est(k|k), and error 
+        % covariance, P(k|k) at the current time using the current
+        % output measurement, y(k) and the current system model, 
+        % r(k). The correction gain, Kf(k) and covariance of the 
+        % output estimation error, S(k) are also calculated.
+            obj.rk = rk;
+            [obj.xk_est, obj.Pk, obj.yk_est, obj.Sk, obj.Kf] = ...
+                kalman_update_f(obj.models{rk}.C, ...
+                obj.models{rk}.R, obj.xkp1_est, obj.Pkp1, yk);
+        end
+        function prediction_step(obj, uk, rk)
+        % Calculate predicted states, x_est(k+1|k), and outputs, 
+        % y(k+1|k) at next time instant using the current system 
+        % model, r(k), and the current control input, u(k).
+            obj.rk = rk;
+            [obj.xkp1_est, obj.Pkp1] = kalman_predict_f(...
+                obj.models{rk}.A, obj.models{rk}.B, obj.models{rk}.Q, ...
+                obj.xk_est, obj.Pk, uk);
+        end
         function update(obj, yk, uk, rk)
-        % obj.update(yk, uk, rk) updates the gain and covariance 
-        % matrix of the Kalman filter and calculates the estimates 
-        % of the states and output at the next sample time given
-        % the current measurement, inputs, and system mode.
+        % obs.update(yk, uk) carries out the following steps:
+        %  1. Calculates the correction gain, Kf(k) and 
+        %     output estimation error covariance, S(k).
+        %  2. Updates the estimates of the states and outputs at
+        %     the current time using the current measurement, y(k):
+        %         x_est(k|k-1) -> x_est(k|k)
+        %         y_est(k|k-1) -> y_est(k|k)
+        %  3. Calculates the predicted states and outputs at the
+        %     next time instant:
+        %         x_est(k+1|k)
+        %         y_est(k+1|k)
+        %     given the current input, u(k), and the current system
+        %     model.
+        %
+        % To do steps 1 and 2 only use: obs.update_step(yk, rk).
+        % To do step 3 only use: obs.prediction_step(yk, rk).
         %
         % Arguments:
         %   yk : vector, size (ny, 1)
         %       System output measurements at current time k.
-        %   uk : vector, size (nu, 1)
+        %   uk : vector, size (nu, 1), optional
         %       System inputs at current time k.
-        %   rk : integer
-        %       System mode at current time k.
+        %
+        % After calling this method, the following properties will
+        % be updated:
+        %   - obs.rk  (r(k))
+        %   - obs.Kf  (Kf(k))
+        %   - obs.Sk  (S(k))
+        %   - obs.xk_est  (x_est(k|k))
+        %   - obs.yk_est  (y_est(k|k))
+        %   - obs.xkp1_est  (x_est(k+1|k))
+        %   - obs.ykp1_est  (y_est(k+1|k))
         %
 
             % Check size of arguments passed
@@ -170,18 +210,13 @@ classdef SKFObserver < matlab.mixin.Copyable
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
             assert(isequal(size(rk), [1 1]), "ValueError: size(rk)")
 
-            % Update system mode, r(k)
-            obj.rk = rk;
+            % Update estimates based on current measurement 
+            % and system mode
+            obj.update_step(yk, rk)
 
-            % Update estimates based on current measurement
-            [obj.xk_est, obj.Pk, obj.yk_est, obj.Sk, obj.Kf] = ...
-                kalman_update_f(obj.models{rk}.C, ...
-                obj.models{rk}.R, obj.xkp1_est, obj.Pkp1, yk);
-
-            % Predict states at next time instant
-            [obj.xkp1_est, obj.Pkp1] = kalman_predict_f(...
-                obj.models{rk}.A, obj.models{rk}.B, obj.models{rk}.Q, ...
-                obj.xk_est, obj.Pk, uk);
+            % Predictions based on current inputs and system 
+            % mode
+            obj.prediction_step(uk, rk)
 
         end
     end
