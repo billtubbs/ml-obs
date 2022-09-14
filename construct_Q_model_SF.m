@@ -1,6 +1,6 @@
-function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
+function [Q, p_rk, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
     var_wp, n_di, m, nw)
-% [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, var_wp, ...
+% [Q, p_rk, seq] = construct_Q_model_SF(Q0, Bw, alpha, var_wp, ...
 %     n_di, m, nw)
 % Constructs the parameters needed to model the sub-optimal
 % multi-model algorithm using sequence fusion for the
@@ -27,11 +27,11 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
 %
 
     % Generate indicator sequences
-    seq = combinations_lte(n_di*nw, m);
+    seq = shock_combinations_lte(n_di*nw, m);
 
     % Probabilities of no-shock / shock over detection interval
     % (this is named delta in Robertson et al. 1998)
-    p_gamma = [1-alpha'; alpha'];
+    p_rk = [1-alpha'; alpha'];
 
     if nw == 1  % only one disturbance
 
@@ -72,14 +72,14 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
 
         % Rearrange as one sequence for each filter and convert
         % back to cell array
-        seq = reshape((ic - 1)', [], n_filt)';
+        seq = reshape(ic', [], n_filt)';
         seq = mat2cell(seq, ones(n_filt, 1), n_di);
 
         % Generate required Q matrices
         Q = cell(1, nj);
         for i = 1:nj
             var_x = diag(Q0);
-            ind = Z(i, :) + 1;
+            ind = Z(i, :);
             % Modified variances of shock signal over detection
             % interval (see (16) on p.264 of Robertson et al. 1998)
             idx = sub2ind(size(var_wp), 1:nw, ind);
@@ -89,11 +89,11 @@ function [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
 
         % Modify indicator value probabilities for
         % combinations of shocks
-        p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
+        p_rk = prod(prob_rk(Z', p_rk), 1)';
 
         % Normalize so that sum(Pr(gamma(k))) = 1
         % TODO: Is this the right thing to do for sub-optimal approach?
-        p_gamma = p_gamma ./ sum(p_gamma);
+        p_rk = p_rk ./ sum(p_rk);
 
     end
 

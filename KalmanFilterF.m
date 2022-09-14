@@ -1,6 +1,6 @@
 % Kalman Filter class definition
 %
-% obs = KalmanFilterF(A,B,C,Ts,P0,Q,R,label,x0)
+% obs = KalmanFilterF(model,P0,label,x0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance). This is the filtering form of the
@@ -26,17 +26,15 @@
 % Note: there is no direct transmission (D = 0).
 %
 % Arguments:
-%   A, B, C : matrices
-%       Discrete-time system model matrices.
-%   Ts : double
-%       Sampling period.
+%   model : struct
+%       Struct containing the parameters of a linear
+%       model of the system dynamics. These include: A, B, 
+%       and C for the system matrices, Q and R for the
+%       state error covariance and output measurement 
+%       noise covariance, and Ts for the sampling period.
 %   P0 : matrix, size (n, n)
 %       Initial value of covariance matrix of the state
 %       estimates at time k = 0.
-%   Q : matrix, size (n, n)
-%       State error covariance.
-%   R : matrix, size (ny, ny)
-%       Output measurement noise covariance.
 %   label : string (optional)
 %       Name.
 %   x0 : vector, size(n, 1), (optional)

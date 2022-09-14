@@ -1,6 +1,6 @@
-function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
+function [Q, p_rk, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
     sigma_wp, n_di, m, nw)
-% [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
+% [Q, p_rk, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
 %     sigma_wp, f, m, d, nw)
 % Constructs the parameters needed to model the sub-optimal
 % multi-model algorithm using sequence fusion for the
@@ -24,14 +24,14 @@ function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
 %
 
     % Generate indicator sequences
-    seq = combinations_lte(n_di*nw, m);
+    seq = shock_combinations_lte(n_di*nw, m);
 
     % Expand sequence by inserting detection intervals
     % TODO: Why was this removed?
 
     % Probabilities of no-shock / shock over detection interval
     % (this is named delta in Robertson et al. 1998)
-    p_gamma = [1-epsilon'; epsilon'];
+    p_rk = [1-epsilon'; epsilon'];
 
     if nw == 1  % only one disturbance
 
@@ -81,7 +81,7 @@ function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
         Q = cell(1, nj);
         for i = 1:nj
             var_x = diag(Q0);
-            ind = Z(i, :) + 1;
+            ind = Z(i, :);
             idx = sub2ind(size(sigma_wp), 1:nw, ind);
             var_x = var_x + Bw * sigma_wp(idx)'.^2;
             Q{i} = diag(var_x);
@@ -89,11 +89,11 @@ function [Q, p_gamma, seq] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
 
         % Modify indicator value probabilities for
         % combinations of shocks
-        p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
+        p_rk = prod(prob_rk(Z', p_rk), 1)';
 
         % Normalize so that sum(Pr(gamma(k))) = 1
         % TODO: Is this the right thing to do for sub-optimal approach?
-        p_gamma = p_gamma ./ sum(p_gamma);
+        p_rk = p_rk ./ sum(p_rk);
 
     end
 

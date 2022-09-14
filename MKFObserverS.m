@@ -90,7 +90,7 @@ classdef MKFObserverS < MKFObserver
             obj.seq = seq;
             obj.nf = size(cell2mat(seq), 2);  % TODO: allow sequences of
                                               %     of different lengths
-            obj.type = "MKF-S";
+            obj.type = "MKF_S";
 
             % Initialize variables
             obj.reset()

@@ -38,7 +38,7 @@
 %       model of the system dynamics. These include: A, B, 
 %       and C for the system matrices, Q and R for the
 %       state error covariance and output measurement 
-%       noise covariance, and Ts for the sample period.
+%       noise covariance, and Ts for the sampling period.
 %   P0 : (n, n) double
 %       Initial covariance matrix of the state estimates
 %       (same for each filter).

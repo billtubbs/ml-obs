@@ -37,26 +37,42 @@ Q = diag([q1 sigma_wp(2)^2]);
 R = sigma_M^2;
 KFSS2 = KalmanFilterSS(A,Bu,C,Ts,Q,R,'KFSS2');
 
+% Observer models for new observer functions
+models = {struct, struct};
+models{1}.A = A;
+models{1}.B = Bu;
+models{1}.C = C;
+models{1}.Ts = Ts;
+models{1}.Q = Q;
+models{1}.R = R;
+models{2}.A = A;
+models{2}.B = Bu;
+models{2}.C = C;
+models{2}.Ts = Ts;
+models{2}.Q = Q;
+models{2}.R = R;
+
 % Kalman filter 1 - tuned to sigma_wp(1)
 % Covariance matrices
 P0 = 1000*eye(n);
 Q = diag([q1 sigma_wp(1)^2]);
 R = sigma_M^2;
-KF1 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,'KF1');
+KF1 = KalmanFilterF(models{1},P0,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
 % Covariance matrices
 P0 = 1000*eye(n);
 Q = diag([q1 sigma_wp(2)^2]);
 R = sigma_M^2;
-KF2 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,'KF2');
+KF2 = KalmanFilterF(models{2},P0,'KF2');
 
 % Kalman filter 3 - manually tuned
 % Covariance matrices
+model3 = models{1};  % make copy
 P0 = 1000*eye(n);
-Q = diag([q1 0.1^2]);
-R = sigma_M^2;
-KF3 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,'KF3');
+model3.Q = diag([q1 0.1^2]);
+model3.R = sigma_M^2;
+KF3 = KalmanFilterF(model3,P0,'KF3');
 
 % Multiple model observer with sequence fusion #1
 label = 'MKF_SF1';
@@ -66,7 +82,7 @@ R = sigma_M^2;
 f = 15;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 5;  % spacing parameter
-MKF_SF1 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF1 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model observer with sequence fusion #2
@@ -77,7 +93,7 @@ R = sigma_M^2;
 f = 15;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF_SF2 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF2 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model observer with sequence fusion based on method

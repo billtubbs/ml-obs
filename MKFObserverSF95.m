@@ -7,7 +7,7 @@
 % different to that described in Robertson et al. (1998).
 %
 % obs = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon, ...
-%     sigma_wp,Q0,R,f,m,d,label,x0)
+%               sigma_wp,Q0,R,f,m,d,label,x0)
 %
 % Arguments:
 %   A, B, C : matrices of the discrete time state-space
@@ -44,7 +44,7 @@
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
 
-classdef MKFObserverSF95 < MKFObserver
+classdef MKFObserverSF95 < MKFObserverS
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         m double {mustBeInteger, mustBeNonnegative}
@@ -122,17 +122,23 @@ classdef MKFObserverSF95 < MKFObserver
             % Tolerance parameter (total probability of defined sequences)
             beta = sum(p_seq);
 
-            % System model doesn't change
-            A = repmat({A}, 1, nj);
-            Bu = repmat({Bu}, 1, nj);
-            C = repmat({C}, 1, nj);
-            R = repmat({R}, 1, nj);
+            % System models are the same
+            model.A = A;
+            model.B = Bu;
+            model.C = C;
+            model.R = R;
+            model.Ts = Ts;
+            models = {model, model};
 
-            % Initial covariance matrix is the same for all filters
-            %P0_init = repmat({P0}, 1, n_filt);
+            % Only the Q parameter is different
+            models{1}.Q = Q{1};
+            models{2}.Q = Q{2};
+
+            % Convert seq indices from 0-based to 1-based
+            seq = cellfun(@(x) x+1, seq, 'UniformOutput', false);
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Ts,P0,Q,R,seq,T,label,x0);
+            obj = obj@MKFObserverS(models,P0,seq,T,label,x0);
 
             % Add additional variables used by RODD observer
             obj.u_meas = u_meas;

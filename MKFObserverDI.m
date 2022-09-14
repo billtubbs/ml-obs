@@ -56,9 +56,9 @@ classdef MKFObserverDI < matlab.mixin.Copyable
         Q cell
         R cell
         seq cell
-        idx_branch double
-        idx_modes double
-        idx_merge double
+        idx_branch cell
+        idx_modes cell
+        idx_merge cell
         gamma0 double {mustBeInteger, mustBeNonnegative}
         T double
         label (1, 1) string
@@ -138,7 +138,7 @@ classdef MKFObserverDI < matlab.mixin.Copyable
             % and merging of estimates at the end of each 
             % detection interval.
             [obj.idx_branch, obj.idx_modes, obj.idx_merge] = ...
-                seq_fusion_indices(seq, nj)
+                seq_fusion_indices(cell2mat(seq), nj);
 
             % Initialize all variables
             obj.reset()

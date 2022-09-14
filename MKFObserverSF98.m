@@ -128,6 +128,9 @@ classdef MKFObserverSF98 < MKFObserverDI
             % Initial covariance matrix is the same for all filters
             %P0_init = repmat({P0}, 1, n_filt);
 
+            % Convert seq indices from 0-based to 1-based
+            seq = cellfun(@(x) x+1, seq, 'UniformOutput', false);
+
             % Create MKF super-class observer instance
             obj = obj@MKFObserverDI(A,Bu,C,Ts,P0,Q,R,seq,T,d,label,x0);
 

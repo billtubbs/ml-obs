@@ -1,8 +1,8 @@
 % Test the following functions used by the sequence fusion
 % multi-model observers:
 % 
-%  - combinations.m
-%  - combinations_lte.m
+%  - shock_combinations.m
+%  - shock_combinations_lte.m
 %  - prob_combs.m
 %  - prob_Gammas.m
 %  - seq_fusion_indices.m
@@ -18,35 +18,37 @@ clear all
 
 epsilon = [0.99; 0.01];
 
-S = combinations(5, 0);
-assert(isequal(cell2mat(S), zeros(1, 5)))
- 
-S = combinations(5, 1);
-assert(isequal(cell2mat(S), eye(5)))
-
-S = combinations(5, 5);
+S = shock_combinations(5, 0);
 assert(isequal(cell2mat(S), ones(1, 5)))
+ 
+S = shock_combinations(5, 1);
+assert(isequal(cell2mat(S), eye(5) + 1))
 
-S = combinations(3, 2);
-S_test = ...
-     [1     1     0;
-      1     0     1;
-      0     1     1];
+S = shock_combinations(5, 5);
+assert(isequal(cell2mat(S), 2*ones(1, 5)))
+
+S = shock_combinations(3, 2);
+S_test = [
+   2   2   1
+   2   1   2
+   1   2   2
+];
 assert(isequal(cell2mat(S), S_test))
 
-S = combinations_lte(3, 3);
-S_test = ...
-     [0     0     0;
-      1     0     0;
-      0     1     0;
-      0     0     1;
-      1     1     0;
-      1     0     1;
-      0     1     1;
-      1     1     1];
+S = shock_combinations_lte(3, 3);
+S_test = [
+   1   1   1
+   2   1   1
+   1   2   1
+   1   1   2
+   2   2   1
+   2   1   2
+   1   2   2
+   2   2   2
+];
 assert(isequal(cell2mat(S), S_test))
 
-p = prob_Gammas(S, epsilon);
+p = prob_seq(S, epsilon);
 assert(size(p, 1) == size(S, 1))
 assert(abs(p(1) - epsilon(1)^3) < 1e-10)
 assert(all(abs(p(2:4) - epsilon(1)^2*epsilon(2)) < 1e-10))
@@ -54,38 +56,38 @@ assert(all(abs(p(5:7) - epsilon(1)*epsilon(2)^2) < 1e-10))
 assert(abs(p(8) - epsilon(2)^3) < 1e-10)
 assert(abs(sum(p) - 1) < 1e-15)
 
-S = combinations_lte(3, 2);
+S = shock_combinations_lte(3, 2);
 assert(isequal(cell2mat(S), S_test(1:end-1,:)))
 
-S = combinations_lte(5, 2);
-p = prob_Gammas(S, epsilon);
+S = shock_combinations_lte(5, 2);
+p = prob_seq(S, epsilon);
 assert(abs(1 - sum(p)) > 1e-10)
 
-assert(isequal(cell2mat(combinations_lte(5, 0)), zeros(1, 5)))
+assert(isequal(cell2mat(shock_combinations_lte(5, 0)), ones(1, 5)))
 
-S = combinations_gte_prob(3, 0, epsilon);
-assert(isequal(cell2mat(S), zeros(1, 3)))
+S = shock_combinations_gte_prob(3, 0, epsilon);
+assert(isequal(cell2mat(S), ones(1, 3)))
 
-S = combinations_gte_prob(3, 0.97, epsilon);
-assert(isequal(cell2mat(S), zeros(1, 3)))
+S = shock_combinations_gte_prob(3, 0.97, epsilon);
+assert(isequal(cell2mat(S), ones(1, 3)))
 
-S = combinations_gte_prob(3, 0.98, epsilon);
-assert(isequal(cell2mat(S), [zeros(1, 3); eye(3)]))
+S = shock_combinations_gte_prob(3, 0.98, epsilon);
+assert(isequal(cell2mat(S), [ones(1, 3); eye(3)+1]))
 
-S1 = combinations_gte_prob(5, 1, epsilon);
-S2 = combinations_lte(5, 5);
+S1 = shock_combinations_gte_prob(5, 1, epsilon);
+S2 = shock_combinations_lte(5, 5);
 assert(isequal(cell2mat(S1), cell2mat(S2)))
 
 % Multi-variable sequences
-S = combinations(6, 2);
+S = shock_combinations(6, 2);
 S = cellfun(@(x) reshape(x, 2, []), S, 'UniformOutput', false);
 epsilon = [0.99 0.95; 0.01 0.05];
-p = prob_Gammas(S, epsilon);
+p = prob_seq(S, epsilon);
 assert(all(p(1) - 0.01*0.99*0.99*0.05*0.95*0.95 < 1e-10));
 
 % Check for all S
 for i = 1:numel(S)
-    n_shocks = sum(S{i}, 2);
+    n_shocks = sum(S{i} == 2, 2);
     n_no_shock = size(S{i},2) - n_shocks;
     prob_calc = prod(epsilon(2,:) .^ (n_shocks')) * ...
         prod(epsilon(1,:) .^ (n_no_shock'));
@@ -96,18 +98,18 @@ f = 3;
 n_dist = 2;
 m = 1;
 d = 5;
-S = combinations_lte(f*n_dist, m);
+S = shock_combinations_lte(f*n_dist, m);
 epsilon = [0.01; 0.01];
 p = (ones(size(epsilon)) - (ones(size(epsilon)) - epsilon).^d)';
 p = [ones(size(p))-p; p];
 S = cellfun(@(x) reshape(x, n_dist, []), S, 'UniformOutput', false);
-p_seq = prob_Gammas(S, p);
+p_seq = prob_seq(S, p);
 assert(abs(p_seq(1) - (p(1,1)^3*p(1,2)^3)) < 1e-10)
 assert(all(abs(p_seq([2 4 6]) - (p(1,1)^2*p(2,1)*p(1,2)^3)) < 1e-10))
 assert(all(abs(p_seq([3 5 7]) - (p(1,1)^3*p(1,2)^2*p(2,2))) < 1e-10))
 
 
-%% Test most_probable_combinations.m
+%% Test most_probable_sequences.m
 
 p = [0.95; 0.04; 0.01];
 S = most_probable_sequences(p, 1, 0.99);
@@ -267,35 +269,35 @@ f = 3;  % Fusion horizon
 m = 3;  % Maximum number of shocks
 
 % Generate all sequences
-seq = cell2mat(combinations_lte(f, m));
+seq = cell2mat(shock_combinations_lte(f, m));
 assert(isequal(seq, [ ...
-   0   0   0
-   1   0   0
-   0   1   0
-   0   0   1
-   1   1   0
-   1   0   1
-   0   1   1
-   1   1   1 ...
+   1   1   1
+   2   1   1
+   1   2   1
+   1   1   2
+   2   2   1
+   2   1   2
+   1   2   2
+   2   2   2
 ]))
 
 test_result = [
-     1     0     1
-     1     1     4
-     2     0     1
-     2     1     4
-     3     0     2
-     3     1     6
-     4     0     3
-     4     1     7
-     5     0     2
-     5     1     6
-     6     0     3
-     6     1     7
-     7     0     5
-     7     1     8
-     8     0     5
-     8     1     8
+     1     1     1
+     1     2     4
+     2     1     1
+     2     2     4
+     3     1     2
+     3     2     6
+     4     1     3
+     4     2     7
+     5     1     2
+     5     2     6
+     6     1     3
+     6     2     7
+     7     1     5
+     7     2     8
+     8     1     5
+     8     2     8
 ];
 
 % Generate branching, transition and merge indices - invariant version
@@ -334,82 +336,82 @@ f = 3;  % Fusion horizon
 m = 2;  % Maximum number of shocks
 
 % Generate all sequences
-seq = cell2mat(combinations_lte(f, m));
+seq = cell2mat(shock_combinations_lte(f, m));
 assert(isequal(seq, [ ...
-   0   0   0
-   1   0   0
-   0   1   0
-   0   0   1
-   1   1   0
-   1   0   1
-   0   1   1 ...
+   1   1   1
+   2   1   1
+   1   2   1
+   1   1   2
+   2   2   1
+   2   1   2
+   1   2   2
 ]))
 
 % Generate branching, transition and merge indices - invariant version
 [idx_branch, idx_modes, idx_merge] = seq_fusion_indices_inv(seq, nj);
 test_result = [
-     1     0     1
-     1     1     4
-     2     0     1
-     2     1     4
-     3     0     2
-     3     1     6
-     4     0     3
-     4     1     7
-     5     0     2
-     5     1     6
-     6     0     3
-     6     1     7
-     7     0     5
+     1     1     1
+     1     2     4
+     2     1     1
+     2     2     4
+     3     1     2
+     3     2     6
+     4     1     3
+     4     2     7
+     5     1     2
+     5     2     6
+     6     1     3
+     6     2     7
+     7     1     5
 ];
 assert(isequal([idx_branch idx_modes idx_merge], test_result))
 
 % Generate branching, transition and merge indices - general version
 [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
 assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
-     1     0     1
-     1     1     2
-     2     0     1
-     2     1     2
-     3     0     3
-     3     1     5
-     4     0     4
-     4     1     6
-     5     0     3
-     5     1     5
-     6     0     4
-     6     1     6
-     7     0     7
+     1     1     1
+     1     2     2
+     2     1     1
+     2     2     2
+     3     1     3
+     3     2     5
+     4     1     4
+     4     2     6
+     5     1     3
+     5     2     5
+     6     1     4
+     6     2     6
+     7     1     7
 ]))
 assert(isequal([idx_branch{2} idx_modes{2} idx_merge{2}], [ ...
-     1     0     1
-     1     1     3
-     2     0     2
-     2     1     5
-     3     0     1
-     3     1     3
-     4     0     4
-     4     1     7
-     5     0     2
-     5     1     5
-     6     0     6
-     7     0     4
-     7     1     7
+     1     1     1
+     1     2     3
+     2     1     2
+     2     2     5
+     3     1     1
+     3     2     3
+     4     1     4
+     4     2     7
+     5     1     2
+     5     2     5
+     6     1     6
+     7     1     4
+     7     2     7
 ]))
 assert(isequal([idx_branch{3} idx_modes{3} idx_merge{3}], [ ...
-     1     0     1
-     1     1     4
-     2     0     2
-     2     1     6
-     3     0     3
-     3     1     7
-     4     0     1
-     4     1     4
-     5     0     5
-     6     0     2
-     6     1     6
-     7     0     3
-     7     1     7
+     1     1     1
+     1     2     4
+     2     1     2
+     2     2     6
+     3     1     3
+     3     2     7
+     4     1     1
+     4     2     4
+     5     1     5
+     6     1     2
+     6     2     6
+     7     1     3
+     7     2     7
 ]))
 
 
@@ -420,21 +422,21 @@ f = 3;  % Fusion horizon
 m = 1;  % Maximum number of shocks
 
 % Generate all sequences
-seq = cell2mat(combinations_lte(f, m));
+seq = cell2mat(shock_combinations_lte(f, m));
 assert(isequal(seq, [ ...
-   0   0   0
-   1   0   0
-   0   1   0
-   0   0   1 ...
+   1   1   1
+   2   1   1
+   1   2   1
+   1   1   2
 ]))
 
 test_result = [
-     1     0     1
-     1     1     4
-     2     0     1
-     2     1     4
-     3     0     2
-     4     0     3
+     1     1     1
+     1     2     4
+     2     1     1
+     2     2     4
+     3     1     2
+     4     1     3
 ];
 
 % Generate branching, transition and merge indices - invariant version
@@ -444,28 +446,28 @@ assert(isequal([idx_branch idx_modes idx_merge], test_result))
 % Generate branching, transition and merge indices - general version
 [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
 assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
-     1     0     1
-     1     1     2
-     2     0     1
-     2     1     2
-     3     0     3
-     4     0     4
+     1     1     1
+     1     2     2
+     2     1     1
+     2     2     2
+     3     1     3
+     4     1     4
 ]))
 assert(isequal([idx_branch{2} idx_modes{2} idx_merge{2}], [ ...
-     1     0     1
-     1     1     3
-     2     0     2
-     3     0     1
-     3     1     3
-     4     0     4
+     1     1     1
+     1     2     3
+     2     1     2
+     3     1     1
+     3     2     3
+     4     1     4
 ]))
 assert(isequal([idx_branch{3} idx_modes{3} idx_merge{3}], [ ...
-     1     0     1
-     1     1     4
-     2     0     2
-     3     0     3
-     4     0     1
-     4     1     4
+     1     1     1
+     1     2     4
+     2     1     2
+     3     1     3
+     4     1     1
+     4     2     4
 ]))
 
 
@@ -488,7 +490,7 @@ nj = 2;
 % Construct process noise covariance matrices and switching
 % sequences over the fusion horizon, and the prior 
 % probabilities of each sequence.
-[Q, p_gamma, S] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
+[Q, p_rk, S] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
     sigma_wp, n_di, m, nw);
 
 % Expand sequences by inserting zeros between times
@@ -496,16 +498,16 @@ nj = 2;
 n_filt = size(S, 1);
 seq = cell(n_filt, 1);
 for i = 1:n_filt
-    seq{i} = int16(zeros(size(S{i}, 1), f));
+    seq{i} = int16(ones(size(S{i}, 1), f));
     seq{i}(:, 1:d:f) = S{i};
     % Alternatively, at end of each detection interval
     %seq{i}(:, d:d:f) = S{i};
 end
-assert(isequal(seq, {...
-    [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-    [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-    [0 0 0 0 0 1 0 0 0 0 0 0 0 0 0]
-    [0 0 0 0 0 0 0 0 0 0 1 0 0 0 0] ...
+assert(isequal(seq, {
+    [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]
+    [2 1 1 1 1 1 1 1 1 1 1 1 1 1 1]
+    [1 1 1 1 1 2 1 1 1 1 1 1 1 1 1]
+    [1 1 1 1 1 1 1 1 1 1 2 1 1 1 1]
 }))
 
 seq = cell2mat(seq);
@@ -516,41 +518,121 @@ seq = cell2mat(seq);
 
 % Step 1
 assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
-     1     0     1
-     1     1     2
-     2     0     1
-     2     1     2
-     3     0     3
-     4     0     4 ...
+     1     1     1
+     1     2     2
+     2     1     1
+     2     2     2
+     3     1     3
+     4     1     4
 ]))
 
 % Step 6
 assert(isequal([idx_branch{6} idx_modes{6} idx_merge{6}], [ ...
-     1     0     1
-     1     1     3
-     2     0     2
-     3     0     1
-     3     1     3
-     4     0     4 ...
+     1     1     1
+     1     2     3
+     2     1     2
+     3     1     1
+     3     2     3
+     4     1     4
 ]))
 
 % Step 11
 assert(isequal([idx_branch{11} idx_modes{11} idx_merge{11}], [ ...
-     1     0     1
-     1     1     4
-     2     0     2
-     3     0     3
-     4     0     1
-     4     1     4 ...
+     1     1     1
+     1     2     4
+     2     1     2
+     3     1     3
+     4     1     1
+     4     2     4
 ]))
 
 % No branching or merging during transitions steps between shocks
 for i = [2 3 4 5 7 8 9 10 12 13 14 15]
     assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
-         1     0     1
-         2     0     2
-         3     0     3
-         4     0     4 ...
+     1     1     1
+     2     1     2
+     3     1     3
+     4     1     4
+    ]))
+end
+
+
+%% Example 4b - with detection intervals (1995 version)
+
+% Parameters of SF observer
+Q0 = [0.01    0
+         0    0];
+Bw = [0  1]';
+epsilon = 0.01;
+sigma_wp = [0.0100    1.0000];
+f = 10;
+m = 2;
+d = 5;
+nw = 1;
+assert(rem(f, d) == 0, "detection interval not compatible")
+n_di = f / d;
+nj = 2;
+
+% Construct process noise covariance matrices and switching
+% sequences over the fusion horizon, and the prior 
+% probabilities of each sequence.
+[Q, p_rk, S] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
+    sigma_wp, n_di, m, nw);
+
+% Expand sequences by inserting zeros between times
+% when shocks occur.
+n_filt = size(S, 1);
+seq = cell(n_filt, 1);
+for i = 1:n_filt
+    seq{i} = int16(ones(size(S{i}, 1), f));
+    seq{i}(:, 1:d:f) = S{i};
+    % Alternatively, at end of each detection interval
+    %seq{i}(:, d:d:f) = S{i};
+end
+assert(isequal(seq, {
+    [1 1 1 1 1 1 1 1 1 1]
+    [2 1 1 1 1 1 1 1 1 1]
+    [1 1 1 1 1 2 1 1 1 1]
+    [2 1 1 1 1 2 1 1 1 1]
+}))
+
+seq = cell2mat(seq);
+
+% Generate sets of branching, mode transition and merge
+% indices for each time-step of the sequence
+[idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
+
+% Step 1
+assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
+     1     1     1
+     1     2     2
+     2     1     1
+     2     2     2
+     3     1     3
+     3     2     4
+     4     1     3
+     4     2     4
+]))
+
+% Step 6
+assert(isequal([idx_branch{6} idx_modes{6} idx_merge{6}], [ ...
+     1     1     1
+     1     2     3
+     2     1     2
+     2     2     4
+     3     1     1
+     3     2     3
+     4     1     2
+     4     2     4
+]))
+
+% No branching or merging during transitions steps between shocks
+for i = [2 3 4 5 7 8 9 10]
+    assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
+     1     1     1
+     2     1     2
+     3     1     3
+     4     1     4
     ]))
 end
 
@@ -577,7 +659,7 @@ nj = 2;
 alpha = (1 - (1 - epsilon).^d);
 var_wp = sigma_wp.^2;
 var_wp(2) = var_wp(2) ./ d;
-[Q, p_gamma, S] = construct_Q_model_SF(Q0, Bw, alpha, ...
+[Q, p_rk, S] = construct_Q_model_SF(Q0, Bw, alpha, ...
     var_wp, n_di, m, nw);
 
 % Expand sequences by inserting zeros between times
@@ -587,11 +669,11 @@ seq = cell2mat(S);
 seq = cell2mat(arrayfun( ...
     @(i) repmat(seq(:, i), 1, d), 1:n_di, 'UniformOutput', false ...
 ));
-assert(isequal(seq, [...
-   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
-   1   1   1   1   1   0   0   0   0   0   0   0   0   0   0
-   0   0   0   0   0   1   1   1   1   1   0   0   0   0   0
-   0   0   0   0   0   0   0   0   0   0   1   1   1   1   1 ...
+assert(isequal(seq, [
+   1   1   1   1   1   1   1   1   1   1   1   1   1   1   1
+   2   2   2   2   2   1   1   1   1   1   1   1   1   1   1
+   1   1   1   1   1   2   2   2   2   2   1   1   1   1   1
+   1   1   1   1   1   1   1   1   1   1   2   2   2   2   2
 ]))
 
 % Generate sets of branching, mode transition and merge
@@ -613,62 +695,62 @@ nh = 11;
 
 % Step 1
 assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
-     1     0     1
-     1     1     2
-     2     0     1
-     2     1     2
-     3     0     3
-     4     0     4 ...
+     1     1     1
+     1     2     2
+     2     1     1
+     2     2     2
+     3     1     3
+     4     1     4
 ]))
 
 % Step 6
 assert(isequal([idx_branch{6} idx_modes{6} idx_merge{6}], [ ...
-     1     0     1
-     1     1     3
-     2     0     2
-     3     0     1
-     3     1     3
-     4     0     4 ...
+     1     1     1
+     1     2     3
+     2     1     2
+     3     1     1
+     3     2     3
+     4     1     4
 ]))
 
 % Step 11
 assert(isequal([idx_branch{11} idx_modes{11} idx_merge{11}], [ ...
-     1     0     1
-     1     1     4
-     2     0     2
-     3     0     3
-     4     0     1
-     4     1     4 ...
+     1     1     1
+     1     2     4
+     2     1     2
+     3     1     3
+     4     1     1
+     4     2     4
 ]))
 
 % No branching or merging during transitions steps between shocks
 % During 1st detection interval
 for i = [2 3 4 5]
     assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
-         1     0     1
-         2     1     2
-         3     0     3
-         4     0     4 ...
+     1     1     1
+     2     2     2
+     3     1     3
+     4     1     4
     ]))
 end
 
 % During 2nd detection interval
 for i = [7 8 9 10]
     assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
-         1     0     1
-         2     0     2
-         3     1     3
-         4     0     4 ...
+     1     1     1
+     2     1     2
+     3     2     3
+     4     1     4
     ]))
 end
 
 % During 3rd detection interval
 for i = [12 13 14 15]
     assert(isequal([idx_branch{i} idx_modes{i} idx_merge{i}], [ ...
-         1     0     1
-         2     0     2
-         3     0     3
-         4     1     4 ...
+     1     1     1
+     2     1     2
+     3     1     3
+     4     2     4
     ]))
 end
 
@@ -698,7 +780,7 @@ m = 1;  % Maximum number of shocks during fusion horizon
 nw = 2;  % Number of indenendent random shock inputs
 
 % Generate all sequences
-[Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
+[Q, p_rk, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
                 var_wp, f, m, nw);
 seq = cell2mat(seq);
 
@@ -706,29 +788,29 @@ seq = cell2mat(seq);
 nj = 3;
 
 assert(isequal(seq, [ ...
-     0     0     0
-     2     0     0
-     1     0     0
-     0     2     0
-     0     1     0
-     0     0     2
-     0     0     1
+     1     1     1
+     3     1     1
+     2     1     1
+     1     3     1
+     1     2     1
+     1     1     3
+     1     1     2
 ]))
 
 test_result = [
-     1     0     1
-     1     1     7
-     1     2     6
-     2     0     1
-     2     1     7
-     2     2     6
-     3     0     1
-     3     1     7
-     3     2     6
-     4     0     2
-     5     0     3
-     6     0     4
-     7     0     5
+     1     1     1
+     1     2     7
+     1     3     6
+     2     1     1
+     2     2     7
+     2     3     6
+     3     1     1
+     3     2     7
+     3     3     6
+     4     1     2
+     5     1     3
+     6     1     4
+     7     1     5
 ];
 
 % Generate branching, transition and merge indices - invariant version
@@ -738,332 +820,332 @@ assert(isequal([idx_branch idx_modes idx_merge], test_result))
 % Generate branching, transition and merge indices - general version
 [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
 assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
-     1     0     1
-     1     1     3
-     1     2     2
-     2     0     1
-     2     1     3
-     2     2     2
-     3     0     1
-     3     1     3
-     3     2     2
-     4     0     4
-     5     0     5
-     6     0     6
-     7     0     7
+     1     1     1
+     1     2     3
+     1     3     2
+     2     1     1
+     2     2     3
+     2     3     2
+     3     1     1
+     3     2     3
+     3     3     2
+     4     1     4
+     5     1     5
+     6     1     6
+     7     1     7
 ]))
 assert(isequal([idx_branch{2} idx_modes{2} idx_merge{2}], [ ...
-     1     0     1
-     1     1     5
-     1     2     4
-     2     0     2
-     3     0     3
-     4     0     1
-     4     1     5
-     4     2     4
-     5     0     1
-     5     1     5
-     5     2     4
-     6     0     6
-     7     0     7
+     1     1     1
+     1     2     5
+     1     3     4
+     2     1     2
+     3     1     3
+     4     1     1
+     4     2     5
+     4     3     4
+     5     1     1
+     5     2     5
+     5     3     4
+     6     1     6
+     7     1     7
 ]))
 assert(isequal([idx_branch{3} idx_modes{3} idx_merge{3}], [ ...
-     1     0     1
-     1     1     7
-     1     2     6
-     2     0     2
-     3     0     3
-     4     0     4
-     5     0     5
-     6     0     1
-     6     1     7
-     6     2     6
-     7     0     1
-     7     1     7
-     7     2     6
+     1     1     1
+     1     2     7
+     1     3     6
+     2     1     2
+     3     1     3
+     4     1     4
+     5     1     5
+     6     1     1
+     6     2     7
+     6     3     6
+     7     1     1
+     7     2     7
+     7     3     6
 ]))
 
 
 % Repeat with m = 2
 m = 2;  % Maximum number of shocks during fusion horizon
 % Generate all sequences
-[Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
+[Q, p_rk, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
                 var_wp, f, m, nw);
 seq = cell2mat(seq);
 
 % Number of modes
 nj = 4;
 
-assert(isequal(seq, [ ...
-     0     0     0
-     2     0     0
-     1     0     0
-     0     2     0
-     0     1     0
-     0     0     2
-     0     0     1
-     3     0     0
-     2     2     0
-     2     1     0
-     2     0     2
-     2     0     1
-     1     2     0
-     1     1     0
-     1     0     2
-     1     0     1
-     0     3     0
-     0     2     2
-     0     2     1
-     0     1     2
-     0     1     1
-     0     0     3
+assert(isequal(seq, [
+     1     1     1
+     3     1     1
+     2     1     1
+     1     3     1
+     1     2     1
+     1     1     3
+     1     1     2
+     4     1     1
+     3     3     1
+     3     2     1
+     3     1     3
+     3     1     2
+     2     3     1
+     2     2     1
+     2     1     3
+     2     1     2
+     1     4     1
+     1     3     3
+     1     3     2
+     1     2     3
+     1     2     2
+     1     1     4
 ]))
 
 % Generate branching, transition and merge indices - invariant version
 [idx_branch, idx_modes, idx_merge] = seq_fusion_indices_inv(seq, nj);
 test_result = [
-     1     0     1
-     1     1     7
-     1     2     6
-     1     3    22
-     2     0     1
-     2     1     7
-     2     2     6
-     2     3    22
-     3     0     1
-     3     1     7
-     3     2     6
-     3     3    22
-     4     0     2
-     4     1    12
-     4     2    11
-     5     0     3
-     5     1    16
-     5     2    15
-     6     0     4
-     6     1    19
-     6     2    18
-     7     0     5
-     7     1    21
-     7     2    20
-     8     0     1
-     8     1     7
-     8     2     6
-     8     3    22
-     9     0     2
-     9     1    12
-     9     2    11
-    10     0     3
-    10     1    16
-    10     2    15
-    11     0     4
-    11     1    19
-    11     2    18
-    12     0     5
-    12     1    21
-    12     2    20
-    13     0     2
-    13     1    12
-    13     2    11
-    14     0     3
-    14     1    16
-    14     2    15
-    15     0     4
-    15     1    19
-    15     2    18
-    16     0     5
-    16     1    21
-    16     2    20
-    17     0     8
-    18     0     9
-    19     0    10
-    20     0    13
-    21     0    14
-    22     0    17
+     1     1     1
+     1     2     7
+     1     3     6
+     1     4    22
+     2     1     1
+     2     2     7
+     2     3     6
+     2     4    22
+     3     1     1
+     3     2     7
+     3     3     6
+     3     4    22
+     4     1     2
+     4     2    12
+     4     3    11
+     5     1     3
+     5     2    16
+     5     3    15
+     6     1     4
+     6     2    19
+     6     3    18
+     7     1     5
+     7     2    21
+     7     3    20
+     8     1     1
+     8     2     7
+     8     3     6
+     8     4    22
+     9     1     2
+     9     2    12
+     9     3    11
+    10     1     3
+    10     2    16
+    10     3    15
+    11     1     4
+    11     2    19
+    11     3    18
+    12     1     5
+    12     2    21
+    12     3    20
+    13     1     2
+    13     2    12
+    13     3    11
+    14     1     3
+    14     2    16
+    14     3    15
+    15     1     4
+    15     2    19
+    15     3    18
+    16     1     5
+    16     2    21
+    16     3    20
+    17     1     8
+    18     1     9
+    19     1    10
+    20     1    13
+    21     1    14
+    22     1    17
 ];
 assert(isequal([idx_branch idx_modes idx_merge], test_result))
 
 % Generate branching, transition and merge indices - general version
 [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
 assert(isequal([idx_branch{1} idx_modes{1} idx_merge{1}], [ ...
-     1     0     1
-     1     1     3
-     1     2     2
-     1     3     8
-     2     0     1
-     2     1     3
-     2     2     2
-     2     3     8
-     3     0     1
-     3     1     3
-     3     2     2
-     3     3     8
-     4     0     4
-     4     1    13
-     4     2     9
-     5     0     5
-     5     1    14
-     5     2    10
-     6     0     6
-     6     1    15
-     6     2    11
-     7     0     7
-     7     1    16
-     7     2    12
-     8     0     1
-     8     1     3
-     8     2     2
-     8     3     8
-     9     0     4
-     9     1    13
-     9     2     9
-    10     0     5
-    10     1    14
-    10     2    10
-    11     0     6
-    11     1    15
-    11     2    11
-    12     0     7
-    12     1    16
-    12     2    12
-    13     0     4
-    13     1    13
-    13     2     9
-    14     0     5
-    14     1    14
-    14     2    10
-    15     0     6
-    15     1    15
-    15     2    11
-    16     0     7
-    16     1    16
-    16     2    12
-    17     0    17
-    18     0    18
-    19     0    19
-    20     0    20
-    21     0    21
-    22     0    22
+     1     1     1
+     1     2     3
+     1     3     2
+     1     4     8
+     2     1     1
+     2     2     3
+     2     3     2
+     2     4     8
+     3     1     1
+     3     2     3
+     3     3     2
+     3     4     8
+     4     1     4
+     4     2    13
+     4     3     9
+     5     1     5
+     5     2    14
+     5     3    10
+     6     1     6
+     6     2    15
+     6     3    11
+     7     1     7
+     7     2    16
+     7     3    12
+     8     1     1
+     8     2     3
+     8     3     2
+     8     4     8
+     9     1     4
+     9     2    13
+     9     3     9
+    10     1     5
+    10     2    14
+    10     3    10
+    11     1     6
+    11     2    15
+    11     3    11
+    12     1     7
+    12     2    16
+    12     3    12
+    13     1     4
+    13     2    13
+    13     3     9
+    14     1     5
+    14     2    14
+    14     3    10
+    15     1     6
+    15     2    15
+    15     3    11
+    16     1     7
+    16     2    16
+    16     3    12
+    17     1    17
+    18     1    18
+    19     1    19
+    20     1    20
+    21     1    21
+    22     1    22
 ]))
 assert(isequal([idx_branch{2} idx_modes{2} idx_merge{2}], [ ...
-     1     0     1
-     1     1     5
-     1     2     4
-     1     3    17
-     2     0     2
-     2     1    10
-     2     2     9
-     3     0     3
-     3     1    14
-     3     2    13
-     4     0     1
-     4     1     5
-     4     2     4
-     4     3    17
-     5     0     1
-     5     1     5
-     5     2     4
-     5     3    17
-     6     0     6
-     6     1    20
-     6     2    18
-     7     0     7
-     7     1    21
-     7     2    19
-     8     0     8
-     9     0     2
-     9     1    10
-     9     2     9
-    10     0     2
-    10     1    10
-    10     2     9
-    11     0    11
-    12     0    12
-    13     0     3
-    13     1    14
-    13     2    13
-    14     0     3
-    14     1    14
-    14     2    13
-    15     0    15
-    16     0    16
-    17     0     1
-    17     1     5
-    17     2     4
-    17     3    17
-    18     0     6
-    18     1    20
-    18     2    18
-    19     0     7
-    19     1    21
-    19     2    19
-    20     0     6
-    20     1    20
-    20     2    18
-    21     0     7
-    21     1    21
-    21     2    19
-    22     0    22
+     1     1     1
+     1     2     5
+     1     3     4
+     1     4    17
+     2     1     2
+     2     2    10
+     2     3     9
+     3     1     3
+     3     2    14
+     3     3    13
+     4     1     1
+     4     2     5
+     4     3     4
+     4     4    17
+     5     1     1
+     5     2     5
+     5     3     4
+     5     4    17
+     6     1     6
+     6     2    20
+     6     3    18
+     7     1     7
+     7     2    21
+     7     3    19
+     8     1     8
+     9     1     2
+     9     2    10
+     9     3     9
+    10     1     2
+    10     2    10
+    10     3     9
+    11     1    11
+    12     1    12
+    13     1     3
+    13     2    14
+    13     3    13
+    14     1     3
+    14     2    14
+    14     3    13
+    15     1    15
+    16     1    16
+    17     1     1
+    17     2     5
+    17     3     4
+    17     4    17
+    18     1     6
+    18     2    20
+    18     3    18
+    19     1     7
+    19     2    21
+    19     3    19
+    20     1     6
+    20     2    20
+    20     3    18
+    21     1     7
+    21     2    21
+    21     3    19
+    22     1    22
 ]))
 assert(isequal([idx_branch{3} idx_modes{3} idx_merge{3}], [ ...
-     1     0     1
-     1     1     7
-     1     2     6
-     1     3    22
-     2     0     2
-     2     1    12
-     2     2    11
-     3     0     3
-     3     1    16
-     3     2    15
-     4     0     4
-     4     1    19
-     4     2    18
-     5     0     5
-     5     1    21
-     5     2    20
-     6     0     1
-     6     1     7
-     6     2     6
-     6     3    22
-     7     0     1
-     7     1     7
-     7     2     6
-     7     3    22
-     8     0     8
-     9     0     9
-    10     0    10
-    11     0     2
-    11     1    12
-    11     2    11
-    12     0     2
-    12     1    12
-    12     2    11
-    13     0    13
-    14     0    14
-    15     0     3
-    15     1    16
-    15     2    15
-    16     0     3
-    16     1    16
-    16     2    15
-    17     0    17
-    18     0     4
-    18     1    19
-    18     2    18
-    19     0     4
-    19     1    19
-    19     2    18
-    20     0     5
-    20     1    21
-    20     2    20
-    21     0     5
-    21     1    21
-    21     2    20
-    22     0     1
-    22     1     7
-    22     2     6
-    22     3    22
+     1     1     1
+     1     2     7
+     1     3     6
+     1     4    22
+     2     1     2
+     2     2    12
+     2     3    11
+     3     1     3
+     3     2    16
+     3     3    15
+     4     1     4
+     4     2    19
+     4     3    18
+     5     1     5
+     5     2    21
+     5     3    20
+     6     1     1
+     6     2     7
+     6     3     6
+     6     4    22
+     7     1     1
+     7     2     7
+     7     3     6
+     7     4    22
+     8     1     8
+     9     1     9
+    10     1    10
+    11     1     2
+    11     2    12
+    11     3    11
+    12     1     2
+    12     2    12
+    12     3    11
+    13     1    13
+    14     1    14
+    15     1     3
+    15     2    16
+    15     3    15
+    16     1     3
+    16     2    16
+    16     3    15
+    17     1    17
+    18     1     4
+    18     2    19
+    18     3    18
+    19     1     4
+    19     2    19
+    19     3    18
+    20     1     5
+    20     2    21
+    20     3    20
+    21     1     5
+    21     2    21
+    21     3    20
+    22     1     1
+    22     2     7
+    22     3     6
+    22     4    22
 ]))
 
 
@@ -1078,16 +1160,16 @@ f = 3;  % Fusion horizon
 m = 3;  % Maximum number of shocks
 
 % Generate all sequences
-seq = cell2mat(combinations_lte(f, m));
+seq = cell2mat(shock_combinations_lte(f, m));
 assert(isequal(seq, [ ...
-   0   0   0
-   1   0   0
-   0   1   0
-   0   0   1
-   1   1   0
-   1   0   1
-   0   1   1
-   1   1   1 ...
+   1   1   1
+   2   1   1
+   1   2   1
+   1   1   2
+   2   2   1
+   2   1   2
+   1   2   2
+   2   2   2
 ]))
 nh = size(seq, 1);
 
@@ -1103,14 +1185,14 @@ sim_seq1 = mock_sim_inv(nh, idx_branch1, idx_modes1, idx_merge1, nT);
 sim_seq2 = mock_sim(nh, idx_branch2, idx_modes2, idx_merge2, nT);
 
 test_result = [
-    "x|0|0|0"
-    "x|1|0|0"
-    "x|0|1|0"
-    "x|0|0|1"
-    "x|1|1|0"
-    "x|1|0|1"
-    "x|0|1|1"
     "x|1|1|1"
+    "x|2|1|1"
+    "x|1|2|1"
+    "x|1|1|2"
+    "x|2|2|1"
+    "x|2|1|2"
+    "x|1|2|2"
+    "x|2|2|2"
 ];
 assert(isequal(sim_seq1, test_result))
 assert(isequal(sortrows(sim_seq2), sortrows(test_result)))
@@ -1127,14 +1209,14 @@ sim_seq1 = mock_sim_inv(nh, idx_branch1, idx_modes1, idx_merge1, nT);
 sim_seq2 = mock_sim(nh, idx_branch2, idx_modes2, idx_merge2, nT);
 
 test_result = [
-    "(x|0|0|0|0+x|1|0|0|0)"
-    "(x|0|1|0|0+x|1|1|0|0)"
-    "(x|0|0|1|0+x|1|0|1|0)"
-    "(x|0|0|0|1+x|1|0|0|1)"
-    "(x|0|1|1|0+x|1|1|1|0)"
-    "(x|0|1|0|1+x|1|1|0|1)"
-    "(x|0|0|1|1+x|1|0|1|1)"
-    "(x|0|1|1|1+x|1|1|1|1)"
+    "(x|1|1|1|1+x|2|1|1|1)"
+    "(x|1|2|1|1+x|2|2|1|1)"
+    "(x|1|1|2|1+x|2|1|2|1)"
+    "(x|1|1|1|2+x|2|1|1|2)"
+    "(x|1|2|2|1+x|2|2|2|1)"
+    "(x|1|2|1|2+x|2|2|1|2)"
+    "(x|1|1|2|2+x|2|1|2|2)"
+    "(x|1|2|2|2+x|2|2|2|2)"
 ];
 assert(isequal(sim_seq1, test_result))
 assert(isequal(sortrows(sim_seq2), sortrows(test_result)))
@@ -1147,17 +1229,14 @@ f = 3;  % Fusion horizon
 m = 1;  % Maximum number of shocks
 
 % Generate all sequences
-seq = cell2mat(combinations_lte(f, m));
-assert(isequal(seq, [ ...
-   0   0   0
-   1   0   0
-   0   1   0
-   0   0   1 ...
+seq = cell2mat(shock_combinations_lte(f, m));
+assert(isequal(seq, [
+   1   1   1
+   2   1   1
+   1   2   1
+   1   1   2
 ]))
 nh = size(seq, 1);
-
-% Generate branching, mode transition and merge indices
-[idx_branch, idx_modes, idx_merge] = seq_fusion_indices_inv(seq, nj);
 
 % Number of transitions to simulate
 nT = 3;
@@ -1171,10 +1250,10 @@ sim_seq1 = mock_sim_inv(nh, idx_branch1, idx_modes1, idx_merge1, nT);
 sim_seq2 = mock_sim(nh, idx_branch2, idx_modes2, idx_merge2, nT);
 
 test_result = [
-    "x|0|0|0"
-    "x|1|0|0"
-    "x|0|1|0"
-    "x|0|0|1"
+    "x|1|1|1"
+    "x|2|1|1"
+    "x|1|2|1"
+    "x|1|1|2"
 ];
 assert(isequal(sim_seq1, test_result))
 assert(isequal(sortrows(sim_seq2), sortrows(test_result)))
@@ -1191,10 +1270,10 @@ sim_seq1 = mock_sim_inv(nh, idx_branch1, idx_modes1, idx_merge1, nT);
 sim_seq2 = mock_sim(nh, idx_branch2, idx_modes2, idx_merge2, nT);
 
 test_result = [
-    "(x|0|0|0|0+x|1|0|0|0)"
-    "x|0|1|0|0"
-    "x|0|0|1|0"
-    "(x|0|0|0|1+x|1|0|0|1)"
+    "(x|1|1|1|1+x|2|1|1|1)"
+    "x|1|2|1|1"
+    "x|1|1|2|1"
+    "(x|1|1|1|2+x|2|1|1|2)"
 ];
 assert(isequal(sim_seq1, test_result))
 assert(isequal(sortrows(sim_seq2), sortrows(test_result)))
@@ -1210,10 +1289,10 @@ sim_seq1 = mock_sim_inv(nh, idx_branch1, idx_modes1, idx_merge1, nT);
 sim_seq2 = mock_sim(nh, idx_branch2, idx_modes2, idx_merge2, nT);
 
 test_result = [
-    "((x|0|0|0|0+x|1|0|0|0)|0+x|0|1|0|0|0)"
-    "x|0|0|1|0|0"
-    "(x|0|0|0|1+x|1|0|0|1)|0"
-    "((x|0|0|0|0+x|1|0|0|0)|1+x|0|1|0|0|1)"
+    "((x|1|1|1|1+x|2|1|1|1)|1+x|1|2|1|1|1)"
+    "x|1|1|2|1|1"
+    "(x|1|1|1|2+x|2|1|1|2)|1"
+    "((x|1|1|1|1+x|2|1|1|1)|2+x|1|2|1|1|2)"
 ];
 assert(isequal(sim_seq1, test_result))
 assert(isequal(sortrows(sim_seq2), sortrows(test_result)))
@@ -1221,12 +1300,12 @@ assert(isequal(sortrows(sim_seq2), sortrows(test_result)))
 
 %% Mock simulations 3
 
-seq = cell2mat({...
-    [0 0 0 0 0 0 0 0 0]
-    [1 0 0 0 0 0 0 0 0]
-    [0 0 0 1 0 0 0 0 0]
-    [0 0 0 0 0 0 1 0 0] ...
-});
+seq = [
+     1     1     1     1     1     1     1     1     1
+     2     1     1     1     1     1     1     1     1
+     1     1     1     2     1     1     1     1     1
+     1     1     1     1     1     1     2     1     1
+];
 nh = size(seq, 1);
 nj = 2;
 
@@ -1238,10 +1317,10 @@ nT = 9;
 sim_seq = mock_sim(nh, idx_branch, idx_modes, idx_merge, nT);
 
 test_result = [
-    "x|0|0|0|0|0|0|0|0|0"
-    "x|1|0|0|0|0|0|0|0|0"
-    "x|0|0|0|1|0|0|0|0|0"
-    "x|0|0|0|0|0|0|1|0|0"
+    "x|1|1|1|1|1|1|1|1|1"
+    "x|2|1|1|1|1|1|1|1|1"
+    "x|1|1|1|2|1|1|1|1|1"
+    "x|1|1|1|1|1|1|2|1|1"
 ];
 assert(isequal(sim_seq, test_result))
 

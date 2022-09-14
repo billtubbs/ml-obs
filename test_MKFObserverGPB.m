@@ -295,14 +295,16 @@ assert(isequaln(MKF_GPB2.filters.Xkp1_est, zeros(n, 1, nh)))
 assert(isequaln(MKF_GPB2.filters.Pkp1, repmat(P0, 1, 1, nh)))
 assert(isequaln(MKF_GPB2.filters.Kf, nan(n, ny, nh)))
 assert(isequaln(MKF_GPB2.filters.Sk, nan(ny, ny, nh)))
-assert(isequaln(MKF_GPB2.merged.Xk_est, nan(n, 1, nh)))
-assert(isequaln(MKF_GPB2.merged.Pk, nan(n, n, nh)))
-assert(isequaln(MKF_GPB2.merged.Yk_est, nan(ny, 1, nh)))
+assert(isequaln(MKF_GPB2.merged.Xk_est, nan(n, 1, nj)))
+assert(isequaln(MKF_GPB2.merged.Pk, nan(n, n, nj)))
+assert(isequaln(MKF_GPB2.merged.Yk_est, nan(ny, 1, nj)))
 assert(isequaln(MKF_GPB2.xk_est, nan(n, 1)))
 assert(isequaln(MKF_GPB2.Pk, nan(n)))
 assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
 
 % Choose observers to include in simulation
+%observers = {KF1, KF2, SKF};
+%observers = {SKF, MKF_AMM1, MKF_GPB1};
 observers = {KF1, KF2, MKF_AMM1, MKF_GPB1, SKF};  % TODO: Add MKF_GPB2
 n_obs = numel(observers);
 obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
@@ -320,9 +322,8 @@ E_obs = Y - Yk_est;
 % sim_results1 = table(t,Gamma,U,X,Y,Ym,Xk_est,Yk_est,E_obs)
 % mkf_sim_results = table(t,Gamma,U,X,Y,Ym,MKF_i,MKF_p_seq_g_Yk,MKF_trP_obs)
 
-% figure(2); clf
-% plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
-
+figure(2); clf
+plot_obs_estimates(t,X,Xk_est,Y,Yk_est,obs_labels)
 
 % Convert to table
 E_obs = array2table(Y - Yk_est, 'VariableNames', obs_labels);

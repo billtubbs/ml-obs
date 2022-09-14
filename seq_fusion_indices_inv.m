@@ -81,7 +81,7 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices_inv(seq, nj)
     % Construct indices for all possible branching and 
     % mode transition steps for next step of the sequence
     idx_branch = reshape(repmat((1:nh), nj, 1), [], 1);
-    idx_modes = reshape(repmat((0:nj-1)', 1, nh), [], 1);
+    idx_modes = reshape(repmat((1:nj)', 1, nh), [], 1);
 
     % Hypothesis sequences from time k-f to k:
     seq_kmf_to_k = [seq(idx_branch, :) idx_modes];

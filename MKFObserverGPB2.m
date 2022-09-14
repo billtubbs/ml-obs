@@ -144,7 +144,7 @@ classdef MKFObserverGPB2 < MKFObserver
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
 
-% External function based on code from Zhao et al.
+% External function based on code from Zhao et al. - NOT working yet
             % Update state and output estimates based on current
             % measurement and prior predictions
 %             [obj.xk_est, obj.yk_est, obj.Pk, obj.merged.Xk_est, ...
@@ -192,10 +192,11 @@ classdef MKFObserverGPB2 < MKFObserver
             assert(~any(isnan(obj.merged.Pk), 'all'))
             assert(~any(isnan(obj.merged.Yk_est), 'all'))
             assert(~any(isnan(obj.merged.p_seq_g_Yk), 'all'))
+            assert(sum(obj.merged.p_seq_g_Yk) - 1 < 1e-15)
 
             % Merge the estimates and error covariances again into 
             % a single set estimate and error covariance matrix
-            [obj.xk_est, obj.Pk, obj.yk_est, ~] = ...
+            [obj.xk_est, obj.Pk, obj.yk_est, p_check] = ...
                 merge_estimates( ...
                     obj.merged.Xk_est, ...
                     obj.merged.Pk, ...
@@ -205,6 +206,7 @@ classdef MKFObserverGPB2 < MKFObserver
             assert(~any(isnan(obj.xk_est), 'all'))
             assert(~any(isnan(obj.Pk), 'all'))
             assert(~any(isnan(obj.yk_est), 'all'))
+            assert(sum(p_check) == 1)
 
             % GBP2 branches the nj merged estimates and uses these 
             % for making the nj^2 predictions at the next time 

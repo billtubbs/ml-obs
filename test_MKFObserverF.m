@@ -40,10 +40,15 @@ assert(isequal(size(C1), size(C2)))
 assert(isequal(size(D1), size(D2)))
 
 % Define system models
-A = {A1, A2};
-B = {B1, B2};
-C = {C1, C2};
-D = {D1, D2};
+m1.A = A1;
+m1.B = B1;
+m1.C = C1;
+m1.Ts = Ts;
+m2.A = A2;
+m2.B = B2;
+m2.C = C2;
+m2.Ts = Ts;
+models = {m1, m2};
 
 % Input disturbance variance
 %sigma_w = 0.1;
@@ -71,7 +76,7 @@ Gamma = int8(zeros(nT+1, 1));
 Gamma(t>=10, 1) = 1;
 
 % Simulate switching system
-[X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT);
+[X, Y, Ym] = run_simulation_sys(models,U,V,Gamma,nT);
 
 % % Plot of inputs and outputs
 % figure(1); clf
@@ -114,74 +119,51 @@ Gamma(t>=10, 1) = 1;
 % Observer parameters (same for all observers)
 P0 = 10000;
 x0 = 0.5;
-Q1 = 0.01;
-R1 = 0.1^2;
-Q2 = 0.01;
-R2 = 0.1^2;
-assert(isequal(size(Q1), size(Q2)))
-assert(isequal(size(R1), size(R2)))
+models{1}.Q = 0.01;
+models{1}.R = 0.1^2;
+models{2}.Q = 0.01;
+models{2}.R = 0.1^2;
 
 % Standard Kalman filters
-KF1 = KalmanFilterF(A1,B1,C1,Ts,P0,Q1,R1,'KF1',x0);
-KF2 = KalmanFilterF(A2,B2,C2,Ts,P0,Q2,R2,'KF2',x0);
-
-% Define observers with a switching system
-Q = {Q1,Q2};
-R = {R1,R2};
+KF1 = KalmanFilterF(models{1},P0,'KF1',x0);
+KF2 = KalmanFilterF(models{2},P0,'KF2',x0);
 
 % Define scheduled MKF filter
-seq = Gamma';
-SKF1 = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,"SKF1",x0);
-SKF2 = MKFObserverSchedF(A,B,C,Ts,P0,Q,R,seq,"SKF2",x0);
+seq = Gamma' + 1;
+SKF1 = SKFObserverS(models,P0,seq,"SKF1",x0);
+SKF2 = SKFObserverS(models,P0,seq,"SKF2",x0);
 
-assert(strcmp(SKF1.type, "SKF"))
-assert(isequal(SKF1.A, A))
-assert(isequal(SKF1.B, B))
-assert(isequal(SKF1.C, C))
+assert(strcmp(SKF1.type, "SKF_S"))
+assert(isequal(SKF1.models, models))
 assert(isequal(SKF1.Ts, Ts))
 assert(isequal(SKF1.P0, P0))
 assert(isequal(SKF1.Pkp1, P0))
-assert(isequal(SKF1.Q, Q))
-assert(isequal(SKF1.R, R))
 assert(isequal(SKF1.seq, seq))
 assert(strcmp(SKF1.label, "SKF1"))
-assert(SKF1.n_filt == 1)
-assert(isa(SKF1.filter, 'KalmanFilter'))
-assert(strcmp(SKF1.filter.label, 'KF'))
 assert(SKF1.n == n)
 assert(SKF1.nu == nu)
 assert(SKF1.ny == ny)
-assert(SKF1.f == size(SKF1.seq, 2))
+assert(SKF1.nf == size(SKF1.seq, 2))
 assert(SKF1.nj == 2)
 assert(isequal(SKF1.xkp1_est, x0))
-assert(SKF1.ykp1_est == C{1}*x0)
-assert(isequal(SKF1.gamma_k, 0))
+assert(isequal(SKF1.rk, 1))
 
-assert(strcmp(SKF2.type, "SKFF"))
-assert(isequal(SKF2.A, A))
-assert(isequal(SKF2.B, B))
-assert(isequal(SKF2.C, C))
+assert(strcmp(SKF2.type, "SKF_S"))
+assert(isequal(SKF2.models, models))
 assert(isequal(SKF2.Ts, Ts))
 assert(isequal(SKF2.P0, P0))
-assert(isequal(SKF2.Q, Q))
-assert(isequal(SKF2.R, R))
 assert(isequal(SKF2.seq, seq))
 assert(strcmp(SKF2.label, "SKF2"))
-assert(SKF2.n_filt == 1)
-assert(isa(SKF2.filter, 'KalmanFilterF'))
-assert(strcmp(SKF2.filter.label, 'KF'))
 assert(SKF2.n == n)
 assert(SKF2.nu == nu)
 assert(SKF2.ny == ny)
-assert(SKF2.f == size(SKF2.seq, 2))
+assert(SKF2.nf == size(SKF2.seq, 2))
 assert(SKF2.nj == 2)
 assert(isequal(SKF2.xkp1_est, x0))
 assert(isequal(SKF2.Pkp1, P0))
-assert(SKF2.ykp1_est == C{1}*x0)
 assert(isequaln(SKF2.xk_est, nan(1, 1)))
 assert(isequaln(SKF2.Pk, nan(1)))
-assert(isequaln(SKF2.yk_est, nan(1, 1)))
-assert(isequal(SKF2.gamma_k, 0))
+assert(isequal(SKF2.rk, 1))
 
 % Transition probabilities
 epsilon = 0.05;
@@ -190,79 +172,66 @@ assert(all(sum(T, 2) == 1))
 
 % System indicator sequences
 seq1 = {
-    zeros(1, nT+1);
-    [zeros(1, 20) ones(1, nT+1-20)];  % equal to Gamma'
-    [zeros(1, 40) ones(1, nT+1-40)];
     ones(1, nT+1);
+    [ones(1, 20) 2*ones(1, nT+1-20)];  % equal to Gamma'
+    [ones(1, 40) 2*ones(1, nT+1-40)];
+    2*ones(1, nT+1);
  };
-assert(isequal(seq1{2}, Gamma'))
+assert(isequal(seq1{2}, Gamma' + 1))
 
 % Define MKF observer 1
 seq = seq1;
-n_filt = numel(seq);
-%P0j = repmat({P0}, n_filt, 1);
+nh = numel(seq);
+%P0j = repmat({P0}, nh, 1);
 
 % First, define with no initial state specified (should be set to zero)
 % TODO: Allow independent P0 to be specified for each filter.
-MKF1 = MKFObserver(A,B,C,Ts,P0,Q,R,seq,T,'MKF1');
+MKF1 = MKFObserverS(models,P0,seq,T,'MKF1');
 
-assert(strcmp(MKF1.type, "MKF"))
-assert(isequal(MKF1.A, A))
-assert(isequal(MKF1.B, B))
-assert(isequal(MKF1.C, C))
-assert(isequal(MKF1.Ts, Ts))
+assert(strcmp(MKF1.type, "MKF_S"))
+assert(isequal(MKF1.models, models))
 assert(isequal(MKF1.P0, P0))
-assert(isequal(MKF1.P, P0))
-assert(isequal(MKF1.Q, Q))
-assert(isequal(MKF1.R, R))
 assert(isequal(MKF1.seq, seq))
 assert(isequal(MKF1.T, T))
 assert(strcmp(MKF1.label, "MKF1"))
-assert(MKF1.n_filt == n_filt)
-assert(MKF1.n_filt == numel(MKF1.filters))
-assert(strcmp(MKF1.filters{n_filt}.label, 'MKF14'))
+assert(MKF1.nh == nh)
 assert(isequaln(MKF1.i, 0))
 assert(isequal(MKF1.i_next, 1))
 assert(MKF1.n == n)
 assert(MKF1.nu == nu)
 assert(MKF1.ny == ny)
-assert(MKF1.f == size(MKF1.seq{1}, 2))
+assert(MKF1.nf == size(MKF1.seq{1}, 2))
 assert(MKF1.nj == 2)
 assert(isequal(MKF1.T, T))
 assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
-assert(MKF1.ykp1_est == 0)
-assert(isequal(MKF1.gamma_init, zeros(n_filt, 1)))
-assert(isequal(MKF1.p_seq_g_Yk_init, ones(n_filt, 1) ./ n_filt))
-assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
-assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_gammak_g_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_gamma_k, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_seq_g_Ykm1, nan(n_filt, 1)))
+assert(isequal(MKF1.Pkp1, P0))
+assert(isequal(MKF1.r0, [1 1 1 2]'))
+assert(isequal(MKF1.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
+assert(isequal(MKF1.rk, MKF1.r0))
+assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF1.p_rk_g_rkm1, nan(nh, 1)))
+assert(isequaln(MKF1.p_seq_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF1.xk_est, nan(n, 1)))
+assert(isequaln(MKF1.Pk, nan(n, n)))
+assert(isequaln(MKF1.yk_est, nan(ny, 1)))
 
 % First, define with no initial state specified (should be set to zero)
 % TODO: Allow independent P0 to be specified for each filter.
-MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2');
+MKF2 = MKFObserverS(models,P0,seq,T,'MKF2');
 
-assert(strcmp(MKF2.type, "MKFF"))
-assert(isequal(MKF2.A, A))
-assert(isequal(MKF2.B, B))
-assert(isequal(MKF2.C, C))
-assert(isequal(MKF2.Ts, Ts))
+assert(strcmp(MKF2.type, "MKF_S"))
+assert(isequal(MKF2.models, models))
 assert(isequal(MKF2.P0, P0))
-assert(isequal(MKF2.Q, Q))
-assert(isequal(MKF2.R, R))
 assert(isequal(MKF2.seq, seq))
 assert(isequal(MKF2.T, T))
 assert(strcmp(MKF2.label, "MKF2"))
-assert(MKF2.n_filt == n_filt)
-assert(MKF2.n_filt == numel(MKF2.filters))
-assert(strcmp(MKF2.filters{n_filt}.label, 'MKF24'))
+assert(MKF2.nh == nh)
 assert(isequaln(MKF2.i, 0))
 assert(isequal(MKF2.i_next, 1))
 assert(MKF2.n == n)
 assert(MKF2.nu == nu)
 assert(MKF2.ny == ny)
-assert(MKF2.f == size(MKF2.seq{1}, 2))
+assert(MKF2.nf == size(MKF2.seq{1}, 2))
 assert(MKF2.nj == 2)
 assert(isequal(MKF2.T, T))
 assert(all(isnan(MKF2.xk_est)))
@@ -270,40 +239,38 @@ assert(isequaln(MKF2.Pk, nan))
 assert(all(isnan(MKF2.yk_est)))
 assert(isequal(MKF2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF2.Pkp1, P0))
-assert(MKF2.ykp1_est == 0)
-assert(isequal(MKF2.gamma_init, zeros(n_filt, 1)))
-assert(isequal(MKF2.p_seq_g_Yk_init, ones(n_filt, 1) ./ n_filt))
-assert(isequal(MKF2.gamma_k, zeros(n_filt, 1)))
-assert(isequaln(MKF2.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF2.p_gammak_g_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF2.p_gamma_k, nan(n_filt, 1)))
-assert(isequaln(MKF2.p_seq_g_Ykm1, nan(n_filt, 1)))
+assert(isequal(MKF2.r0, [1 1 1 2]'))
+assert(isequal(MKF2.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
+assert(isequal(MKF2.rk, MKF1.r0))
+assert(isequaln(MKF2.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF2.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF2.p_seq_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF2.xk_est, nan(n, 1)))
+assert(isequaln(MKF2.Pk, nan(n, n)))
+assert(isequaln(MKF2.yk_est, nan(ny, 1)))
 
 % Redefine this time with initial conditions
-MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2',x0);
+MKF2 = MKFObserverS(models,P0,seq,T,'MKF2',x0);
 assert(all(isnan(MKF2.xk_est)))
 assert(all(isnan(MKF2.yk_est)))
 assert(isequal(MKF2.xkp1_est, x0))
-assert(isequal(MKF2.ykp1_est, C{1} * x0))
-assert(isequal(MKF2.p_seq_g_Yk_init, ones(n_filt, 1) ./ n_filt))
+assert(isequal(MKF2.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
 
 % With initial prior shock values and probabilities
-gamma_init = 0;
-MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2',x0, gamma_init);
+r0 = [2 2 2 2]';
+MKF2 = MKFObserverS(models,P0,seq,T,'MKF2',x0,r0);
 assert(isequal(MKF2.xkp1_est, x0))
-assert(isequal(MKF2.ykp1_est, C{1} * x0))
-assert(isequal(MKF2.gamma_k, zeros(n_filt, 1)))
-gamma_init = [zeros(MKF2.n_filt-1, 1); 1];
+assert(isequal(MKF2.rk, r0))
+r0 = [1 1 1 2]';
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2',x0, ...
-    gamma_init,p_seq_g_Yk_init);
+MKF2 = MKFObserverS(A,B,C,Ts,P0,Q,R,seq,T,'MKF2',x0, ...
+    r0,p_seq_g_Yk_init);
 assert(isequal(MKF2.xkp1_est, x0))
-assert(isequal(MKF2.ykp1_est, C{1} * x0))
-assert(isequal(MKF2.gamma_k, gamma_init))
+assert(isequal(MKF2.rk, r0))
 assert(isequal(MKF2.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % With default initial conditions
-MKF2 = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2');
+MKF2 = MKFObserverF(models,P0,seq,T,'MKF2');
 
 % Choose observers to include in simulation
 observers = {KF1, KF2, MKF1, MKF2, SKF1, SKF2};
@@ -377,17 +344,17 @@ SKF1.reset();
 SKF2.reset();
 
 assert(isequal(MKF1.P0, P0))
-assert(isequal(MKF1.P, P0))
+assert(isequal(MKF1.Pk, P0))
 assert(isequal(MKF1.seq, seq))
 assert(isequaln(MKF1.i, 0))
 assert(isequal(MKF1.i_next, 1))
 assert(isequal(MKF1.xkp1_est, zeros(n, 1)))
 assert(MKF1.ykp1_est == 0)
-assert(isequal(MKF1.gamma_k, zeros(n_filt, 1)))
-assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_gammak_g_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_gamma_k, nan(n_filt, 1)))
-assert(isequaln(MKF1.p_seq_g_Ykm1, nan(n_filt, 1)))
+assert(isequal(MKF1.rk, zeros(nh, 1)))
+assert(isequaln(MKF1.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF1.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF1.p_rk, nan(nh, 1)))
+assert(isequaln(MKF1.p_seq_g_Ykm1, nan(nh, 1)))
 
 assert(isequal(MKF2.P0, P0))
 assert(isequal(MKF2.seq, seq))
@@ -399,11 +366,11 @@ assert(isequaln(MKF2.yk_est, nan))
 assert(isequal(MKF2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF2.Pkp1, P0))
 assert(MKF2.ykp1_est == 0)
-assert(isequal(MKF2.gamma_k, zeros(n_filt, 1)))
-assert(isequaln(MKF2.p_yk_g_seq_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF2.p_gammak_g_Ykm1, nan(n_filt, 1)))
-assert(isequaln(MKF2.p_gamma_k, nan(n_filt, 1)))
-assert(isequaln(MKF2.p_seq_g_Ykm1, nan(n_filt, 1)))
+assert(isequal(MKF2.rk, zeros(nh, 1)))
+assert(isequaln(MKF2.p_yk_g_seq_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF2.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF2.p_rk, nan(nh, 1)))
+assert(isequaln(MKF2.p_seq_g_Ykm1, nan(nh, 1)))
 
 % Redefine a new observer (identical to above)
 MKF2_new = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF2');
@@ -588,14 +555,14 @@ p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
 p_gamma = p_gamma ./ sum(p_gamma);  % normalized
 T = repmat(p_gamma', 4, 1);
 MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
-assert(MKF3.n_filt == 4)
+assert(MKF3.nh == 4)
 MKF3F = MKFObserverF(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3F');
 
 seq = {zeros(1, nT+1)};
 seq{1}(t == t_shock(1)) = 1;
 seq{1}(t == t_shock(2)) = 2;
 MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
-assert(MKF4.n_filt == 1)
+assert(MKF4.nh == 1)
 MKF4F = MKFObserverF(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4F');
 
 % Define scheduled Kalman filter
@@ -794,8 +761,8 @@ seq1 = {
 
 % Define MKF observer
 seq = seq1;
-n_filt = numel(seq);
-%P0j = repmat({P0}, n_filt, 1);
+nh = numel(seq);
+%P0j = repmat({P0}, nh, 1);
 
 % Define multi-model observer with initial conditions
 MKF = MKFObserverF(A,B,C,Ts,P0,Q,R,seq,T,'MKF',x0);
@@ -829,37 +796,37 @@ MKF.filters{1}.x0 = 99;
 %END
 
 
-function [X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT)
-% Simulate switching system
-
-    [n, ~, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
-    X = zeros(nT+1,n);
-    Y = zeros(nT+1,ny);
-    Ym = zeros(nT+1,ny);
-    xk = zeros(n,1);
-
-    for i=1:nT+1
-
-        % Switch system
-        j = Gamma(i) + 1;
-
-        % Inputs
-        uk = U(i,:)';
-
-        % Compute y(k)
-        yk = C{j}*xk + D{j}*uk;
-        yk_m = yk + V(i);
-
-        % Store results
-        X(i, :) = xk';
-        Y(i, :) = yk';
-        Ym(i, :) = yk_m';
-
-        % Compute x(k+1)
-        xk = A{j}*xk + B{j}*uk;
-
-    end
-end
+% function [X, Y, Ym] = run_simulation_sys(A,B,C,D,U,V,Gamma,nT)
+% % Simulate switching system
+% 
+%     [n, ~, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
+%     X = zeros(nT+1,n);
+%     Y = zeros(nT+1,ny);
+%     Ym = zeros(nT+1,ny);
+%     xk = zeros(n,1);
+% 
+%     for i=1:nT+1
+% 
+%         % Switch system
+%         j = Gamma(i) + 1;
+% 
+%         % Inputs
+%         uk = U(i,:)';
+% 
+%         % Compute y(k)
+%         yk = C{j}*xk + D{j}*uk;
+%         yk_m = yk + V(i);
+% 
+%         % Store results
+%         X(i, :) = xk';
+%         Y(i, :) = yk';
+%         Ym(i, :) = yk_m';
+% 
+%         % Compute x(k+1)
+%         xk = A{j}*xk + B{j}*uk;
+% 
+%     end
+% end
 
 
 function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
@@ -872,7 +839,7 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
     n = size(observers{1}.xkp1_est, 1);
 
     obs_mkf = observers{f_mkf};
-    n_filters = size(obs_mkf.seq, 1);
+    nhers = size(obs_mkf.seq, 1);
 
     Xk_est = nan(nT+1, n*n_obs);
     Yk_est = nan(nT+1, ny*n_obs);
@@ -880,10 +847,10 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
     Ykp1_est = nan(nT+1, ny*n_obs);
     DiagPk = nan(nT+1, n*n_obs);
     DiagPkp1 = nan(nT+1, n*n_obs);
-    MKF_K_obs = cell(nT+1, n*n_filters);
-    MKF_trP_obs = nan(nT+1, n_filters);
+    MKF_K_obs = cell(nT+1, n*nhers);
+    MKF_trP_obs = nan(nT+1, nhers);
     MKF_i = nan(nT+1, 2);
-    MKF_p_seq_g_Yk = nan(nT+1, n_filters);
+    MKF_p_seq_g_Yk = nan(nT+1, nhers);
 
     for i = 1:nT+1
 
@@ -897,7 +864,7 @@ function [Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs,
             if f == f_mkf
                 MKF_i(i, :) = obs.i;
                 MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
-                for j = 1:obs.n_filt
+                for j = 1:obs.nh
                     switch obs.type
                         case {"KF", "SKF", "MKF"}
                             MKF_K_obs{i, j} = obs.filters{j}.K';

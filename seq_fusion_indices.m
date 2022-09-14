@@ -35,13 +35,12 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, ...
 %   idx_modes : (nb, 1) integer double
 %       This column vector indicates the mode transitions to
 %       extend the nb new hypotheses to the next time instant.
-%       Note that modes are zero-based (i.e. 0, 1, 2, ...).
 %   idx_merge : (nb, 1) integer double
 %       This column vector determines how the nb hypotheses
 %       will be merged (i.e. combined) into nh hypotheses
 %       at the next time instant.
 %
-% Example:
+% Example 1:
 % >> nj = 2;  % Number of system modes
 % >> f = 3;  % Fusion horizon
 % >> m = 1;  % Maximum number of shocks
@@ -55,6 +54,7 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, ...
 %    1   0   0
 %    0   1   0
 %    0   0   1
+% 
 % 
 % >> [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, nj);
 % >> [idx_branch idx_modes idx_merge]
@@ -102,7 +102,7 @@ function [idx_branch, idx_modes, idx_merge] = seq_fusion_indices(seq, ...
         % Construct indices for all possible branching and 
         % mode transition steps for next step of the sequence
         idx_branch{i} = reshape(repmat((1:nh), nj, 1), [], 1);
-        idx_modes{i} = reshape(repmat((0:nj-1)', 1, nh), [], 1);
+        idx_modes{i} = reshape(repmat((1:nj)', 1, nh), [], 1);
 
         % Hypothesis sequences from time k-f to k:
         seq_kmf_to_k = [seq_i(idx_branch{i}, end-nf+1:end) idx_modes{i}];

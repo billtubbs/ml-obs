@@ -286,7 +286,7 @@ r0 = cellfun(@(s) s(:, 1), seq1);
 MKF_S = MKFObserverS(models,P0,seq,T,"MKF_S");
 
 % Test initialisation
-assert(strcmp(MKF_S.type, "MKF-S"))
+assert(strcmp(MKF_S.type, "MKF_S"))
 assert(isequal(MKF_S.models, models))
 assert(isequal(MKF_S.P0, P0))
 assert(isequal(MKF_S.Pkp1, P0))
