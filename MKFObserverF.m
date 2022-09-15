@@ -3,7 +3,7 @@
 % obs = MKFObserverF(models,P0,T,r0,label,x0,p_seq_g_Yk_init)
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system. This version
-% differs from MKFObserver only in that it uses instances of
+% differs from MKFObserver in that it uses instances of
 % KalmanFilterF to do the hypothesis filter updates and
 % predictions.
 % 

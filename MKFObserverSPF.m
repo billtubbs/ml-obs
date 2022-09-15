@@ -4,7 +4,10 @@
 % using the adaptive forgetting through multiple models 
 % (AFMM) algorithm for state estimation in the presence of 
 % infrequently-occurring deterministic disturbances, as 
-% described in Eriksson and Isaksson (1996).
+% described in Eriksson and Isaksson (1996). This version
+% differs from MKFObserverSP in that it uses instances of
+% KalmanFilterF to do the hypothesis filter updates and
+% predictions.
 %
 % Uses a sequence pruning method described in Eriksson and
 % Isaksson (1996):
@@ -20,7 +23,7 @@
 %   Let there be a certain minimum life length for all 
 %   branches.
 %
-% obs = MKFObserverSP(model,u_meas,P0,epsilon, ...
+% obs = MKFObserverSPF(model,u_meas,P0,epsilon, ...
 %     sigma_wp,Q0,R,nh,n_min,label,x0,r0,reset)
 %
 % Creates a struct for simulating a multi-model observer
@@ -81,7 +84,7 @@
 %    https://doi.org/10.1080/00207178508933420
 %
 
-classdef MKFObserverSP < MKFObserverF
+classdef MKFObserverSPF < MKFObserverF
     properties (SetAccess = immutable)
         u_meas (:, 1) logical {mustBeNumericOrLogical}
         n_min double {mustBeInteger, mustBeNonnegative}
@@ -102,7 +105,7 @@ classdef MKFObserverSP < MKFObserverF
         f_hold
     end
     methods
-        function obj = MKFObserverSP(model,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSPF(model,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,nh,n_min,label,x0,r0,reset)
             arguments
                 model struct

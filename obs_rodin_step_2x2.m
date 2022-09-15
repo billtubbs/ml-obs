@@ -125,22 +125,20 @@ label = 'MKF_SP1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 q2 0 0]);
 R = diag(sigma_M.^2);
-nf = 100;  % sequence history length
-n_filt = 19;  % number of filters
+nh = 19;  % number of filters
 n_min = 5;  % minimum life of cloned filters
 MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,nf,n_min,label);
+    Q0,R,nh,n_min,label);
 
 % Multiple model observer with sequence pruning #2
 label = 'MKF_SP2';
 P0 = 1000*eye(n);
 Q0 = diag([q1 q2 0 0]);
 R = diag(sigma_M.^2);
-nf = 100;  % sequence history length
-n_filt = 25;  % number of filters
+nh = 25;  % number of filters
 n_min = 9;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,nf,n_min,label);
+    Q0,R,nh,n_min,label);
 
 % TODO: Restore
 % observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...

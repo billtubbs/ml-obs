@@ -32,6 +32,8 @@ sigma_W = [0; 0];
 assert(strcmp(MKF_SP1.type, "MKF_SP"))
 assert(MKF_SP1.epsilon == 0.01)
 assert(isequal(MKF_SP1.sigma_wp, sigma_wp))
+assert(isequal(MKF_SP1.Q0, Q0))
+assert(isequal(MKF_SP1.R, R))
 assert(MKF_SP1.nh == 10)
 assert(MKF_SP1.n_min == 7)
 assert(isequal(MKF_SP1.n_hold, 7))
@@ -72,6 +74,8 @@ end
 assert(strcmp(MKF_SP2.type, "MKF_SP"))
 assert(MKF_SP2.epsilon == 0.01)
 assert(isequal(MKF_SP2.sigma_wp, sigma_wp))
+assert(isequal(MKF_SP2.Q0, Q0))
+assert(isequal(MKF_SP2.R, R))
 assert(MKF_SP2.nh == 25)
 assert(MKF_SP2.n_min == 21)
 assert(isequal(MKF_SP2.n_hold, 21))
@@ -111,7 +115,7 @@ end
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
 MKF_SP_testx0 = MKFObserverSP(model,u_meas,P0,epsilon, ...
-                sigma_wp,Q0,R,nh,nf,n_min,label,x0);
+                sigma_wp,Q0,R,nh,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 for i = 1:MKF_SP_testx0.nh
     assert(isequal(MKF_SP_testx0.filters.objects{i}.x0, MKF_SP_testx0.x0))
@@ -144,8 +148,8 @@ end
 
 % Check steady-state at x0 = [1; 0]
 x0 = [1; 0];
-obs = MKFObserverSP(model,u_meas,P0,epsilon, ...
-    sigma_wp,Q0,R,nh,nf,n_min,label,x0);
+obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+    label,x0);
 assert(isequal(obs.xkp1_est, x0))
 nT = 10;
 U_m = 0.3*ones(nT+1, 1);
@@ -170,13 +174,11 @@ sys_rodin_step
 % Load observers from file
 obs_rodin_step
 
-nT = 6;
 x0 = [0; 0];
 nh = 5;
-nf = 8;
 n_min = 2;
-obs = MKFObserverSP(model,u_meas,P0,epsilon, ...
-    sigma_wp,Q0,R,nh,nf,n_min,label,x0);
+obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+    label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
 % % Generate test simulation data
@@ -570,18 +572,16 @@ sys_rodin_step
 % Load observers from file
 obs_rodin_step
 
-nT = 6;
 x0 = [0; 0];
 nh = 5;
-nf = 8;
 n_min = 1;  % NOTE: this produces identical results to previous
             % MKFObserverSP and mkf_observer_AFMM with n_min = 2;
             % This is due to the interpretation about whether a
             % hypothesis leaving holding group goes into main group
             % first (as in this version) or can be immediately 
             % eliminated before going to main group (as previously).
-obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,nh,nf,n_min,label,x0);
+obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
+    n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
 % % Generate test simulation data
@@ -1296,6 +1296,8 @@ obs_rodin_step_2x2
 % Check observer initialization
 assert(isequal(MKF_SP1.epsilon, epsilon))
 assert(isequal(MKF_SP1.sigma_wp, sigma_wp))
+assert(isequal(MKF_SP1.Q0, Q0))
+assert(isequal(MKF_SP1.R, R))
 assert(MKF_SP1.nh == 19)
 assert(MKF_SP1.n_min == 5)
 assert(isequal(MKF_SP1.n_hold, 5*2))
@@ -1334,6 +1336,8 @@ assert(isequaln(MKF_SP1.yk_est, nan(ny, 1)))
 % Check observer initialization
 assert(isequal(MKF_SP2.epsilon, epsilon))
 assert(isequal(MKF_SP2.sigma_wp, sigma_wp))
+assert(isequal(MKF_SP2.Q0, Q0))
+assert(isequal(MKF_SP2.R, R))
 assert(MKF_SP2.nh == 25)
 assert(MKF_SP2.n_min == 9)
 assert(isequal(MKF_SP2.n_hold, 9*2))
@@ -1369,7 +1373,7 @@ assert(isequaln(MKF_SP2.yk_est, nan(ny, 1)))
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
 MKF_SP_testx0 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,MKF_SP2.nh,nf,n_min,label,x0);
+    Q0,R,MKF_SP2.nh,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal(MKF_SP_testx0.r0, ones(MKF_SP_testx0.nh, 1)))
 assert(isequal(MKF_SP_testx0.p_seq_g_Yk_init, [1; zeros(MKF_SP_testx0.nh-1, 1)]))
@@ -1384,11 +1388,10 @@ sys_rodin_step_2x2sym
 obs_rodin_step_2x2
 
 x0 = [0; 0; 0; 0];
-nf = 8;
 nh = 10;  % number of filters
 n_min = 3;  % minimum life of cloned filters
-obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,nh,nf,n_min,label,x0);
+obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+    label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
 % Test simuation data
@@ -1934,22 +1937,20 @@ label = "MKF_SP1";
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
-nf = 10;  % sequence history length
 nh = 15;  % number of filters
 n_min = 5;  % minimum life of cloned filters
-MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,nh,nf,n_min,label);
+MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
+    n_min,label);
 
 % Multiple model observer with sequence pruning 2
 label = "MKF_SP2";
 P0 = 1000*eye(n);
 Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
-nf = 10;  % sequence history length
 nh = 30;  % number of filters
 n_min = 10;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,nh,nf,n_min,label);
+    Q0,R,nh,n_min,label);
 
 % Simulation settings
 nT = 200;
