@@ -96,6 +96,7 @@ classdef MKFObserverSP < MKFObserverF
         %i_next (1, 1) {mustBeInteger, mustBeNonnegative}
         p_seq double
         Q0 double
+        R double
         epsilon double
         sigma_wp double
         n_main
@@ -214,6 +215,7 @@ classdef MKFObserverSP < MKFObserverF
             obj.f_hold = f_hold;
             obj.P0 = P0;
             obj.Q0 = Q0;
+            obj.R = R;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
             obj.type = "MKF_SP";
@@ -331,7 +333,14 @@ classdef MKFObserverSP < MKFObserverF
                 rk(f_to_prune(i)) = i + 1;
             end
 
-            % TODO: Need to extract variables into filters arrays
+            % Copy filter variables into arrays
+            for f = 1:obj.nh
+                obj.filters.Xk_est(:,:,f) = obj.filters.objects{f}.xk_est;
+                obj.filters.Pk(:,:,f) = obj.filters.objects{f}.Pk;
+                obj.filters.Yk_est(:,:,f) = obj.filters.objects{f}.yk_est;
+                obj.filters.Xkp1_est(:,:,f) = obj.filters.objects{f}.xkp1_est;
+                obj.filters.Pkp1(:,:,f) = obj.filters.objects{f}.Pkp1;
+            end
 
             % TODO: Add online noise variance estimation with
             % forgetting factor as described in Anderson (1995)

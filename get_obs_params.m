@@ -4,31 +4,34 @@ function params = get_obs_params(obs)
 % are selected depends on the observer type.
 %
     switch(obs.type)
-        
-        case 'none'  % no observer
 
-            params = struct();  % No parameters
-
-        case 'KFSS'  % Steady-state Kalman filters
+        case "KFSS"  % Steady-state Kalman filters
 
             % Params to return
             params.Q = obs.Q;
             params.R = obs.R;
 
-        case 'KF'  % Standard Kalman filters
+        case "KF"  % Standard Kalman filters
 
             % Params to return
             params.P0 = obs.P0;
             params.Q = obs.Q;
             params.R = obs.R;
 
-        case 'LB'  % Luenberger observers
+        case "KFF"  % New Kalman filters
+
+            % Params to return
+            params.P0 = obs.P0;
+            params.Q = obs.model.Q;
+            params.R = obs.model.R;
+
+        case "LB"  % Luenberger observers
 
             % Params to return
             params.poles = obs.poles;
             params.K = obs.K;
 
-        case 'SKF'  % Scheduled Kalman filters
+        case "SKF"  % Scheduled Kalman filters
 
             % Params to return
             params.P0 = obs.P0;  % Don't store these - too many
@@ -58,7 +61,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case {"MKF_SF", "MKF_SF95"}  % MKF observer with sequence fusion
+        case {"MKF_SF", "MKF_SF95", "MKF_SF98"}  % MKF observer with sequence fusion
 
             % Params to return
             params.P0 = obs.P0;
@@ -80,18 +83,18 @@ function params = get_obs_params(obs)
             params.R = obs.R;
             params.epsilon = obs.epsilon;
             params.sigma_wp = obs.sigma_wp;
-            params.n_filt = obs.n_filt;
-            params.f = obs.f;
+            params.nh = obs.nh;
+            params.nf = obs.nf;
             params.n_min = obs.n_min;
 
-        case 'EKF'  % Extended Kalman filters
+        case "EKF"  % Extended Kalman filters
 
             % Params to return
             params.P0 = obs.P0;
             params.Q = obs.Q;
             params.R = obs.R;
 
-        case 'MEKF'  % Extended Kalman filters
+        case "MEKF"  % Extended Kalman filters
 
             % Params to return
             params.P0 = obs.P0;
@@ -106,7 +109,7 @@ function params = get_obs_params(obs)
             params.beta = obs.beta;
 
         otherwise
-            error('Value error: observer type not recognized')
+            error("Value error: observer type not recognized")
     end
 
 end

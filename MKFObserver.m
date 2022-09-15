@@ -140,6 +140,8 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.filters.Xk_est = nan(obj.n, 1, obj.nh);
             obj.filters.Pk = nan(obj.n, obj.n, obj.nh);
             obj.filters.Yk_est = nan(obj.ny, 1, obj.nh);
+            obj.filters.Kf = nan(obj.n, obj.ny, obj.nh);
+            obj.filters.Sk = nan(obj.ny, obj.ny, obj.nh);
 
             % Store parameters
             obj.Ts = Ts;
@@ -203,6 +205,8 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.filters.Xk_est = nan(obj.n, 1, obj.nh);
             obj.filters.Pk = nan(obj.n, obj.n, obj.nh);
             obj.filters.Yk_est = nan(obj.ny, 1, obj.nh);
+            obj.filters.Kf = nan(obj.n, obj.ny, obj.nh);
+            obj.filters.Sk = nan(obj.ny, obj.ny, obj.nh);
 
             % At initialization at time k = 0, x_est(k|k)
             % and y_est(k|k) have not yet been computed.

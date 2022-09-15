@@ -3,6 +3,9 @@
 
 addpath("~/process-observers/")
 
+assert(exist("A", 'var'), strcat("System model not defined. ", ...
+    "Run script 'sys_rodin_step.m' first."))
+
 % Check observability of system
 Qobs = obsv(A, C);
 unobs = length(A) - rank(Qobs);
@@ -27,15 +30,13 @@ LB2 = LuenbergerFilter(A,Bu,C,Ts,poles,'LB2');
 % This is used by all observers
 q1 = 0.01;
 
-% Steady-state Kalman filter 1 - tuned to sigma_wp(1)
-Q = diag([q1 sigma_wp(1)^2]);
-R = sigma_M^2;
-KFSS1 = KalmanFilterSS(A,Bu,C,Ts,Q,R,'KFSS1');
+% Different values for covariance matrix
+Q1 = diag([q1 sigma_wp(1)^2]);
+Q2 = diag([q1 sigma_wp(2)^2]);
+Q3 = diag([q1 0.1^2]);
 
-% Steady-state Kalman filter 2 - tuned to sigma_wp(2)
-Q = diag([q1 sigma_wp(2)^2]);
+% Covariance of output errors
 R = sigma_M^2;
-KFSS2 = KalmanFilterSS(A,Bu,C,Ts,Q,R,'KFSS2');
 
 % Observer models for new observer functions
 models = {struct, struct};
@@ -43,35 +44,37 @@ models{1}.A = A;
 models{1}.B = Bu;
 models{1}.C = C;
 models{1}.Ts = Ts;
-models{1}.Q = Q;
+models{1}.Q = Q1;
 models{1}.R = R;
 models{2}.A = A;
 models{2}.B = Bu;
 models{2}.C = C;
 models{2}.Ts = Ts;
-models{2}.Q = Q;
+models{2}.Q = Q2;
 models{2}.R = R;
 
-% Kalman filter 1 - tuned to sigma_wp(1)
-% Covariance matrices
-P0 = 1000*eye(n);
-Q = diag([q1 sigma_wp(1)^2]);
+% Parameters for manually-tuned Kalman filter (KF3)
+model3 = models{1};  % makes copy
+model3.Q = Q3;
+
+% Steady-state Kalman filter 1 - tuned to sigma_wp(1)
 R = sigma_M^2;
+KFSS1 = KalmanFilterSS(A,Bu,C,Ts,Q1,R,'KFSS1');
+
+% Steady-state Kalman filter 2 - tuned to sigma_wp(2)
+R = sigma_M^2;
+KFSS2 = KalmanFilterSS(A,Bu,C,Ts,Q2,R,'KFSS2');
+
+% Kalman filter 1 - tuned to sigma_wp(1)
+P0 = 1000*eye(n);
 KF1 = KalmanFilterF(models{1},P0,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
-% Covariance matrices
 P0 = 1000*eye(n);
-Q = diag([q1 sigma_wp(2)^2]);
-R = sigma_M^2;
 KF2 = KalmanFilterF(models{2},P0,'KF2');
 
 % Kalman filter 3 - manually tuned
-% Covariance matrices
-model3 = models{1};  % make copy
 P0 = 1000*eye(n);
-model3.Q = diag([q1 0.1^2]);
-model3.R = sigma_M^2;
 KF3 = KalmanFilterF(model3,P0,'KF3');
 
 % TODO: Not working yet
@@ -130,8 +133,8 @@ R = sigma_M^2;
 nh = 10;  % number of filters
 n_min = 7;  % minimum life of cloned filters
 nf = 100;  % sequence history length
-MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon, ...
-                sigma_wp,Q0,R,nh,nf,n_min,label);
+MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
+    nh,nf,n_min,label);
 
 % Multiple model observer with sequence pruning #2
 label = 'MKF_SP2';
@@ -141,8 +144,8 @@ R = sigma_M^2;
 nh = 25;  % number of filters
 n_min = 21;  % minimum life of cloned filters
 hf = 100;  % sequence history length
-MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon, ...
-                sigma_wp,Q0,R,nh,nf,n_min,label);
+MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
+    nh,nf,n_min,label);
 
 % TODO: Restore
 % observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...

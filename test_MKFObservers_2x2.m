@@ -351,10 +351,10 @@ MSE_test_values = struct( ...
 );
 
 labels = fieldnames(MSE);
-for i = 1:numel(labels)
-    fprintf("%s: %.6f, %.6f (%.6f, %.6f)\n", labels{i}, MSE.(labels{i}), ...
-        MSE_test_values.(labels{i}))
-end
+% for i = 1:numel(labels)
+%     fprintf("%s: %.6f, %.6f (%.6f, %.6f)\n", labels{i}, MSE.(labels{i}), ...
+%         MSE_test_values.(labels{i}))
+% end
 for i = 1:numel(labels)
     assert(isequal(round(MSE.(labels{i}), 6), MSE_test_values.(labels{i})))
 end
@@ -480,7 +480,7 @@ MSE = struct();
 for i = 1:n_obs
     MSE.(observers{i}.label) = mean(E_obs(:, i*ny-1:i*ny).^2);
 end
-disp(MSE);
+%disp(MSE);
 
 % Check final state estimates are close to true system values
 assert(all(abs(repmat(X(end, :), 1, n_obs) - Xk_est(end, :)) < 0.2))
