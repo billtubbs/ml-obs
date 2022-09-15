@@ -87,7 +87,7 @@ classdef MKFObserverS < MKFObserver
                 p_seq_g_Yk_init,false);
 
             % Store parameters
-            obj.seq = seq;
+            obj.seq = cellfun(@(x) int16(x), seq, 'UniformOutput', false);
             obj.nf = size(cell2mat(seq), 2);  % TODO: allow sequences of
                                               %     of different lengths
             obj.type = "MKF_S";

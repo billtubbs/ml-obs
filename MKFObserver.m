@@ -69,7 +69,7 @@ classdef MKFObserver < matlab.mixin.Copyable
         models (1, :) cell
         P0 double
         T double
-        r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)}
+        r0 (:, 1) int16 {mustBeGreaterThanOrEqual(r0, 1)}
         label (1, 1) string
         x0 (:, 1) double
         p_seq_g_Yk_init double
@@ -84,8 +84,8 @@ classdef MKFObserver < matlab.mixin.Copyable
         yk_est (:, 1) double
         xkp1_est (:, 1) double
         Pkp1 double
-        rk (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(rk, 1)}
-        rkm1 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(rkm1, 1)}
+        rk (:, 1) int16 {mustBeGreaterThanOrEqual(rk, 1)}
+        rkm1 (:, 1) int16 {mustBeInteger, mustBeGreaterThanOrEqual(rkm1, 1)}
         type (1, 1) string
     end
     methods
@@ -152,7 +152,7 @@ classdef MKFObserver < matlab.mixin.Copyable
             obj.nj = nj;
             obj.models = models;
             obj.nh = nh;
-            obj.r0 = r0;
+            obj.r0 = int16(r0);
             obj.P0 = P0;
             obj.x0 = x0;
             obj.p_seq_g_Yk_init = p_seq_g_Yk_init;

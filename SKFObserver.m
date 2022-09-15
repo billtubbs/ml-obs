@@ -66,7 +66,7 @@ classdef SKFObserver < matlab.mixin.Copyable
         P0 double
         label (1, 1) string
         x0 (:, 1) double
-        r0 (1, 1) double {mustBeInteger}
+        r0 (1, 1) int16
         xk_est (:, 1) double
         Pk double
         yk_est (:, 1) double
@@ -84,7 +84,7 @@ classdef SKFObserver < matlab.mixin.Copyable
                 P0 double
                 label (1, 1) string = ""
                 x0 (:, 1) double = []
-                r0 (1, 1) double {mustBeInteger} = 1
+                r0 (1, 1) {mustBeInteger} = 1
                 reset logical = true
             end
 

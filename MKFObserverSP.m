@@ -116,7 +116,7 @@ classdef MKFObserverSP < MKFObserver
                 n_min (1, 1) double {mustBeInteger}
                 label (1, 1) string = ""
                 x0 = []
-                r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)} = []
+                r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)} = 1
                 reset logical = true
             end
 
@@ -131,10 +131,10 @@ classdef MKFObserverSP < MKFObserver
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
             % Determine initial state values
-            if isempty(r0)
+            if isscalar(r0)
                 % By default, assume initial hypothesis sequences 
                 % at time k = -1 all start with 1 (i.e. no shocks)
-                r0 = ones(nh, 1);
+                r0 = repmat(r0, nh, 1);
             else
                 assert(isequal(size(r0), [nh 1]), "ValueError: r0")
             end

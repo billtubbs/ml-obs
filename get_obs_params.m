@@ -75,7 +75,7 @@ function params = get_obs_params(obs)
             params.n_filt = obs.n_filt;
             params.beta = obs.beta;
 
-        case "MKF_SP"   % MKF observer with sequence pruning
+        case {"MKF_SP", "MKF_SPF"}   % MKF observer with sequence pruning
 
             % Params to return
             params.P0 = obs.P0;
@@ -84,7 +84,6 @@ function params = get_obs_params(obs)
             params.epsilon = obs.epsilon;
             params.sigma_wp = obs.sigma_wp;
             params.nh = obs.nh;
-            params.nf = obs.nf;
             params.n_min = obs.n_min;
 
         case "EKF"  % Extended Kalman filters

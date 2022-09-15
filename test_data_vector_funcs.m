@@ -149,8 +149,7 @@ for i = 1:nT
     % Unpack vdata struct and reconstruct observer from KF1
     vars = unpack_data_vectors(vdata);
     assert(isequal(vars{1}, obs2.xkp1_est))
-    assert(isequal(vars{2}, obs2.ykp1_est))
-    assert(isequal(vars{3}, obs2.P))
+    assert(isequal(vars{2}, obs2.Pkp1))
     obs2 = KF1;  % makes a new copy
     obs2.xkp1_est(:) = vars{1};
     obs2.ykp1_est(:) = vars{2};

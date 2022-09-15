@@ -55,7 +55,7 @@
 
 classdef SKFObserverS < SKFObserver
     properties
-        seq (1, :) double
+        seq (1, :) int16
         nf (1, 1) double {mustBeInteger}
         i (1, 1) {mustBeInteger, mustBeNonnegative}
         i_next (1, 1) {mustBeInteger, mustBeNonnegative}
@@ -65,19 +65,19 @@ classdef SKFObserverS < SKFObserver
             arguments
                 models (1, :) cell
                 P0 double
-                seq (1, :) double
+                seq (1, :) {mustBeInteger}
                 label (1, 1) string = ""
                 x0 = []
             end
 
             % System mode at time k = 0
-            r0 = seq(:, 1);
+            r0 = int16(seq(:, 1));
 
             % Create super-class observer instance
             obj = obj@SKFObserver(models,P0,label,x0,r0,false);
 
             % Store parameters
-            obj.seq = seq;
+            obj.seq = int16(seq);
             obj.nf = size(seq, 2);
             obj.type = "SKF_S";
 

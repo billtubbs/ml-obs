@@ -6,22 +6,16 @@ function obs = set_obs_vars(obs, vars)
 
 % TODO: Write a test script for set_obs_vars and get_obs_vars
     switch(obs.type)
-        
-        case 'none'  % no observer
-
-            % No variables to set
 
         case {'KFSS', 'LB'}  % Steady-state filters
 
             % Set variables
             obs.xkp1_est = vars.xkp1_est;
-            obs.ykp1_est = vars.ykp1_est;
 
         case 'KF'  % Standard Kalman filters
 
             % Set variables
             obs.xkp1_est = vars.xkp1_est;
-            obs.ykp1_est = vars.ykp1_est;
             obs.P = vars.P;
 
         case 'SKF'  % Scheduled Kalman filters
