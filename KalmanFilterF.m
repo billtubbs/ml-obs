@@ -1,6 +1,6 @@
 % Kalman Filter class definition
 %
-% obs = KalmanFilterF(model,P0,label,x0)
+% obs = KalmanFilterF(model,P0,label,x0,reset)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance). This is the filtering form of the
@@ -31,7 +31,7 @@
 %       model of the system dynamics. These include: A, B, 
 %       and C for the system matrices, Q and R for the
 %       state error covariance and output measurement 
-%       noise covariance, and Ts for the sampling period.
+%       noise covariance, and the sampling period, Ts.
 %   P0 : matrix, size (n, n)
 %       Initial value of covariance matrix of the state
 %       estimates at time k = 0.
@@ -39,6 +39,11 @@
 %       Name.
 %   x0 : vector, size(n, 1), (optional)
 %       Initial state estimates at time k = 0.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
 %
 
 classdef KalmanFilterF < matlab.mixin.Copyable
@@ -64,12 +69,13 @@ classdef KalmanFilterF < matlab.mixin.Copyable
         type (1, 1) string  % TODO: is this still needed? use classdef
     end
     methods
-        function obj = KalmanFilterF(model,P0,label,x0)
+        function obj = KalmanFilterF(model,P0,label,x0,reset)
             arguments
                 model struct
                 P0 double
                 label (1, 1) string = ""
                 x0 (:, 1) double = []
+                reset logical = true
             end
 
             % Check system model dimensions
@@ -101,8 +107,10 @@ classdef KalmanFilterF < matlab.mixin.Copyable
             end
             obj.label = label;
 
-            % Initialize variables
-            obj.reset()
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function reset(obj)

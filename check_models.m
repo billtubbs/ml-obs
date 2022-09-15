@@ -20,9 +20,11 @@ function [nj, n, nu, ny, Ts] = check_models(models)
     if isprop(models{1}, "D")
         [n, nu, ny] = check_dimensions(models{1}.A, models{1}.B, ...
                 models{1}.C, models{1}.D);
+        direct_trans = true;
     else
         [n, nu, ny] = check_dimensions(models{1}.A, models{1}.B, ...
                 models{1}.C);
+        direct_trans = false;
     end
 
     % Sample period
@@ -30,12 +32,14 @@ function [nj, n, nu, ny, Ts] = check_models(models)
 
     % Check other models have same dimensions.
     for j = 2:nj
-        if isprop(models{j}, "D")
+        if direct_trans
             [n_j, nu_j, ny_j] = check_dimensions(models{j}.A, ...
                 models{j}.B, models{j}.C, models{j}.D);
         else
             [n_j, nu_j, ny_j] = check_dimensions(models{j}.A, ...
                 models{j}.B, models{j}.C);
+            assert(~isprop(models{j}, "D"), ...
+                "ValueError: D")
         end
         assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
             "ValueError: size of A, B, and C")

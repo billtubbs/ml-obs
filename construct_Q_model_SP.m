@@ -1,4 +1,4 @@
-function [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw)
+function [Q, p_rk] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw)
 % [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw);
 % Constructs the parameters needed to model the sub-optimal
 % multi-model algorithm using sequence pruning for the
@@ -52,7 +52,7 @@ function [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw)
     end
 
     % Probabilities of no-shock, shock
-    p_gamma = [1-alpha alpha]';
+    p_rk = [1-alpha alpha]';
 
     if nw > 1
 
@@ -61,7 +61,7 @@ function [Q, p_gamma] = construct_Q_model_SP(Q0, Bw, alpha, var_wp, nw)
         Z = [zeros(1, nw); eye(nw)];
 
         % Modified indicator value probabilities
-        p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
+        p_rk = prod(prob_gamma(Z', p_rk), 1)';
 
         % Normalize so that sum(Pr(gamma(k))) = 1
         % TODO: Is this the right thing to do for sub-optimal approach?

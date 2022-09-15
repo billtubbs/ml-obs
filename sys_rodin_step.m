@@ -68,6 +68,12 @@ B = [1 0;
 C = [0.3 0];
 D = zeros(1, 2);
 Gpss = ss(A,B,C,D,Ts);
+model = struct();
+model.A = A;
+model.B = B;
+model.C = C;
+model.D = D;
+model.Ts = Ts;
 
 % Designate which input and output variables are measured
 u_meas = [true; false];

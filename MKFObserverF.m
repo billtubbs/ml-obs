@@ -52,6 +52,11 @@
 %       Initial prior hypothesis probabilities at time k-1.
 %       If not specified, default is equal, i.e. uniform,
 %       probability assigned to each hypothesis.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
 %
 
 classdef MKFObserverF < MKFObserver
@@ -98,7 +103,15 @@ classdef MKFObserverF < MKFObserver
 
             % Create MKF super-class observer instance
             obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
-                p_seq_g_Yk_init,reset);
+                p_seq_g_Yk_init,false);
+
+            % Create struct to store Kalman filter variables
+            obj.filters = struct();
+            obj.filters.Xkp1_est = nan(n, 1, obj.nh);
+            obj.filters.Pkp1 = nan(n, n, obj.nh);
+            obj.filters.Xk_est = nan(obj.n, 1, obj.nh);
+            obj.filters.Pk = nan(obj.n, obj.n, obj.nh);
+            obj.filters.Yk_est = nan(obj.ny, 1, obj.nh);
 
             % Modify selected parameters
             obj.type = "MKF_F";
@@ -144,8 +157,7 @@ classdef MKFObserverF < MKFObserver
             % Pr(R(k)|Y(k-1))
             obj.p_seq_g_Ykm1 = nan(obj.nh, 1);
 
-            % Create struct to store Kalman filter variables
-            obj.filters = struct();
+            % Reset Kalman filter variables
             obj.filters.Xkp1_est = repmat(obj.xkp1_est, 1, 1, obj.nh);
             obj.filters.Pkp1 = repmat(obj.Pkp1, 1, 1, obj.nh);
             obj.filters.Xk_est = nan(obj.n, 1, obj.nh);

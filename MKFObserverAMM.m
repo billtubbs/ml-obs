@@ -1,6 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverAMM(models,P0,label,x0,p_seq_g_Yk_init)
+% obs = MKFObserverAMM(models,P0,label,x0,p_seq_g_Yk_init,reset)
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system. 
 % 
@@ -47,17 +47,24 @@
 %       Initial prior hypothesis probabilities at time k-1.
 %       If not specified, default is equal, i.e. uniform,
 %       probability assigned to each hypothesis.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
 %
 
 classdef MKFObserverAMM < MKFObserver
     methods
-        function obj = MKFObserverAMM(models,P0,label,x0,p_seq_g_Yk_init)
+        function obj = MKFObserverAMM(models,P0,label,x0, ...
+                p_seq_g_Yk_init,reset)
             arguments
                 models (1, :) cell
                 P0 double
                 label (1, 1) string = ""
                 x0 = []
                 p_seq_g_Yk_init = []
+                reset logical = true
             end
 
             % Get number of system models and check their dimensions
@@ -76,8 +83,10 @@ classdef MKFObserverAMM < MKFObserver
             % Store parameters
             obj.type = "MKF_AMM";
 
-            % Initialize all variables
-            obj.reset()
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function update(obj, yk, uk)

@@ -447,6 +447,39 @@ assert(isequaln(MKF_GPB2.xk_est, nan(n, 1)))
 assert(isequaln(MKF_GPB2.Pk, nan(n)))
 assert(isequaln(MKF_GPB2.yk_est, nan(ny, 1)))
 
+% Define MKF observer with AFMM sequence pruning algorithm
+
+% First, define with no initial state specified (should be set to zero)
+MKF_SP = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,nf,n_min,"MKF_SP");
+
+% Test initialisation
+assert(strcmp(MKF_SP.type, "MKF_SP"))
+assert(isequal(MKF_SP.models, models))
+assert(isequal(MKF_SP.P0, P0))
+assert(isequal(MKF_SP.Pkp1, P0))
+assert(strcmp(MKF_SP.label, "MKF_SP"))
+assert(isequal(MKF_SP.x0, zeros(n, 1)))
+assert(MKF_SP.n == n)
+assert(MKF_SP.nu == nu)
+assert(MKF_SP.ny == ny)
+assert(MKF_SP.nj == nj)
+assert(MKF_SP.nh == nj*nj)
+assert(isequal(MKF_SP.xkp1_est, zeros(n, 1)))
+assert(isequal(MKF_SP.p_seq_g_Yk_init, ones(4, 1) ./ 4))
+assert(isequal(MKF_SP.rk, [1 2 1 2]'))
+assert(isequal(MKF_SP.rkm1, [1 1 2 2]'))
+assert(isequaln(MKF_SP.p_yk_g_seq_Ykm1, nan(4, 1)))
+assert(isequaln(MKF_SP.p_rk_g_Ykm1, nan(4, 1)))
+assert(isequaln(MKF_SP.p_rk_g_rkm1, nan(4, 1)))
+assert(isequaln(MKF_SP.p_seq_g_Ykm1, nan(4, 1)))
+assert(isequaln(MKF_SP.filters.Xkp1_est, zeros(n, 1, 4)))
+assert(isequaln(MKF_SP.filters.Pkp1, repmat(P0, 1, 1, 4)))
+assert(isequaln(MKF_SP.filters.Kf, nan(n, ny, 4)))
+assert(isequaln(MKF_SP.filters.Sk, nan(ny, 1, 4)))
+assert(isequaln(MKF_SP.xk_est, nan(n, 1)))
+assert(isequaln(MKF_SP.Pk, nan(n)))
+assert(isequaln(MKF_SP.yk_est, nan(ny, 1)))
+
 % Choose observers to include in simulation
 %observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_F};
 observers = {KF1, KF2, SKF, SKF_S, MKF, MKF_F, MKF_S, MKF_AMM, MKF_GPB1};  % TODO: Add , MKF_GPB2

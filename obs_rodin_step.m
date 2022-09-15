@@ -74,74 +74,77 @@ model3.Q = diag([q1 0.1^2]);
 model3.R = sigma_M^2;
 KF3 = KalmanFilterF(model3,P0,'KF3');
 
-% Multiple model observer with sequence fusion #1
-label = 'MKF_SF1';
-P0 = 1000*eye(n);
-Q0 = diag([q1 0]);
-R = sigma_M^2;
-f = 15;  % fusion horizon
-m = 1;  % maximum number of shocks
-d = 5;  % spacing parameter
-MKF_SF1 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,label);
+% TODO: Not working yet
+% % Multiple model observer with sequence fusion #1
+% label = 'MKF_SF1';
+% P0 = 1000*eye(n);
+% Q0 = diag([q1 0]);
+% R = sigma_M^2;
+% f = 15;  % fusion horizon
+% m = 1;  % maximum number of shocks
+% d = 5;  % spacing parameter
+% MKF_SF1 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+%     Q0,R,f,m,d,label);
 
-% Multiple model observer with sequence fusion #2
-label = 'MKF_SF2';
-P0 = 1000*eye(n);
-Q0 = diag([q1 0]);
-R = sigma_M^2;
-f = 15;  % fusion horizon
-m = 2;  % maximum number of shocks
-d = 3;  % spacing parameter
-MKF_SF2 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,label);
+% % Multiple model observer with sequence fusion #2
+% label = 'MKF_SF2';
+% P0 = 1000*eye(n);
+% Q0 = diag([q1 0]);
+% R = sigma_M^2;
+% f = 15;  % fusion horizon
+% m = 2;  % maximum number of shocks
+% d = 3;  % spacing parameter
+% MKF_SF2 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+%     Q0,R,f,m,d,label);
 
-% Multiple model observer with sequence fusion based on method
-% described in Robertson et al. 1995.
-label = 'MKF_SF95';
-MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,label);
+% % Multiple model observer with sequence fusion based on method
+% % described in Robertson et al. 1995.
+% label = 'MKF_SF95';
+% MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+%     Q0,R,f,m,d,label);
 
-% General MKF - should be equivalent to MKF_SF2
-Q1 = diag([q1 sigma_wp(1)^2]);
-Q2 = diag([q1 sigma_wp(2)^2]);
-MKF3 = MKFObserver({A,A},{B,B},{C,C},Ts,P0,{Q1,Q2},{R,R}, ...
-    MKF_SF2.seq,MKF_SF2.T,'MKF3');
-% TODO: Allow P0 to be replaced with repmat({P0},1,MKF2.n_filt)
+% % General MKF - should be equivalent to MKF_SF2
+% Q1 = diag([q1 sigma_wp(1)^2]);
+% Q2 = diag([q1 sigma_wp(2)^2]);
+% MKF3 = MKFObserver({A,A},{B,B},{C,C},Ts,P0,{Q1,Q2},{R,R}, ...
+%     MKF_SF2.seq,MKF_SF2.T,'MKF3');
+% % TODO: Allow P0 to be replaced with repmat({P0},1,MKF2.n_filt)
 
-% Multiple model observer with sequence fusion based on 
-% Robertson et al. (1995) paper.
-label = 'MKF_SF95';
-P0 = 1000*eye(n);
-Q0 = diag([q1 0]);
-R = sigma_M^2;
-f = 15;  % fusion horizon
-m = 1;  % maximum number of shocks
-d = 3;  % spacing parameter
-MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,label);
+% % Multiple model observer with sequence fusion based on 
+% % Robertson et al. (1995) paper.
+% label = 'MKF_SF95';
+% P0 = 1000*eye(n);
+% Q0 = diag([q1 0]);
+% R = sigma_M^2;
+% f = 15;  % fusion horizon
+% m = 1;  % maximum number of shocks
+% d = 3;  % spacing parameter
+% MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+%     Q0,R,f,m,d,label);
 
 % Multiple model observer with sequence pruning #1
 label = 'MKF_SP1';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
-f = 100;  % sequence history length
-n_filt = 10;  % number of filters
+nh = 10;  % number of filters
 n_min = 7;  % minimum life of cloned filters
-MKF_SP1 = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label);
+nf = 100;  % sequence history length
+MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon, ...
+                sigma_wp,Q0,R,nh,nf,n_min,label);
 
 % Multiple model observer with sequence pruning #2
 label = 'MKF_SP2';
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 R = sigma_M^2;
-f = 100;  % sequence history length
-n_filt = 25;  % number of filters
+nh = 25;  % number of filters
 n_min = 21;  % minimum life of cloned filters
-MKF_SP2 = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label);
+hf = 100;  % sequence history length
+MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon, ...
+                sigma_wp,Q0,R,nh,nf,n_min,label);
 
-observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...
-    MKF3, MKF_SF95, MKF_SP1, MKF_SP2};
+% TODO: Restore
+% observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...
+%     MKF3, MKF_SF95, MKF_SP1, MKF_SP2};
+observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SP1, MKF_SP2};

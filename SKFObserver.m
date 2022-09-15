@@ -1,6 +1,6 @@
 % Switching Kalman Filter class definition
 %
-% obs = SKFObserver(models,P0,label,x0,r0)
+% obs = SKFObserver(models,P0,label,x0,r0,reset)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance) for state estimation of a jump linear
@@ -45,6 +45,11 @@
 %   r0 : (nh, 1) integer (optional, default ones)
 %       Integer in the range {1, ..., nj} which indicates
 %       the prior system mode at time k = -1.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
 %
 
 classdef SKFObserver < matlab.mixin.Copyable
