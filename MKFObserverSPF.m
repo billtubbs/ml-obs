@@ -217,7 +217,7 @@ classdef MKFObserverSPF < MKFObserverF
             obj.R = R;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
-            obj.type = "MKF_SP";
+            obj.type = "MKF_SPF";
 
             if reset
                 % Initialize variables
@@ -315,7 +315,7 @@ classdef MKFObserverSPF < MKFObserverF
             % Set all mode indicator values to 1 (no shock)
             rk = ones(obj.nh, 1);
 
-            % Make clone(s) of most probable sequence and fitler
+            % Make clone(s) of most probable sequence and filter
             % and put new filter(s) at start of holding group
             obj.f_hold(end-nw+1:end) = f_to_prune;
             for i = 1:nw
@@ -328,7 +328,8 @@ classdef MKFObserverSPF < MKFObserverF
                 %obj.seq{f_to_prune(i)} = obj.seq{f_max};
                 % Set next sequence value to index of the shock
                 %obj.seq{f_to_prune(i)}(:, obj.i_next(1)) = i + 1;
-                % Set mode indicator of cloned filter to shock value
+                % Set mode indicator of cloned filter to shock 
+                % occurs value
                 rk(f_to_prune(i)) = i + 1;
             end
 

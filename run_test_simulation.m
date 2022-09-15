@@ -78,6 +78,23 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 % Record filter gains, trace of covariance matrices
                 % and state estimates of each model filter
                 for j = 1:obs.nh
+                    K_obs_f{i, j} = obs.filters.Kf(:,:,j)';
+                    trP_obs_f(i, j) = trace(obs.filters.Pk(:,:,j));
+                    MKF_X_est_f{i, j} = obs.filters.Xk_est(:,:,j)';
+                end
+
+                % Record filter conditional probabilities
+                MKF_p_seq_g_Yk(i, :) = obs.p_seq_g_Yk';
+
+                % Record filter arrangement
+                MKF_SP_f_main(i, :) = obs.f_main;
+                MKF_SP_f_hold(i, :) = obs.f_hold;
+
+            case {"MKF_SPF"}
+
+                % Record filter gains, trace of covariance matrices
+                % and state estimates of each model filter
+                for j = 1:obs.nh
                     K_obs_f{i, j} = obs.filters.objects{j}.Kf';
                     trP_obs_f(i, j) = trace(obs.filters.objects{j}.Pk);
                     MKF_X_est_f{i, j} = obs.filters.objects{j}.xk_est';

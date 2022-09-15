@@ -81,7 +81,7 @@
 %    https://doi.org/10.1080/00207178508933420
 %
 
-classdef MKFObserverSP < MKFObserverF
+classdef MKFObserverSP < MKFObserver
     properties (SetAccess = immutable)
         u_meas (:, 1) logical {mustBeNumericOrLogical}
         n_min double {mustBeInteger, mustBeNonnegative}
@@ -197,7 +197,7 @@ classdef MKFObserverSP < MKFObserverF
             p_seq_g_Yk_init = [1; zeros(nh-1, 1)];
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserverF(models,P0,T,r0,label,x0, ...
+            obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
                 p_seq_g_Yk_init,false);
 
             % Add additional variables used by AFMM observer
@@ -229,17 +229,39 @@ classdef MKFObserverSP < MKFObserverF
         %
 
             % Call reset method of super class object
-            reset@MKFObserverF(obj);
+            reset@MKFObserver(obj);
 
-            % Set estimate covariances to high values for the
-            % rest of the filters
+            % Set estimate covariances to high values for all the
+            % filters except the first
             for i = 2:obj.nh
-                obj.filters.objects{i}.Pkp1 = 1e10 * eye(obj.n);
+                obj.filters.Pkp1(:,:,i) = 1e10 * eye(obj.n);
             end
 
             % Reset sequence index
             %obj.i = int16(0);
             %obj.i_next = int16(1);
+
+        end
+        function copy_filters(obj, a, b)
+        % Make a copy of filter in position a and save it
+        % in position b.
+
+            % Transfer filter variables from a to b
+            obj.filters.Xkp1_est(:, :, b) = obj.filters.Xkp1_est(:, :, a);
+            obj.filters.Pkp1(:, :, b) = obj.filters.Pkp1(:, :, a);
+            obj.filters.Xk_est(:, :, b) = obj.filters.Xk_est(:, :, a);
+            obj.filters.Pk(:, :, b) = obj.filters.Pk(:, :, a);
+            obj.filters.Yk_est(:, :, b) = obj.filters.Yk_est(:, :, a);
+
+            % Transfer probability information
+            obj.p_seq_g_Yk(b) = obj.p_seq_g_Yk(a);
+            obj.p_rk_g_rkm1(b) = obj.p_rk_g_rkm1(a);
+            obj.p_seq_g_Ykm1(b) = obj.p_seq_g_Ykm1(a);
+
+            % Sequence history - not yet implemented
+            %obj.seq{f_to_prune(i)} = obj.seq{f_max};
+            % Set next sequence value to index of the shock
+            %obj.seq{f_to_prune(i)}(:, obj.i_next(1)) = i + 1;
 
         end
         function update(obj, yk, uk)
@@ -312,30 +334,14 @@ classdef MKFObserverSP < MKFObserverF
             % Set all mode indicator values to 1 (no shock)
             rk = ones(obj.nh, 1);
 
-            % Make clone(s) of most probable sequence and fitler
+            % Make clone(s) of most probable sequence and filter
             % and put new filter(s) at start of holding group
             obj.f_hold(end-nw+1:end) = f_to_prune;
             for i = 1:nw
-                label = obj.filters.objects{f_to_prune(i)}.label;
-                obj.filters.objects{f_to_prune(i)} = obj.filters.objects{f_max}.copy();
-                obj.filters.objects{f_to_prune(i)}.label = label;  % keep label
-                obj.p_seq_g_Yk(f_to_prune(i)) = obj.p_seq_g_Yk(f_max);
-                obj.p_rk_g_rkm1(f_to_prune(i)) = obj.p_rk_g_rkm1(f_max);
-                obj.p_seq_g_Ykm1(f_to_prune(i)) = obj.p_seq_g_Ykm1(f_max);
-                %obj.seq{f_to_prune(i)} = obj.seq{f_max};
-                % Set next sequence value to index of the shock
-                %obj.seq{f_to_prune(i)}(:, obj.i_next(1)) = i + 1;
-                % Set mode indicator of cloned filter to shock value
+                obj.copy_filters(f_max, f_to_prune(i))
+                % Set mode indicator of cloned filter to shock 
+                % occurs value
                 rk(f_to_prune(i)) = i + 1;
-            end
-
-            % Copy filter variables into arrays
-            for f = 1:obj.nh
-                obj.filters.Xk_est(:,:,f) = obj.filters.objects{f}.xk_est;
-                obj.filters.Pk(:,:,f) = obj.filters.objects{f}.Pk;
-                obj.filters.Yk_est(:,:,f) = obj.filters.objects{f}.yk_est;
-                obj.filters.Xkp1_est(:,:,f) = obj.filters.objects{f}.xkp1_est;
-                obj.filters.Pkp1(:,:,f) = obj.filters.objects{f}.Pkp1;
             end
 
             % TODO: Add online noise variance estimation with
@@ -343,7 +349,7 @@ classdef MKFObserverSP < MKFObserverF
             % equation (4.3).
 
             % Run MKF super-class updates and probability calcs
-            update@MKFObserverF(obj, yk, uk, rk);
+            update@MKFObserver(obj, yk, uk, rk);
 
         end
     end
