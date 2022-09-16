@@ -20,8 +20,8 @@
 %   Let there be a certain minimum life length for all 
 %   branches.
 %
-% obs = MKFObserverSP(model,u_meas,P0,epsilon, ...
-%     sigma_wp,Q0,R,nh,n_min,label,x0,r0,reset)
+% obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+%     Q0,R,nh,n_min,label,x0,r0)
 %
 % Creates a struct for simulating a multi-model observer
 % using the adaptive forgetting through multiple models 
@@ -61,11 +61,6 @@
 %       periods.
 %   label : String name.
 %   x0 : Initial state estimates (optional, default zeros)
-%   reset : logical (default, true)
-%       If true, the objects reset method is called after
-%       initialization (this is mainly intended for use by
-%       other objects instantiating an instance without
-%       reseting).
 %
 % NOTE:
 % - The adaptive forgetting component of the AFMM
@@ -103,7 +98,7 @@ classdef MKFObserverSP < MKFObserver
     end
     methods
         function obj = MKFObserverSP(model,u_meas,P0,epsilon, ...
-                sigma_wp,Q0,R,nh,n_min,label,x0,r0,reset)
+                sigma_wp,Q0,R,nh,n_min,label,x0,r0)
             arguments
                 model struct
                 u_meas (:, 1) logical
@@ -117,7 +112,6 @@ classdef MKFObserverSP < MKFObserver
                 label (1, 1) string = ""
                 x0 = []
                 r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)} = 1
-                reset logical = true
             end
 
             % Number of states
@@ -200,7 +194,7 @@ classdef MKFObserverSP < MKFObserver
             obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
                 p_seq_g_Yk_init,false);
 
-            % Add additional variables used by AFMM observer
+            % Add additional variables used by SP observer
             obj.sys_model = model;
             obj.u_meas = u_meas;
             %obj.seq = seq;
@@ -216,10 +210,8 @@ classdef MKFObserverSP < MKFObserver
             obj.sigma_wp = sigma_wp;
             obj.type = "MKF_SP";
 
-            if reset
-                % Initialize variables
-                obj.reset()
-            end
+            % Initialize variables
+            obj.reset()
 
         end
         function reset(obj)

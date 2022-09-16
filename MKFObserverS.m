@@ -1,6 +1,7 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverS(models,P0,seq,T,label,x0,p_seq_g_Yk_init)
+% obs = MKFObserverS(models,P0,seq,T,label,x0, ...
+%     p_seq_g_Yk_init,reset)
 % Class for simulating a multi-model Kalman filter for state
 % estimation of a Markov jump linear system. 
 % 
@@ -53,22 +54,30 @@
 %       Arbitrary name to identify the observer.
 %   x0 : (n, 1) double (optional, default zeros)
 %       Initial state estimates.
+%   r0 : (nh, 1) integer (optional, default ones)
+%       Integer in the range {1, ..., nj} which indicates
+%       the prior system mode at time k = -1.
 %   p_seq_g_Yk_init : (optional, default uniform)
 %       Initial prior hypothesis probabilities at time k-1.
 %       If not specified, default is equal, i.e. uniform,
 %       probability assigned to each hypothesis.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
 %
 
 classdef MKFObserverS < MKFObserver
     properties
         seq (:, 1) cell
         nf (1, 1) double {mustBeInteger}
-        i (1, 1) {mustBeInteger, mustBeNonnegative}
-        i_next (1, 1) {mustBeInteger, mustBeNonnegative}
+        i int16
+        i_next int16
     end
     methods
         function obj = MKFObserverS(models,P0,seq,T,label,x0, ...
-                p_seq_g_Yk_init)
+                r0,p_seq_g_Yk_init,reset)
             arguments
                 models (1, :) cell
                 P0 double
@@ -76,11 +85,17 @@ classdef MKFObserverS < MKFObserver
                 T double
                 label (1, 1) string = ""
                 x0 = []
+                r0 (:, 1) int16 {mustBeGreaterThan(r0, 0)} = 1
                 p_seq_g_Yk_init = []
+                reset logical = true
             end
 
-            % System modes at time k = 0
-            r0 = cellfun(@(s) s(:, 1), seq);
+            % Determine initial system modes at time k = -1
+            if isscalar(r0)
+                r0 = repmat(r0, size(seq, 1), 1);
+            else
+                assert(isequal(size(r0), [size(seq, 1) 1]), "ValueError: r0")
+            end         
 
             % Create super-class observer instance
             obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
@@ -92,8 +107,10 @@ classdef MKFObserverS < MKFObserver
                                               %     of different lengths
             obj.type = "MKF_S";
 
-            % Initialize variables
-            obj.reset()
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function reset(obj)
@@ -119,10 +136,10 @@ classdef MKFObserverS < MKFObserver
         % Arguments:
         %   obs : struct containing the multi-model Kalman filter
         %       variables (see function mkf_filter).
-        %   uk : vector (nu, 1) of system inputs at the current 
-        %       sample time.
         %   yk : vector (ny, 1) of system output measurements
         %       at the current sample time.
+        %   uk : vector (nu, 1) of system inputs at the current 
+        %       sample time.
         %
 
             % Increment sequence index (at end of sequence it 
@@ -133,7 +150,7 @@ classdef MKFObserverS < MKFObserver
             % Get vector of current system modes from sequence
             obj.rk = cellfun(@(s) s(:, obj.i), obj.seq);
 
-            % Call reset method of super class object
+            % Call update method of super class object
             update@MKFObserver(obj, yk, uk, obj.rk);
 
         end

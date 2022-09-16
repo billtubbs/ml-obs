@@ -1,6 +1,6 @@
 % Switching Kalman Filter class definition
 %
-% obs = SKFObserverS(models,P0,seq,label,x0)
+% obs = SKFObserverS(models,P0,seq,label,x0,reset)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance) for state estimation of a jump linear
@@ -51,6 +51,15 @@
 %       Arbitrary name to identify the observer.
 %   x0 : (n, 1) double (optional, default zeros)
 %       Initial state estimates.
+%   r0 : (1, 1) integer (optional, default 1)
+%       Integer in the range {1, ..., nj} which indicates
+%       the prior system mode at time k = -1.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
+%
 %
 
 classdef SKFObserverS < SKFObserver
@@ -61,17 +70,16 @@ classdef SKFObserverS < SKFObserver
         i_next (1, 1) {mustBeInteger, mustBeNonnegative}
     end
     methods
-        function obj = SKFObserverS(models,P0,seq,label,x0)
+        function obj = SKFObserverS(models,P0,seq,label,x0,r0,reset)
             arguments
                 models (1, :) cell
                 P0 double
                 seq (1, :) {mustBeInteger}
                 label (1, 1) string = ""
                 x0 = []
+                r0 (1, 1) int16 {mustBeGreaterThan(r0, 0)} = 1
+                reset logical = true
             end
-
-            % System mode at time k = 0
-            r0 = int16(seq(:, 1));
 
             % Create super-class observer instance
             obj = obj@SKFObserver(models,P0,label,x0,r0,false);
@@ -81,8 +89,10 @@ classdef SKFObserverS < SKFObserver
             obj.nf = size(seq, 2);
             obj.type = "SKF_S";
 
-            % Initialize variables
-            obj.reset()
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function reset(obj)

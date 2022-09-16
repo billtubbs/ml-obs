@@ -78,40 +78,33 @@ P0 = 1000*eye(n);
 KF3 = KalmanFilterF(model3,P0,'KF3');
 
 % TODO: Not working yet
-% % Multiple model observer with sequence fusion #1
-% label = 'MKF_SF1';
-% P0 = 1000*eye(n);
-% Q0 = diag([q1 0]);
-% R = sigma_M^2;
-% f = 15;  % fusion horizon
-% m = 1;  % maximum number of shocks
-% d = 5;  % spacing parameter
-% MKF_SF1 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,f,m,d,label);
+% Multiple model observer with sequence fusion #1
+label = 'MKF_SF1';
+P0 = 1000*eye(n);
+Q0 = diag([q1 0]);
+R = sigma_M^2;
+f = 15;  % fusion horizon
+m = 1;  % maximum number of shocks
+d = 5;  % spacing parameter
+MKF_SF1 = MKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
+    sigma_wp,Q0,R,f,m,d,label);
 
-% % Multiple model observer with sequence fusion #2
-% label = 'MKF_SF2';
-% P0 = 1000*eye(n);
-% Q0 = diag([q1 0]);
-% R = sigma_M^2;
-% f = 15;  % fusion horizon
-% m = 2;  % maximum number of shocks
-% d = 3;  % spacing parameter
-% MKF_SF2 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,f,m,d,label);
+% Multiple model observer with sequence fusion #2
+label = 'MKF_SF2';
+P0 = 1000*eye(n);
+Q0 = diag([q1 0]);
+R = sigma_M^2;
+f = 15;  % fusion horizon
+m = 2;  % maximum number of shocks
+d = 3;  % spacing parameter
+MKF_SF2 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,label);
 
 % % Multiple model observer with sequence fusion based on method
 % % described in Robertson et al. 1995.
 % label = 'MKF_SF95';
 % MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,label);
-
-% % General MKF - should be equivalent to MKF_SF2
-% Q1 = diag([q1 sigma_wp(1)^2]);
-% Q2 = diag([q1 sigma_wp(2)^2]);
-% MKF3 = MKFObserver({A,A},{B,B},{C,C},Ts,P0,{Q1,Q2},{R,R}, ...
-%     MKF_SF2.seq,MKF_SF2.T,'MKF3');
-% % TODO: Allow P0 to be replaced with repmat({P0},1,MKF2.n_filt)
 
 % % Multiple model observer with sequence fusion based on 
 % % Robertson et al. (1995) paper.

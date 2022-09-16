@@ -1,6 +1,6 @@
 function make_MKF_pdf_plot(obs, f, yk, y_lim, p_max)
 % Display probability density of the output estimate
-% of filter f of the mutli-model observer compared to
+% of filter f of the multi-model observer compared to
 % the current data point.
 %
 
@@ -9,6 +9,7 @@ function make_MKF_pdf_plot(obs, f, yk, y_lim, p_max)
     end
 
     % Get y_est(k/k-1) estimated in previous time step
+    %TODO: This will involve storing yk_pred for each observer
     yk_est = obs.filters{f}.ykp1_est;
 
     % Calculate covariance of the output estimation errors

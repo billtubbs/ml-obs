@@ -103,14 +103,13 @@ assert(isequal(vdata.types, {'uint8', 'uint8', 'uint8'}))
 assert(isequal(vdata.dims, {[1 1], [2 1], [2 3]}))
 
 
-%% Test with Kalman filter struct
+%% Test with Kalman filter object
 
 % Load system and disturbance model from file
 sys_rodin_step
 
-% RODD random variable parameters
-epsilon = 0.01;
-sigma_w = [0.01; 1];
+% Load observers from file
+obs_rodin_step
 
 % Sequenece length
 nT = 20;
@@ -118,15 +117,12 @@ nT = 20;
 % Simulate system
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
-Wp = sample_random_shocks(nT+1, epsilon, sigma_w(2), sigma_w(1));
+Wp = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
 Y = lsim(Gpss,[U Wp],t,X0);
 V = sigma_M*randn(nT+1, 1);
 Ym = Y + V;  % measurement
-
-% Load observers from file
-obs_rodin_step
 
 % Make copies of KF1
 obs1 = KF1.copy();
@@ -134,36 +130,40 @@ obs2 = KF1.copy();
 
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
-vdata = make_data_vectors(struct2cell(vars));
+vdata = make_data_vectors(struct2cell(vars)');
 
 % Simulate observer
 Xk_est = {nan(nT+1,n), nan(nT+1,n)};
 Yk_est = {nan(nT+1,ny), nan(nT+1,ny)};
 for i = 1:nT
+
     uk = U(i,:)';
     yk = Ym(i,:)';
     obs1.update(yk, uk);
-    Xk_est{1}(i+1,:) = obs1.xkp1_est';
-    Yk_est{1}(i+1,:) = obs1.ykp1_est';
+
+    % Save observer estimates
+    Xk_est{1}(i+1,:) = obs1.xk_est';
+    Yk_est{1}(i+1,:) = obs1.yk_est';
 
     % Unpack vdata struct and reconstruct observer from KF1
     vars = unpack_data_vectors(vdata);
     assert(isequal(vars{1}, obs2.xkp1_est))
     assert(isequal(vars{2}, obs2.Pkp1))
     obs2 = KF1;  % makes a new copy
-    obs2.xkp1_est(:) = vars{1};
-    obs2.ykp1_est(:) = vars{2};
-    obs2.P(:) = vars{3};
+    obs2.xkp1_est = vars{1};
+    obs2.Pkp1 = vars{2};
 
     % Observer updates
     obs2.update(yk, uk);
 
     % Convert dynamic variables to vdata struct
     vars = get_obs_vars(obs2);
-    vdata = make_data_vectors(struct2cell(vars));
+    vdata = make_data_vectors(struct2cell(vars)');
 
-    Xk_est{2}(i+1,:) = obs2.xkp1_est';
-    Yk_est{2}(i+1,:) = obs2.ykp1_est';
+    % Save observer estimates
+    Xk_est{2}(i+1,:) = obs2.xk_est';
+    Yk_est{2}(i+1,:) = obs2.yk_est';
+
 end
 
 % Check observer estimates are identical
@@ -171,14 +171,13 @@ assert(isequaln(Xk_est{1}, Xk_est{2}))
 assert(isequaln(Yk_est{1}, Yk_est{2}))
 
 
-%% Test with AFMM MKF observer struct
+%% Test with MKF observer object
 
 % Load system and disturbance model from file
 sys_rodin_step
 
-% RODD random variable parameters
-epsilon = 0.01;
-sigma_w = [0.01; 1];
+% Load observers from file
+obs_rodin_step
 
 % Sequenece length
 nT = 20;
@@ -186,15 +185,12 @@ nT = 20;
 % Simulate system
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
-Wp = sample_random_shocks(nT+1, epsilon, sigma_w(2), sigma_w(1));
+Wp = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
 Y = lsim(Gpss,[U Wp],t,X0);
 V = sigma_M*randn(nT+1, 1);
 Ym = Y + V;  % measurement
-
-% Load observers from file
-obs_rodin_step
 
 % Make copies of MKF_SP1
 obs1 = MKF_SP1.copy();
@@ -202,60 +198,63 @@ obs2 = MKF_SP1.copy();
 
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
-vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-    vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+vars_double = {vars.xkp1_est, vars.Pkp1, vars.p_seq_g_Yk, ...
+    vars.xkp1_est_f, vars.Pkp1_f};
 vdata = make_data_vectors(vars_double);
-vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
+vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
 
 % Simulate observer
 Xk_est = {nan(nT+1,n), nan(nT+1,n)};
 Yk_est = {nan(nT+1,ny), nan(nT+1,ny)};
 for i = 1:nT
+
     uk = U(i,:)';
     yk = Ym(i,:)';
     obs1.update(yk, uk);
-    Xk_est{1}(i+1,:) = obs1.xkp1_est';
-    Yk_est{1}(i+1,:) = obs1.ykp1_est';
+
+    % Save observer estimates
+    Xk_est{1}(i,:) = obs1.xk_est';
+    Yk_est{1}(i,:) = obs1.yk_est';
 
     % Unpack vdata struct and copy values back to observer
     vars_double = unpack_data_vectors(vdata);
     vars_int16 = unpack_data_vectors(vdata_int16);
     vars = struct();
     vars.xkp1_est = vars_double{1};
-    vars.ykp1_est = vars_double{2};
+    vars.Pkp1 = vars_double{2};
     vars.p_seq_g_Yk = vars_double{3};
-    vars.gamma_k = vars_double{4};
-    vars.xkp1_est_f = vars_double{5};
-    vars.ykp1_est_f = vars_double{6};
-    vars.P_f = vars_double{7};
-    vars.int16.i = vars_int16{1};
-    vars.int16.i_next = vars_int16{2};
-    vars.int16.f_main = vars_int16{3};
-    vars.int16.f_hold = vars_int16{4};
-    vars.int16.seq = vars_int16{5};
-    obs2_restored = set_obs_vars(MKF_SP1, vars);  % makes a new copy
+    vars.xkp1_est_f = vars_double{4};
+    vars.Pkp1_f = vars_double{5};
+    vars.int16.rk = vars_int16{1};
+    vars.int16.f_main = vars_int16{2};
+    vars.int16.f_hold = vars_int16{3};
+
+    % Build a copy from the variable data
+    obs2_restored = set_obs_vars(MKF_SP1.copy(), vars);
     assert(isequal(obs2_restored.xkp1_est, obs2.xkp1_est))
-    assert(isequal(obs2_restored.ykp1_est, obs2.ykp1_est))
-    assert(isequal(obs2_restored.filters{1}.xkp1_est, obs2.filters{1}.xkp1_est))
-    assert(isequal(obs2_restored.filters{1}.ykp1_est, obs2.filters{1}.ykp1_est))
-    assert(isequal(obs2_restored.filters{1}.P, obs2.filters{1}.P))
-    assert(isequal(obs2_restored.i, obs2.i))
-    assert(isequal(obs2_restored.i_next, obs2.i_next))
+    assert(isequal(obs2_restored.Pkp1, obs2.Pkp1))
+    assert(isequal(obs2_restored.p_seq_g_Yk, obs2.p_seq_g_Yk))
+    assert(isequal(obs2_restored.filters.Xkp1_est, obs2.filters.Xkp1_est))
+    assert(isequal(obs2_restored.filters.Pkp1, obs2.filters.Pkp1))
+    assert(isequal(obs2_restored.rk, obs2.rk))
     assert(isequal(obs2_restored.f_main, obs2.f_main))
     assert(isequal(obs2_restored.f_hold, obs2.f_hold))
 
     % Observer updates
     obs2.update(yk, uk);
 
-    % Convert dynamic variables to vdata struct
+    % Re-convert dynamic variables to vdata struct for next
+    % time step
     vars = get_obs_vars(obs2);
-    vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-        vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+    vars_double = {vars.xkp1_est, vars.Pkp1, vars.p_seq_g_Yk, ...
+        vars.xkp1_est_f, vars.Pkp1_f};
     vdata = make_data_vectors(vars_double);
-    vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
+    vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
 
-    Xk_est{2}(i+1,:) = obs2.xkp1_est';
-    Yk_est{2}(i+1,:) = obs2.ykp1_est';
+    % Save observer estimates
+    Xk_est{2}(i,:) = obs2.xk_est';
+    Yk_est{2}(i,:) = obs2.yk_est';
+
 end
 
 % Check observer estimates are identical
@@ -263,14 +262,13 @@ assert(isequaln(Xk_est{1}, Xk_est{2}))
 assert(isequaln(Yk_est{1}, Yk_est{2}))
 
 
-%% Test with RODD MKF observer struct
+%% Test with MKF_SF observer object
 
 % Load system and disturbance model from file
 sys_rodin_step
 
-% RODD random variable parameters
-epsilon = 0.01;
-sigma_w = [0.01; 1];
+% Load observers from file
+obs_rodin_step
 
 % Sequenece length
 nT = 20;
@@ -278,15 +276,12 @@ nT = 20;
 % Simulate system
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
-Wp = sample_random_shocks(nT+1, epsilon, sigma_w(2), sigma_w(1));
+Wp = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
 [Y,T,X] = lsim(Gpss,[U Wp],t,X0);
 V = sigma_M*randn(nT+1, 1);
 Ym = Y + V;  % measurement
-
-% Load observers from file
-obs_rodin_step
 
 % Make copies of MKF_SP1
 obs1 = MKF_SF1.copy();
@@ -294,8 +289,8 @@ obs2 = MKF_SF1.copy();
 
 % Convert dynamic variables to vdata struct
 vars = get_obs_vars(obs2);
-vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-    vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+vars_double = {vars.xkp1_est, vars.Pkp1, vars.p_seq_g_Yk, ...
+    vars.xkp1_est_f, vars.Pkp1_f};
 vdata = make_data_vectors(vars_double);
 vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
 
@@ -303,31 +298,40 @@ vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
 Xk_est = {nan(nT+1,n), nan(nT+1,n)};
 Yk_est = {nan(nT+1,ny), nan(nT+1,ny)};
 for i = 1:nT
+
     uk = U(i,:)';
     yk = Ym(i,:)';
     obs1.update(yk, uk);
-    Xk_est{1}(i+1,:) = obs1.xkp1_est';
-    Yk_est{1}(i+1,:) = obs1.ykp1_est';
+
+    % Save observer estimates
+    Xk_est{1}(i+1,:) = obs1.xk_est';
+    Yk_est{1}(i+1,:) = obs1.yk_est';
 
     % Unpack vdata struct and copy values back to observer
     vars_double = unpack_data_vectors(vdata);
     vars_int16 = unpack_data_vectors(vdata_int16);
     vars = struct();
     vars.xkp1_est = vars_double{1};
-    vars.ykp1_est = vars_double{2};
+    vars.Pkp1 = vars_double{2};
     vars.p_seq_g_Yk = vars_double{3};
-    vars.gamma_k = vars_double{4};
-    vars.xkp1_est_f = vars_double{5};
-    vars.ykp1_est_f = vars_double{6};
-    vars.P_f = vars_double{7};
-    vars.int16.i = vars_int16{1};
-    vars.int16.i_next = vars_int16{2};
-    obs2_restored = set_obs_vars(MKF_SF1, vars);  % makes a new copy
+    vars.xkp1_est_f = vars_double{4};
+    vars.Pkp1_f = vars_double{5};
+    vars.int16.rk = vars_int16{1};
+    vars.int16.i = vars_int16{2};
+    vars.int16.i_next = vars_int16{3};
+    vars.int16.i2 = vars_int16{4};
+    vars.int16.i2_next = vars_int16{5};
+    vars.int16.seq = vars_int16{6};
+
+    % Build a copy from the variable data
+
+    obs2_restored = set_obs_vars(MKF_SF1.copy(), vars);  % makes a new copy
     assert(isequal(obs2_restored.xkp1_est, obs2.xkp1_est))
-    assert(isequal(obs2_restored.ykp1_est, obs2.ykp1_est))
-    assert(isequal(obs2_restored.filters{1}.xkp1_est, obs2.filters{1}.xkp1_est))
-    assert(isequal(obs2_restored.filters{1}.ykp1_est, obs2.filters{1}.ykp1_est))
-    assert(isequal(obs2_restored.filters{1}.P, obs2.filters{1}.P))
+    assert(isequal(obs2_restored.Pkp1, obs2.Pkp1))
+    assert(isequal(obs2_restored.p_seq_g_Yk, obs2.p_seq_g_Yk))
+    assert(isequal(obs2_restored.filters.Xkp1_est, obs2.filters.Xkp1_est))
+    assert(isequal(obs2_restored.filters.Pkp1, obs2.filters.Pkp1))
+    assert(isequal(obs2_restored.rk, obs2.rk))
     assert(isequal(obs2_restored.i, obs2.i))
     assert(isequal(obs2_restored.i_next, obs2.i_next))
 
@@ -336,13 +340,15 @@ for i = 1:nT
 
     % Convert dynamic variables to vdata struct
     vars = get_obs_vars(obs2);
-    vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-        vars.gamma_k, vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+    vars_double = {vars.xkp1_est, vars.Pkp1, vars.p_seq_g_Yk, ...
+        vars.xkp1_est_f, vars.Pkp1_f};
     vdata = make_data_vectors(vars_double);
     vdata_int16 = make_data_vectors(struct2cell(vars.int16), 'int16');
 
-    Xk_est{2}(i+1,:) = obs2.xkp1_est';
-    Yk_est{2}(i+1,:) = obs2.ykp1_est';
+    % Save observer estimates
+    Xk_est{2}(i+1,:) = obs2.xk_est';
+    Yk_est{2}(i+1,:) = obs2.yk_est';
+
 end
 
 % Check observer estimates are identical

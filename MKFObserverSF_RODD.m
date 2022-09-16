@@ -5,7 +5,7 @@
 % deterministic disturbances (RODDs) as described in 
 % Robertson et al. (1995, 1998).
 %
-% obs = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon, ...
+% obs = MKFObserverSF_RODDMKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
 %     sigma_wp,Q0,R,f,m,d,label,x0)
 %
 % Arguments:
@@ -43,43 +43,62 @@
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
 
-classdef MKFObserverSF98 < MKFObserverDI
+classdef MKFObserverSF_RODD < MKFObserverDI
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         m double {mustBeInteger, mustBeNonnegative}
     end
     properties
+        sys_model struct
         alpha double
         beta (1, 1) double
         p_seq double
         p_gamma double
-        Q0 {mustBeNumeric}
+        Q0 double
+        R double
         epsilon double
         sigma_wp double
     end
     methods
-        function obj = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
-
-            % Number of states
-            n = check_dimensions(A, B, C);
-
-            % Check size of initial process covariance matrix
-            assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
-
-            % Initial state estimates
-            if nargin < 15
-                x0 = zeros(n,1);
+            arguments
+                model struct
+                u_meas (:, 1) logical
+                P0 double
+                epsilon double
+                sigma_wp double
+                Q0 (:, :) double
+                R (:, :) double
+                f (1, 1) double {mustBeInteger}
+                m (1, 1) double {mustBeInteger}
+                d (1, 1) double {mustBeInteger}
+                label (1, 1) string = ""
+                x0 = []
             end
 
-            % Check size of process covariance default matrix
+            % Number of states
+            [n, nu, ny] = check_dimensions(model.A, model.B, model.C);
+            if isprop(model, "D")
+                assert(isequal(model.D, zeros(ny, nu)), ...
+                    "ValueError: direct transmission (model.D)")
+            end
+
+            % Determine initial state values
+            if isempty(x0)
+                x0 = zeros(n, 1);  % default initial states
+            else
+                assert(isequal(size(x0), [n 1]), "ValueError: x0")
+            end
+
+            % Check size of initial process covariance matrix
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
             % Observer model without disturbance noise input
             nw = sum(~u_meas);  % Number of input disturbances
             assert(nw > 0, "ValueError: u_meas");
-            Bu = B(:, u_meas);
-            Bw = B(:, ~u_meas);
+            Bu = model.B(:, u_meas);
+            Bw = model.B(:, ~u_meas);
 
             % Probability of at least one shock in a detection interval
             % (Detection interval is d sample periods in length).
@@ -102,7 +121,7 @@ classdef MKFObserverSF98 < MKFObserverDI
             % Construct process noise covariance matrices and switching
             % sequences over the fusion horizon, and the prior 
             % probabilities of each sequence.
-            [Q, p_gamma, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
+            [Q, p_rk, seq] = construct_Q_model_SF(Q0, Bw, alpha, ...
                 var_wp, n_di, m, nw);
 
             % Number of models (each with a different hypothesis sequence)
@@ -111,41 +130,53 @@ classdef MKFObserverSF98 < MKFObserverDI
             % Transition probability matrix
             % Note that for RODD disturbances Pr(gamma(k)) is
             % assumed to be an independent random variable.
-            T = repmat(p_gamma', nj, 1);
+            T = repmat(p_rk', nj, 1);
 
             % Sequence probabilities Pr(Gamma(k))
-            p_seq = prob_Gammas(seq, p_gamma);
+            p_seq = prob_seq(seq, p_rk);
 
             % Tolerance parameter (total probability of defined sequences)
             beta = sum(p_seq);
 
-            % System model doesn't change
-            A = repmat({A}, 1, nj);
-            Bu = repmat({Bu}, 1, nj);
-            C = repmat({C}, 1, nj);
-            R = repmat({R}, 1, nj);
-
             % Initial covariance matrix is the same for all filters
-            %P0_init = repmat({P0}, 1, n_filt);
+            %P0_init = repmat({P0}, 1, nh);
 
-            % Convert seq indices from 0-based to 1-based
-            seq = cellfun(@(x) x+1, seq, 'UniformOutput', false);
+            % System models are all the same - only Q switches
+            model_obs = model;
+            model_obs.B = Bu;
+            models = repmat({model_obs}, 1, nj);
+            for i = 1:nj
+                models{i}.Q = Q{i};
+                models{i}.R = R;
+            end
+
+            % Number of hypotheses to be modelled
+            nh = size(seq, 1);
+
+            % Assume prior probabilities are equal (uniform)
+            p_seq_g_Yk_init = ones(nh, 1) / nh;
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserverDI(A,Bu,C,Ts,P0,Q,R,seq,T,d,label,x0);
+            obj = obj@MKFObserverDI(models,P0,seq,T,d,label,x0, ...
+                p_seq_g_Yk_init,false)
 
             % Add additional variables used by RODD observer
+            obj.sys_model = model;
             obj.u_meas = u_meas;
             obj.P0 = P0;
             obj.Q0 = Q0;
+            obj.R = R;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
-            obj.m = int16(m);
+            obj.m = m;
             obj.alpha = alpha;
             obj.beta = beta;
             obj.p_seq = p_seq;
-            obj.p_gamma = p_gamma;
-            obj.type = "MKF_SF";
+            obj.p_gamma = p_rk;
+            obj.type = "MKF_SF_RODD";
+
+            % Initialize all variables
+            obj.reset()
 
         end
     end

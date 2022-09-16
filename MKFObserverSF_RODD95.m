@@ -44,7 +44,7 @@
 %     https://doi.org/10.1016/S0005-1098(97)00192-1%
 %
 
-classdef MKFObserverSF95 < MKFObserverS
+classdef MKFObserverSF_RODD95 < MKFObserverS
     properties (SetAccess = immutable)
         u_meas {mustBeNumericOrLogical}
         m double {mustBeInteger, mustBeNonnegative}
@@ -59,7 +59,7 @@ classdef MKFObserverSF95 < MKFObserverS
         sigma_wp double
     end
     methods
-        function obj = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon, ...
+        function obj = MKFObserverSF_RODD95(A,B,C,Ts,u_meas,P0,epsilon, ...
                 sigma_wp,Q0,R,f,m,d,label,x0)
 
             % Number of states
@@ -90,20 +90,20 @@ classdef MKFObserverSF95 < MKFObserverS
             % Construct process noise covariance matrices and switching
             % sequences over the fusion horizon, and the prior 
             % probabilities of each sequence.
-            [Q, p_gamma, S] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
+            [Q, p_rk, S] = construct_Q_model_SF95(Q0, Bw, epsilon, ...
                 sigma_wp, n_di, m, nw);
 
             % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
 
             % Number of hypotheses (filters) to be modelled
-            n_filt = size(S, 1);
+            nh = size(S, 1);
 
             % Expand sequences by inserting zeros between times
             % when shocks occur.
-            seq = cell(n_filt, 1);
-            for i = 1:n_filt
-                seq{i} = int16(zeros(size(S{i}, 1), f));
+            seq = cell(nh, 1);
+            for i = 1:nh
+                seq{i} = int16(ones(size(S{i}, 1), f));
                 % Add shock indications at start of each detection
                 % interval
                 seq{i}(:, 1:d:f) = S{i};
@@ -114,10 +114,10 @@ classdef MKFObserverSF95 < MKFObserverS
             % Transition probability matrix
             % Note that for RODD disturbances Pr(gamma(k)) is
             % assumed to be an independent random variable.
-            T = repmat(p_gamma', nj, 1);
+            T = repmat(p_rk', nj, 1);
 
             % Sequence probabilities Pr(Gamma(k))
-            p_seq = prob_Gammas(seq, p_gamma);
+            p_seq = prob_seq(seq, p_rk);
 
             % Tolerance parameter (total probability of defined sequences)
             beta = sum(p_seq);
@@ -134,9 +134,6 @@ classdef MKFObserverSF95 < MKFObserverS
             models{1}.Q = Q{1};
             models{2}.Q = Q{2};
 
-            % Convert seq indices from 0-based to 1-based
-            seq = cellfun(@(x) x+1, seq, 'UniformOutput', false);
-
             % Create MKF super-class observer instance
             obj = obj@MKFObserverS(models,P0,seq,T,label,x0);
 
@@ -150,8 +147,8 @@ classdef MKFObserverSF95 < MKFObserverS
             obj.d = d;
             obj.beta = beta;
             obj.p_seq = p_seq;
-            obj.p_gamma = p_gamma;
-            obj.type = "MKF_SF95";
+            obj.p_gamma = p_rk;
+            obj.type = "MKF_SF_RODD95";
 
         end
     end

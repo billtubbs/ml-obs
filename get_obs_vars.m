@@ -9,25 +9,43 @@ function vars = get_obs_vars(obs)
 
         case {"KFSS", "LB"}  % Steady-state filters
 
-            % Vars to return
+            % Get variables
             vars.xkp1_est = obs.xkp1_est;
 
         case {"KFF", "SKF", "SKF_S"}  % Kalman filter and switching KF
 
-            % Vars to return
+            % Get variables
             vars.xkp1_est = obs.xkp1_est;
             vars.Pkp1 = obs.Pkp1;
 
-        case {"MKF", "MKF_S", "MKF_SF", "MKF_SP"}  % multi-model Kalman filters
+        case {"MKF_DI", "MKF_SF_RODD", "MKF_SF_RODD95"}
 
-            % Vars to return
+            % Get double variables
             vars.xkp1_est = obs.xkp1_est;
             vars.Pkp1 = obs.Pkp1;
             vars.p_seq_g_Yk = obs.p_seq_g_Yk;
-            vars.rk = obs.rk;
             vars.xkp1_est_f = obs.filters.Xkp1_est;
-            vars.Pkp1_f = obs.filters.Pkp1_est;
+            vars.Pkp1_f = obs.filters.Pkp1;
 
+            % Get integer variables
+            vars.int16.rk = obs.rk;
+            vars.int16.i = obs.i;
+            vars.int16.i_next = obs.i_next;
+            vars.int16.i2 = obs.i2;
+            vars.int16.i2_next = obs.i2_next;
+            vars.int16.seq = obs.seq;
+
+        case {"MKF", "MKF_S", "MKF_SF", "MKF_SP"}  % multi-model Kalman filters
+
+            % Get double variables
+            vars.xkp1_est = obs.xkp1_est;
+            vars.Pkp1 = obs.Pkp1;
+            vars.p_seq_g_Yk = obs.p_seq_g_Yk;
+            vars.xkp1_est_f = obs.filters.Xkp1_est;
+            vars.Pkp1_f = obs.filters.Pkp1;
+
+            % Get integer variables
+            vars.int16.rk = obs.rk;
             if startsWith(obs.type, "MKF_SP")
                 % Additional variables used by adaptive sequence
                 % pruning algorithms
@@ -37,23 +55,21 @@ function vars = get_obs_vars(obs)
 
         case {"MKF_SFF", "MKF_SPF"}  % special multi-model Kalman filters
 
-            % Vars to return
+            % Get double variables
             vars.xkp1_est = obs.xkp1_est;
             vars.Pkp1 = obs.Pkp1;
             vars.p_seq_g_Yk = obs.p_seq_g_Yk;
-            vars.gamma_k = obs.gamma_k;
-            vars.xkp1_est_f = cell(1, obs.n_filt);
-            vars.ykp1_est_f = cell(1, obs.n_filt);
-            vars.Pkp1_f = cell(1, obs.n_filt);
-            for f = 1:obs.n_filt
-               vars.xkp1_est_f{f} = obs.filters{f}.xkp1_est;
-               vars.ykp1_est_f{f} = obs.filters{f}.ykp1_est;
-               vars.Pkp1_f{f} = obs.filters{f}.Pkp1;
+            vars.xkp1_est_f = nan(obs.n, 1, obs.nh);
+            vars.Pkp1_f = nan(obs.n, obs.n, obs.nh);
+            for f = 1:obs.nh
+               vars.xkp1_est_f(:,:,f) = obs.filters{f}.xkp1_est;
+               vars.Pkp1_f(:,:,f) = obs.filters{f}.Pkp1;
             end
-            % Integer variables
+
+            % Get integer variables
+            vars.int16.rk = obs.rk;
             vars.int16.i = obs.i;
             vars.int16.i_next = obs.i_next;
-
             if strcmp(obs.type, "MKF_SPF")
                 % Additional variables used by adaptive sequence
                 % pruning algorithms
@@ -64,12 +80,12 @@ function vars = get_obs_vars(obs)
 
         case "EKF"  % Extended Kalman filters
 
-            % Vars to return
+            % Get double variables
             % TODO: Add dynamic vars
 
         case "MEKF"  % Extended Kalman filters
 
-            % Vars to return
+            % Get double variables
             % TODO: Add dynamic vars
 
         otherwise

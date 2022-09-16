@@ -19,14 +19,14 @@ R = sigma_M^2;
 f = 9;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF_SF = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,"MKF_SF95");
+MKF_SF = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,"MKF_SF");
 
-seq_test = { ...
-    [0 0 0]; ...
-    [1 0 0]; ...
-    [0 1 0]; ...
-    [0 0 1] ...
+seq_test = {
+    [1 1 1]; ...
+    [2 1 1]; ...
+    [1 2 1]; ...
+    [1 1 2]
 };
 assert(isequal(MKF_SF.seq, seq_test))
 
@@ -44,14 +44,14 @@ R = sigma_M^2;
 f = 10;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 5;  % spacing parameter
-MKF_SF = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,"MKF_SF95");
+MKF_SF = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,"MKF_SF");
 
 seq_test = { ...
-    [0 0]; ...
-    [1 0]; ...
-    [0 1]; ...
-    [1 1] ...
+    [1 1]; ...
+    [2 1]; ...
+    [1 2]; ...
+    [2 2] ...
 };
 assert(isequal(MKF_SF.seq, seq_test))
 
@@ -65,99 +65,107 @@ sys_rodin_step
 obs_rodin_step
 
 test_seq = { ...
-    [0 0 0]; ...
-    [1 0 0]; ...
-    [0 1 0]; ...
-    [0 0 1] ...
+    [1 1 1]; ...
+    [2 1 1]; ...
+    [1 2 1]; ...
+    [1 1 2]
 };
 
 % Check observer attributes
-assert(strcmp(MKF_SF1.type, "MKF_SF"))
+assert(strcmp(MKF_SF1.type, "MKF_SF_RODD"))
 assert(MKF_SF1.epsilon == epsilon)
 assert(isequal(MKF_SF1.sigma_wp, sigma_wp))
-assert(MKF_SF1.n_filt == 4)
-assert(isequaln(MKF_SF1.i, [0 0]))
+assert(MKF_SF1.nh == 4)
+assert(isequaln([MKF_SF1.i MKF_SF1.i_next], [0 1]))
+assert(isequaln([MKF_SF1.i2 MKF_SF1.i2_next], [0 1]))
 assert(MKF_SF1.n == 2)
 assert(MKF_SF1.nu == 1)
 assert(MKF_SF1.ny == 1)
 assert(MKF_SF1.nj == 2)
-assert(isequal(MKF_SF1.A{1}, A) && isequal(MKF_SF1.A{2}, A))
-assert(isequal(MKF_SF1.B{1}, Bu) && isequal(MKF_SF1.B{2}, Bu))
-assert(isequal(MKF_SF1.C{1}, C) && isequal(MKF_SF1.C{2}, C))
-assert(MKF_SF1.Ts == Ts)
+assert(isequal(MKF_SF1.sys_model, model))
+assert(MKF_SF1.Ts == model.Ts)
 assert(isequaln(MKF_SF1.u_meas, u_meas))
-assert(isequal(size(MKF_SF1.Q), [1 2]))
-assert(isequal(MKF_SF1.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF_SF1.Q{2}, [0.01 0; 0 sigma_wp(2)^2/MKF_SF1.d]))
-assert(isequal(size(MKF_SF1.R), [1 2]))
-assert(isequal(MKF_SF1.R{1}, R) && isequal(MKF_SF1.R{2}, R))
-assert(numel(MKF_SF1.filters) == MKF_SF1.n_filt)
-assert(isequal(size(MKF_SF1.seq), [MKF_SF1.n_filt 1]))
-assert(isequal(size(cell2mat(MKF_SF1.seq)), [MKF_SF1.n_filt MKF_SF1.n_di]))
+assert(isequal(MKF_SF1.models{1}.Q, [0.01 0; 0 sigma_wp(1)^2]))
+assert(isequal(MKF_SF1.models{2}.Q, [0.01 0; 0 sigma_wp(2)^2/MKF_SF1.d]))
+assert(isequal(MKF_SF1.R, R))
+assert(isequal(MKF_SF1.models{1}.R, R))
+assert(isequal(MKF_SF1.models{2}.R, R))
+assert(isequal(size(MKF_SF1.filters.Xkp1_est), [MKF_SF1.n 1 MKF_SF1.nh]))
+assert(isequal(size(MKF_SF1.filters.Pkp1), [MKF_SF1.n MKF_SF1.n MKF_SF1.nh]))
+assert(isequal(size(MKF_SF1.seq), [MKF_SF1.nh 1]))
+assert(isequal(size(cell2mat(MKF_SF1.seq)), [MKF_SF1.nh MKF_SF1.n_di]))
 assert(isequal(MKF_SF1.seq, test_seq))
 assert(MKF_SF1.beta == sum(MKF_SF1.p_seq))
 assert(MKF_SF1.f == MKF_SF1.d * MKF_SF1.n_di)
 assert(isequal(MKF_SF1.xkp1_est, zeros(n,1)))
-assert(isequal(MKF_SF1.P, 1000*eye(2)))
-assert(isequal(MKF_SF1.ykp1_est, zeros(ny,1)))
+assert(isequal(MKF_SF1.P0, P0))
+assert(isequal(MKF_SF1.Pkp1, P0))
 alpha = (1 - (1 - MKF_SF1.epsilon).^MKF_SF1.d);  % prob. over detection interval 
-p_gamma = [1-alpha'; alpha'];
+p_rk = [1-alpha'; alpha'];
 assert(isequal(round(alpha, 4), 0.0490))
-assert(isequal(round(p_gamma, 4), [0.9510; 0.0490]))
+assert(isequal(round(p_rk, 4), [0.9510; 0.0490]))
 assert(isequal(round(MKF_SF1.alpha, 4), round(alpha, 4)))
-assert(isequal(round(MKF_SF1.p_gamma, 4), round(p_gamma, 4)))
+assert(isequal(MKF_SF1.rk, ones(MKF_SF1.nh, 1)))
+assert(isequaln(MKF_SF1.p_rk_g_rkm1, nan(MKF_SF1.nh, 1)))
+assert(isequaln(MKF_SF1.xk_est, nan(2, 1)))
+assert(isequaln(MKF_SF1.Pk, nan(2, 2)))
+assert(isequaln(MKF_SF1.yk_est, nan))
 
 test_seq = { ...
-    [0 0 0 0 0]; ...
-    [1 0 0 0 0]; ...
-    [0 1 0 0 0]; ...
-    [0 0 1 0 0]; ...
-    [0 0 0 1 0]; ...
-    [0 0 0 0 1]; ...
-    [1 1 0 0 0]; ...
-    [1 0 1 0 0]; ...
-    [1 0 0 1 0]; ...
-    [1 0 0 0 1]; ...
-    [0 1 1 0 0]; ...
-    [0 1 0 1 0]; ...
-    [0 1 0 0 1]; ...
-    [0 0 1 1 0]; ...
-    [0 0 1 0 1]; ...
-    [0 0 0 1 1] ...
+    [1 1 1 1 1];
+    [2 1 1 1 1];
+    [1 2 1 1 1];
+    [1 1 2 1 1];
+    [1 1 1 2 1];
+    [1 1 1 1 2];
+    [2 2 1 1 1];
+    [2 1 2 1 1];
+    [2 1 1 2 1];
+    [2 1 1 1 2];
+    [1 2 2 1 1];
+    [1 2 1 2 1];
+    [1 2 1 1 2];
+    [1 1 2 2 1];
+    [1 1 2 1 2];
+    [1 1 1 2 2]
 };
 
-assert(strcmp(MKF_SF2.type, "MKF_SF"))
+assert(strcmp(MKF_SF2.type, "MKF_SF_RODD"))
 assert(MKF_SF2.epsilon == epsilon)
 assert(isequal(MKF_SF2.sigma_wp, sigma_wp))
-assert(MKF_SF2.n_filt == 16)
-assert(isequaln(MKF_SF1.i, [0 0]))
+assert(MKF_SF2.nh == 16)
+assert(isequaln([MKF_SF2.i MKF_SF2.i_next], [0 1]))
+assert(isequaln([MKF_SF2.i2 MKF_SF2.i2_next], [0 1]))
 assert(MKF_SF2.n == 2)
 assert(MKF_SF2.nu == 1)
 assert(MKF_SF2.ny == 1)
 assert(MKF_SF2.nj == 2)
-assert(isequal(MKF_SF2.A{1}, A) && isequal(MKF_SF2.A{2}, A))
-assert(isequal(MKF_SF2.B{1}, Bu) && isequal(MKF_SF2.B{2}, Bu))
-assert(isequal(MKF_SF2.C{1}, C) && isequal(MKF_SF2.C{2}, C))
-assert(MKF_SF2.Ts == Ts)
 assert(isequaln(MKF_SF2.u_meas, u_meas))
-assert(isequal(size(MKF_SF2.Q), [1 2]))
-assert(isequal(MKF_SF2.Q{1}, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF_SF2.Q{2}, [0.01 0; 0 sigma_wp(2)^2/MKF_SF2.d]))
-assert(isequal(size(MKF_SF1.R), [1 2]))
-assert(isequal(MKF_SF2.R{1}, R) && isequal(MKF_SF2.R{2}, R))
-assert(numel(MKF_SF2.filters) == MKF_SF2.n_filt)
-assert(isequal(size(MKF_SF2.seq), [MKF_SF2.n_filt 1]))
-assert(isequal(size(cell2mat(MKF_SF2.seq)), [MKF_SF2.n_filt MKF_SF2.n_di]))
+assert(isequal(MKF_SF2.models{1}.Q, [0.01 0; 0 sigma_wp(1)^2]))
+assert(isequal(MKF_SF2.models{2}.Q, [0.01 0; 0 sigma_wp(2)^2/MKF_SF2.d]))
+assert(isequal(MKF_SF2.R, R))
+assert(isequal(MKF_SF2.models{1}.R, R))
+assert(isequal(MKF_SF2.models{2}.R, R))
+assert(isequal(size(MKF_SF2.filters.Xkp1_est), [MKF_SF2.n 1 MKF_SF2.nh]))
+assert(isequal(size(MKF_SF2.filters.Pkp1), [MKF_SF2.n MKF_SF2.n MKF_SF2.nh]))
+assert(isequal(size(MKF_SF2.seq), [MKF_SF2.nh 1]))
+assert(isequal(size(cell2mat(MKF_SF2.seq)), [MKF_SF2.nh MKF_SF2.n_di]))
 assert(isequal(MKF_SF2.seq, test_seq))
 assert(MKF_SF2.beta == sum(MKF_SF2.p_seq))
 assert(MKF_SF2.f == MKF_SF2.d * MKF_SF2.n_di)
 assert(isequal(MKF_SF2.xkp1_est, zeros(n,1)))
-assert(isequal(MKF_SF2.P, 1000*eye(2)))
-assert(isequal(MKF_SF2.ykp1_est, zeros(ny,1)))
+assert(isequal(MKF_SF2.P0, P0))
+assert(isequal(MKF_SF2.Pkp1, P0))
 alpha = (1 - (1 - MKF_SF2.epsilon).^MKF_SF2.d);  % prob. over detection interval 
-p_gamma = [1-alpha'; alpha'];
+p_rk = [1-alpha'; alpha'];
+assert(isequal(round(alpha, 4), 0.0297))
+assert(isequal(round(p_rk, 4), [0.9703; 0.0297]))
 assert(isequal(round(MKF_SF2.alpha, 4), round(alpha, 4)))
-assert(isequal(round(MKF_SF2.p_gamma, 4), round(p_gamma, 4)))
+assert(isequal(MKF_SF2.rk, ones(MKF_SF2.nh, 1)))
+assert(isequaln(MKF_SF2.p_rk_g_rkm1, nan(MKF_SF2.nh, 1)))
+assert(isequaln(MKF_SF2.xk_est, nan(2, 1)))
+assert(isequaln(MKF_SF2.Pk, nan(2, 2)))
+assert(isequaln(MKF_SF2.yk_est, nan))
 
 % Check optional definition with an initial state estimate
 label = 'MKF_testx0';
@@ -168,10 +176,9 @@ R = sigma_M^2;
 f = 15;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF_testx0 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
-assert(isequal(MKF_testx0.ykp1_est, C * x0))
 
 
 %% Test observer on SISO system with 1 shock
@@ -196,26 +203,22 @@ f = 15;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 5;  % spacing parameter
 label = 'MKF_SF98';
-MKF_SF98 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF98 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % MKF_SF95 with same parameters as MKF_SF98
+% TODO: Test this one
 label = 'MKF_SF95';
-MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,label);
-
-% MKF_SF95 with same parameters as MKF_SF98
-label = 'MKF_SF95';
-MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF95 = MKFObserverSF_RODD95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model observer with sequence pruning
 f = nT;  % sequence history length
-n_filt = 5;  % number of filters
+nh = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
 label = 'MKF_SP';
-MKF_SP = MKFObserverSP(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,label);
+MKF_SP = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,nh,n_min,label);
 
 % Choose time and amplitude of input disturbance
 t_shock = 9.5;
@@ -253,18 +256,18 @@ Q0 = diag([0.01 1]);
 Q2 = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
       diag([Q0(1,1) sigma_wp(1,2)^2])};
 R2 = {sigma_M.^2, sigma_M.^2};
-seq = {zeros(1, nT+1); zeros(1, nT+1)};
+seq = {ones(1, nT+1); ones(1, nT+1)};
 seq{2}(t == t_shock) = 1;
-p_gamma = [1-epsilon epsilon]';
-T = repmat(p_gamma', 2, 1);
-MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
+p_rk = [1-epsilon epsilon]';
+T = repmat(p_rk', 2, 1);
+MKF3 = MKFObserverS(models,P0,seq,T,'MKF3');
 
 % Multiple model filter - one sequence with correct shock
-seq = {zeros(1, nT+1)};
+seq = {ones(1, nT+1)};
 seq{1}(t == t_shock) = 1;
-p_gamma = [1-epsilon epsilon]';
-T = repmat(p_gamma', 2, 1);
-MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
+p_rk = [1-epsilon epsilon]';
+T = repmat(p_rk', 2, 1);
+MKF4 = MKFObserverS(models,P0,seq,T,'MKF4');
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -274,7 +277,7 @@ MKF4 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF4');
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = MKFObserverSched(A2,Bu2,C2,Ts,P0,Q2,R2,seq{1},"SKF");
+SKF = SKFObserverS(models,P0,seq{1},"SKF");
 
 % Choose observers to test
 observers = {MKF3, MKF4, SKF, MKF_SF95, MKF_SF98, MKF_SP};
@@ -323,10 +326,12 @@ U_m = U;
 n_obs = numel(observers);
 sim_results = struct();
 RMSE_results = struct();
+show_plots = false;
 for i = 1:n_obs
 
     obs = observers{i};
-    [obs, sim_result] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs);
+    [obs, sim_result] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m,obs, ...
+        show_plots);
 
     % Check observer errors are zero prior to
     % input disturbance
@@ -336,10 +341,10 @@ for i = 1:n_obs
     % Check observer static errors are small
     % after input disturbance
     % TODO: Should these be closer?
-    if all(sigma_MP == 0)
-        assert(abs(sim_result.Y_est(end, :) - Y(end, :)) < 1e-3);
-        assert(abs(sim_result.X_est(end, 2) - du0) < 1e-3);
-    end
+%     if all(sigma_MP == 0)
+%         assert(abs(sim_result.Y_est(end, :) - Y(end, :)) < 1e-3);
+%         assert(abs(sim_result.X_est(end, 2) - du0) < 1e-3);
+%     end
 
     % Compute mean-squared error
     Y_est = sim_result.Y_est;
@@ -385,6 +390,9 @@ MSE_test_values = struct( ...
     'SKF', 0.000929 ...
 );
 
+% for label = fieldnames(RMSE_results)'
+%     fprintf("%s: %f (%f)\n", label{1}, RMSE_results.(label{1}), MSE_test_values.(label{1}))
+% end
 for label = fieldnames(RMSE_results)'
     %fprintf("%s: %f (%f)\n", label{1}, RMSE_results.(label{1}), MSE_test_values.(label{1}))
     assert(isequal(round(RMSE_results.(label{1}), 6), MSE_test_values.(label{1})))
@@ -480,8 +488,9 @@ MKF_SF2 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
 % Check observer initialization
 assert(isequal(MKF_SF1.epsilon, epsilon))
 assert(isequal(MKF_SF1.sigma_wp, sigma_wp))
-assert(MKF_SF1.n_filt == 7)
-assert(isequaln(MKF_SF1.i, [0 0]))
+assert(MKF_SF1.nh == 7)
+assert(isequaln([MKF_SF1.i MKF_SF1.i_next], [0 1]))
+assert(isequaln([MKF_SF1.i2 MKF_SF1.i2_next], [0 1]))
 assert(MKF_SF1.n == 4)
 assert(MKF_SF1.nu == 2)
 assert(MKF_SF1.ny == 2)
@@ -500,9 +509,9 @@ assert(isequal(MKF_SF1.Q{3}, ...
     diag([0.01 0.01 sigma_wp(1, 2)^2/MKF_SF1.d sigma_wp(2, 1).^2])))
 assert(isequal(size(MKF_SF1.R), [1 3]))
 assert(isequal(MKF_SF1.R{1}, R) && isequal(MKF_SF1.R{2}, R) && isequal(MKF_SF1.R{3}, R))
-assert(numel(MKF_SF1.filters) == MKF_SF1.n_filt)
-assert(isequal(size(MKF_SF1.seq), [MKF_SF1.n_filt 1]))
-assert(isequal(size(cell2mat(MKF_SF1.seq)), [MKF_SF1.n_filt MKF_SF1.n_di]))
+assert(numel(MKF_SF1.filters) == MKF_SF1.nh)
+assert(isequal(size(MKF_SF1.seq), [MKF_SF1.nh 1]))
+assert(isequal(size(cell2mat(MKF_SF1.seq)), [MKF_SF1.nh MKF_SF1.n_di]))
 assert(MKF_SF1.beta == sum(MKF_SF1.p_seq))
 assert(MKF_SF1.f == MKF_SF1.n_di * MKF_SF1.d)
 assert(isequal(MKF_SF1.xkp1_est, zeros(n, 1)))
@@ -510,18 +519,19 @@ assert(isequal(MKF_SF1.P, 1000*eye(4)))
 assert(isequal(MKF_SF1.ykp1_est, zeros(ny, 1)))
 assert(sum(MKF_SF1.p_gamma) == 1)
 alpha = (1 - (1 - epsilon).^d);  % prob. over detection interval 
-p_gamma = [1-alpha'; alpha'];
+p_rk = [1-alpha'; alpha'];
 Z = [0 0; 0 1; 1 0];  % combinations
-p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-p_gamma = p_gamma ./ sum(p_gamma);  % normalized
-assert(isequal(round(p_gamma, 6), [0.960977; 0.019512; 0.019512]))
+p_rk = prod(prob_gamma(Z', p_rk), 1)';
+p_rk = p_rk ./ sum(p_rk);  % normalized
+assert(isequal(round(p_rk, 6), [0.960977; 0.019512; 0.019512]))
 assert(isequal(round(MKF_SF1.p_gamma, 6), [0.960977; 0.019512; 0.019512]))
 
 % Check observer initialization
 assert(isequal(MKF_SF2.epsilon, epsilon))
 assert(isequal(MKF_SF2.sigma_wp, sigma_wp))
-assert(MKF_SF2.n_filt == 56)
-assert(isequaln(MKF_SF2.i, [0 0]))
+assert(MKF_SF2.nh == 56)
+assert(isequaln([MKF_SF1.i MKF_SF1.i_next], [0 1]))
+assert(isequaln([MKF_SF1.i2 MKF_SF1.i2_next], [0 1]))
 assert(MKF_SF2.n == 4)
 assert(MKF_SF2.nu == 2)
 assert(MKF_SF2.ny == 2)
@@ -543,9 +553,9 @@ assert(isequal(MKF_SF2.Q{4}, ...
 assert(isequal(size(MKF_SF2.R), [1 4]))
 assert(isequal(MKF_SF2.R{1}, R) && isequal(MKF_SF2.R{2}, R))
 assert(isequal(MKF_SF2.R{3}, R) && isequal(MKF_SF2.R{4}, R))
-assert(numel(MKF_SF2.filters) == MKF_SF2.n_filt)
-assert(isequal(size(MKF_SF2.seq), [MKF_SF2.n_filt 1]))
-assert(isequal(size(cell2mat(MKF_SF2.seq)), [MKF_SF2.n_filt MKF_SF2.n_di]))
+assert(numel(MKF_SF2.filters) == MKF_SF2.nh)
+assert(isequal(size(MKF_SF2.seq), [MKF_SF2.nh 1]))
+assert(isequal(size(cell2mat(MKF_SF2.seq)), [MKF_SF2.nh MKF_SF2.n_di]))
 assert(MKF_SF2.beta == sum(MKF_SF2.p_seq))
 assert(MKF_SF2.f == MKF_SF2.n_di * MKF_SF2.d)
 assert(isequal(MKF_SF1.xkp1_est, zeros(n, 1)))
@@ -553,11 +563,11 @@ assert(isequal(MKF_SF1.P, 1000*eye(4)))
 assert(isequal(MKF_SF1.ykp1_est, zeros(ny, 1)))
 assert(sum(MKF_SF2.p_gamma) == 1)
 alpha = (1 - (1 - epsilon).^d);  % prob. over detection interval 
-p_gamma = [1-alpha'; alpha'];
+p_rk = [1-alpha'; alpha'];
 Z = [0 0; 0 1; 1 0; 1 1];  % combinations
-p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-p_gamma = p_gamma ./ sum(p_gamma);  % normalized
-assert(isequal(round(p_gamma, 6), ...
+p_rk = prod(prob_gamma(Z', p_rk), 1)';
+p_rk = p_rk ./ sum(p_rk);  % normalized
+assert(isequal(round(p_rk, 6), ...
     [0.960596; 0.019504; 0.019504; 0.000396]))
 assert(isequal(round(MKF_SF2.p_gamma, 6), ...
     [0.960596; 0.019504; 0.019504; 0.000396]))
@@ -613,11 +623,11 @@ R2 = {diag(sigma_M.^2), diag(sigma_M.^2), diag(sigma_M.^2)};
 seq = {zeros(1, nT+1); zeros(1, nT+1); zeros(1, nT+1)};
 seq{2}(t == t_shock(1)) = 1;
 seq{3}(t == t_shock(2)) = 2;
-p_gamma = [1-epsilon epsilon]';
+p_rk = [1-epsilon epsilon]';
 Z = [0 0; 0 1; 1 0];  % combinations
-p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-p_gamma = p_gamma ./ sum(p_gamma);  % normalized
-T = repmat(p_gamma', 3, 1);
+p_rk = prod(prob_gamma(Z', p_rk), 1)';
+p_rk = p_rk ./ sum(p_rk);  % normalized
+T = repmat(p_rk', 3, 1);
 MKF3 = MKFObserver(A2,Bu2,C2,Ts,P0,Q2,R2,seq,T,'MKF3');
 
 seq = {zeros(1, nT+1)};

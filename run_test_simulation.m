@@ -18,14 +18,14 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
 
     % Arrays to store observer variables
     switch obs.type
-        case {'KF', 'KFF', 'KFSS', 'SKF', 'SKF_S'}
-        case {'MKF', 'MKF_S', 'MKF_SF', 'MKF_SF95', 'MKF_SP'}
+        case {"KF", "KFF", "KFSS", "SKF", "SKF_S"}
+        case {"MKF", "MKF_S", "MKF_SF", "MKF_SF_RODD", "MKF_SF_RODD95", "MKF_SP"}
             nh = obs.nh;
             MKF_p_seq_g_Yk = nan(nT+1, nh);
             K_obs_f = cell(nT+1, nh);
             trP_obs_f = nan(nT+1, nh);
             MKF_X_est_f = cell(nT+1, nh);
-        case {'MKF_SP'}
+        case {"MKF_SP"}
             nh = obs.nh;
             MKF_p_seq_g_Yk = nan(nT+1, nh);
             K_obs_f = cell(nT+1, nh);
@@ -60,7 +60,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
                 % Record filter gain and covariance matrix
                 K_obs{i, 1} = obs.Kf';
 
-            case {"MKF", "MKF_S", "MKF_SF", "MKF_SF95"}
+            case {"MKF", "MKF_S", "MKF_SF", "MKF_SF_RODD", "MKF_SF_RODD95"}
 
                 % Record filter gains, trace of covariance matrices
                 % and state estimates of each model filter

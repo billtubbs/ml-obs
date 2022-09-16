@@ -91,7 +91,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
     end
     methods
         function obj = MKFObserverSF(models,P0,seq,T,label,x0, ...
-                gamma_init,p_seq_g_Yk_init)
+                r0,p_seq_g_Yk_init)
 
             % System dimensions
             [n, nu, ny] = check_dimensions(models{1}.A, models{1}.B, ...
@@ -111,7 +111,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             end
             if nargin < 7
                 % Default assumption about model indicator values at k = -1
-                gamma_init = 0;
+                r0 = 0;
             end
             if nargin < 6
                 x0 = zeros(n,1);
@@ -134,11 +134,11 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             obj.f = size(cell2mat(obj.seq), 2);
 
             % Prior assumptions at initialization
-            if isscalar(gamma_init)
+            if isscalar(r0)
                 % In case single value specified
-                gamma_init = gamma_init * ones(nh, 1);
+                r0 = r0 * ones(nh, 1);
             end
-            obj.gamma_init = gamma_init;
+            obj.gamma_init = r0;
             obj.p_seq_g_Yk_init = p_seq_g_Yk_init;
 
             % Check transition probability matrix
@@ -148,7 +148,6 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             % assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
             % TODO: Could calculate beta parameter here, i.e. total 
             % probability measured?
-
 
             % Store other useful variables
             obj.nu = nu;

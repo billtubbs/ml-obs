@@ -78,13 +78,15 @@ assert(all(isnan(KF.K)))
 assert(isequal(KF.xkp1_est, zeros(2, 1)))
 assert(KF.ykp1_est == 0)
 
-KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,"KF");
-assert(isequal(KFF.A, A))
-assert(isequal(KFF.B, B))
-assert(isequal(KFF.C, C))
-assert(isequal(KFF.Ts, Ts))
-assert(isequal(KFF.Q, Q))
-assert(isequal(KFF.R, R))
+% New version
+model.A = A;
+model.B = B;
+model.C = C;
+model.Q = Q;
+model.R = R;
+model.Ts = Ts;
+KFF = KalmanFilterF(model,P0,"KF");
+assert(isequal(KFF.model, model))
 assert(all(isnan(KFF.Kf)))
 assert(isequal(KFF.xkp1_est, zeros(2, 1)))
 assert(KFF.ykp1_est == 0)
@@ -253,16 +255,17 @@ assert(KF.n == n)
 assert(KF.nu == nu)
 assert(KF.ny == ny)
 
+% New version
 label = 'KFF';
-KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,label,x0);
+model.A = A;
+model.B = B;
+model.C = C;
+model.Q = Q;
+model.R = R;
+model.Ts = Ts;
+KFF = KalmanFilterF(model,P0,label,x0);
 assert(strcmp(KFF.type, "KFF"))
-assert(isequal(KFF.A, A))
-assert(isequal(KFF.B, B))
-assert(isequal(KFF.C, C))
-assert(isequal(KFF.Ts, Ts))
-assert(isequal(KFF.P0, P0))
-assert(isequal(KFF.Q, Q))
-assert(isequal(KFF.R, R))
+assert(isequal(KFF.model, model))
 assert(isequal(KFF.label, label))
 assert(isequal(KFF.xkp1_est, x0))
 assert(KFF.ykp1_est == C*x0)
@@ -282,7 +285,7 @@ assert(isequal(KF.xkp1_est, zeros(n, 1)))
 assert(KF.ykp1_est == 0)
 
 % Re-define with no initial state specified (should be set to zero)
-KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R);
+KFF = KalmanFilterF(model,P0);
 assert(all(isnan(KFF.Kf)))
 assert(isequal(KFF.xkp1_est, zeros(n, 1)))
 assert(isequaln(KFF.Pkp1, P0))
@@ -506,7 +509,15 @@ KFSS_test = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,"KFSS_test",x0);
 KFSS = KalmanFilterSS(A,Bu,C,Ts,Q,R,"KFSS",x0);
 KF_test = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,"KF_test",x0);
 KF = KalmanFilter(A,Bu,C,Ts,P0,Q,R,"KF",x0);
-KFF = KalmanFilterF(A,Bu,C,Ts,P0,Q,R,"KFF",x0);
+
+% New version
+model.A = A;
+model.B = Bu;
+model.C = C;
+model.Q = Q;
+model.R = R;
+model.Ts = Ts;
+KFF = KalmanFilterF(model,P0,"KFF",x0);
 
 observers = {KFSS, KF, KFSS_test, KF_test, KFF};
 n_obs = numel(observers);
@@ -694,7 +705,13 @@ KFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS",x0);
 KF = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF");
 
 % Define dynamic Kalman filter - filtering form
-KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,"KFF");
+model.A = A;
+model.B = B;
+model.C = C;
+model.Q = Q;
+model.R = R;
+model.Ts = Ts;
+KFF = KalmanFilterF(model,P0,"KFF");
 
 % Test handle copy
 KFSS_hcopy = KFSS;
@@ -715,8 +732,8 @@ KFF_hcopy = KFF;
 assert(isequaln(KFF_hcopy, KFF))  % same values
 assert(KFF_hcopy == KFF)  % must be same object
 
-KFF.A(1, 1) = KFF.A(1, 1) + 0.1;
-assert(isequal(KFF_hcopy.A(1, 1), KFF.A(1, 1)))
+KFF.model.A(1, 1) = KFF.model.A(1, 1) + 0.1;
+assert(isequal(KFF_hcopy.model.A(1, 1), KFF.model.A(1, 1)))
 
 % Redefine steady-state Kalman
 KFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS",x0);
@@ -725,7 +742,7 @@ KFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS",x0);
 KF = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF");
 
 % Redefine dynamic Kalman filter
-KFF = KalmanFilterF(A,B,C,Ts,P0,Q,R,"KFF");
+KFF = KalmanFilterF(model,P0,"KFF");
 
 % Test true copy
 KFSS_copy = KFSS.copy();
@@ -746,5 +763,5 @@ KFF_copy = KFF.copy();
 assert(isequaln(KFF_copy, KFF))  % same values
 assert(KFF_copy ~= KFF)  % must not be same object
 
-KFF.A(1, 1) = KFF.A(1, 1) + 0.1;
-assert(~isequal(KFF_copy.A, KFF.A(1, 1)))
+KFF.model.A(1, 1) = KFF.model.A(1, 1) + 0.1;
+assert(~isequal(KFF_copy.model.A, KFF.model.A(1, 1)))
