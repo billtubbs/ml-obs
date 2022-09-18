@@ -1,12 +1,11 @@
-% Kalman Filter class definition
+% Steady-state Kalman Filter class definition
 %
-% obs = KalmanFilterF(model,P0,label,x0,reset)
-% Class for simulating a dynamic Kalman filter
-% (i.e. with time-varying gain and estimation error
-% covariance). This is the filtering form of the KF, 
-% which produces posterior estimates of the states and
-% outputs at the current time instant given the data
-% at the current time:
+% obs = KalmanFilterFSS(model,label,x0,reset)
+% Class for simulating a steady-state Kalman filter
+% (i.e. with static gain). This is the filtering form of 
+% the KF, which produces posterior estimates of the 
+% states and outputs at the current time instant given 
+% the data at the current time:
 %
 %   x_hat(k|k) : estimate of states at time k
 %   y_hat(k|k) : estimate of outputs at time k
@@ -32,9 +31,6 @@
 %       and C for the system matrices, Q and R for the
 %       state error covariance and output measurement 
 %       noise covariance, and the sampling period, Ts.
-%   P0 : matrix, size (n, n)
-%       Initial value of covariance matrix of the state
-%       estimates at time k = 0.
 %   label : string (optional)
 %       Name.
 %   x0 : vector, size(n, 1), (optional)
@@ -46,37 +42,38 @@
 %       reseting).
 %
 
-classdef KalmanFilterF < AbstractLinearFilter
+classdef KalmanFilterFSS < AbstractLinearFilter
     properties
         P0 double
         Kf double
-        Pkp1 double
         Pk double
         Sk double
     end
     methods
-        function obj = KalmanFilterF(model,P0,label,x0,reset)
+        function obj = KalmanFilterFSS(model,label,x0,reset)
             arguments
                 model struct
-                P0 double
                 label (1, 1) string = ""
                 x0 (:, 1) double = []
                 reset logical = true
             end
 
             % Call super-class constructor
-            obj = obj@AbstractLinearFilter(model,"KFF",label,x0,reset)
+            obj = obj@AbstractLinearFilter(model,"KFFSS",label,x0,reset)
 
             % Check size of other parameters
             assert(isequal(size(model.Q), [obj.n obj.n]), ...
                 "ValueError: size(model.Q)")
             assert(isequal(size(model.R), [obj.ny obj.ny]), ...
                 "ValueError: size(model.R)")
-            assert(isequal(size(P0), [obj.n obj.n]), ...
-                "ValueError: size(P0)")
 
-            % Store parameters
-            obj.P0 = P0;
+            % Compute the steady-state gain and error covariance matrix
+            % This is the gain for the filtering form of the KF:
+            [obj.Kf, obj.Pk] = kalman_gain_ss(obj.model.A, obj.model.C, ...
+                obj.model.Q, obj.model.R);
+
+            % Error covariance of output estimation error
+            obj.Sk = obj.model.C * obj.Pk * obj.model.C' + obj.model.R;
 
             if reset
                 % Initialize variables
@@ -93,27 +90,24 @@ classdef KalmanFilterF < AbstractLinearFilter
             % Call super-class reset method
             reset@AbstractLinearFilter(obj)
 
-            % Initialize state error covariance P(k|k-1)
-            obj.Pkp1 = obj.P0;
-
-            % Note: At initialization time k = 0, these variables
-            % are not asigned. They will be calculated at first 
-            % update.
-            obj.Pk = nan(obj.n);
-            obj.Sk = nan(obj.ny);
-            obj.Kf = nan(obj.n, obj.ny);
+            % At initialization time k = 0, x_est(k|k)
+            % and y_est(k|k) have not yet been computed.
+            obj.xk_est = nan(obj.n, 1);
+            obj.yk_est = nan(obj.ny, 1);
 
         end
         function correct(obj, yk)
         % Calculate updated state estimates x_est(k|k) output 
-        % estimates y_est(k|k) and error covariance P(k|k) at 
-        % the current time using the current output measurement 
-        % y(k). The correction gain Kf(k) and the covariance of 
-        % the output estimation error S(k) are also calculated.
+        % estimates y_est(k|k) at the current time using the 
+        % current output measurement y(k).
 
-            [obj.xk_est, obj.Pk, obj.yk_est, obj.Kf, obj.Sk] = ...
-                kalman_update_f(obj.model.C, obj.model.R, ...
-                obj.xkp1_est, obj.Pkp1, yk);
+            % Update prior state estimates using measurements 
+            % from current time to produce 'a posteriori' state
+            % estimates
+            obj.xk_est = obj.xkp1_est + obj.Kf * (yk - obj.ykp1_est);
+
+            % Updated output estimate
+            obj.yk_est = obj.model.C * obj.xk_est;
 
         end
         function predict(obj, uk)
@@ -121,16 +115,13 @@ classdef KalmanFilterF < AbstractLinearFilter
         % y(k+1|k) at next time instant using the system model and 
         % the current control input, u(k).
 
-            [obj.xkp1_est, obj.Pkp1] = kalman_predict_f(obj.model.A, ...
-                obj.model.B, obj.model.Q, obj.xk_est, obj.Pk, uk);
+            obj.xkp1_est = obj.model.A * obj.xk_est + obj.model.B * uk;
             obj.ykp1_est = obj.model.C * obj.xkp1_est;
 
         end
         function update(obj, yk, uk)
         % obs.update(yk, uk) carries out the following steps:
-        %  1. Calculates the correction gain, Kf(k) and 
-        %     output estimation error covariance, S(k).
-        %  2. Corrects the estimates of the states and outputs at
+        %  1. Corrects the estimates of the states and outputs at
         %     the current time using the current measurement, y(k):
         %         x_est(k|k-1) -> x_est(k|k)
         %         y_est(k|k-1) -> y_est(k|k)
@@ -138,10 +129,10 @@ classdef KalmanFilterF < AbstractLinearFilter
         %     next time instant:
         %         x_est(k+1|k)
         %         y_est(k+1|k)
-        %     given the current input, u(k), and the system model.
+        %     given the current input u(k) and the system model.
         %
-        % To do steps 1 and 2 only use: obs.correct(yk).
-        % To do step 3 only use: obs.predict(yk).
+        % To do step 1 only use: obs.correct(yk).
+        % To do step 2 only use: obs.predict(yk).
         %
         % Arguments:
         %   yk : vector, size (ny, 1)
@@ -151,8 +142,6 @@ classdef KalmanFilterF < AbstractLinearFilter
         %
         % After calling this method, the following properties will
         % be updated:
-        %   - obs.Kf  (Kf(k))
-        %   - obs.Sk  (S(k))
         %   - obs.xk_est  (x_est(k|k))
         %   - obs.yk_est  (y_est(k|k))
         %   - obs.xkp1_est  (x_est(k+1|k))

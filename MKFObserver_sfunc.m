@@ -43,13 +43,13 @@ block.InputPort(2).Complexity = 'Real';
 block.InputPort(2).DirectFeedthrough = false;
 block.InputPort(2).SamplingMode = 'Sample';
 
-% Output 1: x_est(k+1);
+% Output 1: x_est(k);
 block.OutputPort(1).Dimensions = obs.n;
 block.OutputPort(1).DatatypeID = 0; % double
 block.OutputPort(1).Complexity = 'Real';
 block.OutputPort(1).SamplingMode = 'Sample';
 
-% Output 2: y_est(k+1)
+% Output 2: y_est(k)
 block.OutputPort(2).Dimensions = obs.ny;
 block.OutputPort(2).DatatypeID = 0; % double
 block.OutputPort(2).Complexity = 'Real';
@@ -107,7 +107,7 @@ obs = block.DialogPrm(1).Data;
 
 switch obs.type
 
-    case {'KF', 'KFSS', 'LB'}  % obs with only double vars
+    case {'KFSS', 'KFF', 'LB'}  % observers with only double vars
 
         % Make data vectors containing all variables
         vec_double = get_obs_vars_vecs(obs);
@@ -122,7 +122,8 @@ switch obs.type
         block.Dwork(1).Complexity      = 'Real'; % real
         block.Dwork(1).UsedAsDiscState = true;
 
-    case {'MKF', 'MKF_SF95', 'MKF_SF', 'MKF_SP'}  % obs with double and int16
+    case {'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP', 'MKF_SF_RODD95', ...
+            'MKF_SF_RODD'}  % observers with double and int16 vars
 
         % Make data vectors containing all variables
         [vec_double, vec_int16] = get_obs_vars_vecs(obs);
@@ -165,7 +166,7 @@ obs = block.DialogPrm(1).Data;
 
 switch obs.type
     
-    case {'KF', 'KFSS', 'LB'}
+    case {'KFSS', 'KFF', 'LB'}  % observers with only double vars
 
         % Get data vectors containing all variables
         vec_double = get_obs_vars_vecs(obs);
@@ -176,7 +177,8 @@ switch obs.type
         % For debugging
         dlmwrite(sprintf('test-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}
+    case {'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP', 'MKF_SF_RODD95', ...
+            'MKF_SF_RODD'}  % observers with double and int16 vars
 
         % Get data vectors containing all variables
         [vec_double, vec_int16] = get_obs_vars_vecs(obs);
@@ -218,13 +220,14 @@ obs = block.DialogPrm(1).Data;
 
 switch obs.type
 
-    case {'KF', 'KFSS', 'LB'}
+    case {'KFSS', 'KFF', 'LB'}  % observers with only double vars
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
         obs = set_obs_vars_vecs(obs, vec_double);
 
-    case {'MKF', 'MKF_SF95', 'MKF_SF', 'MKF_SP'}
+    case {'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP', 'MKF_SF_RODD95', ...
+            'MKF_SF_RODD'}  % observers with double and int16 vars
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
@@ -236,11 +239,11 @@ switch obs.type
 
 end
 
-% Output y_est(k+1)
-block.OutputPort(1).Data = obs.xkp1_est;
+% Output y_est(k)
+block.OutputPort(1).Data = obs.xk_est;
 
-% Output y_est(k+1)
-block.OutputPort(2).Data = obs.ykp1_est;
+% Output y_est(k)
+block.OutputPort(2).Data = obs.yk_est;
 
 %end Outputs
 

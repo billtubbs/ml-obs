@@ -42,9 +42,9 @@ function [xk_est,Pk,yk_est,Kf,Sk] = kalman_update_f(C,R,xk_pred,Pk_pred,yk)
     % Update correction gain
     Kf = Pk_pred * C' / Sk;
 
-    % Update of prior state estimates using measurements 
-    % from current time step to produce 'a posteriori' 
-    % state estimates
+    % Update prior state estimates using measurements 
+    % from current time to produce 'a posteriori' state
+    % estimates
     xk_est = xk_pred + Kf * (yk - C * xk_pred);
 
     % Update error covariance of state estimates

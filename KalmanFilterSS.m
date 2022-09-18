@@ -1,6 +1,6 @@
 % Steady-state Kalman Filter class definition
 %
-% obs = KalmanFilterSS(A,B,C,Ts,Q,R,label,x0)
+% obs = KalmanFilterSS(model,label,x0,reset)
 % Class for simulating a steady-state Kalman filter
 % (i.e. with static gain).
 %
@@ -21,37 +21,38 @@
 
 classdef KalmanFilterSS < AbstractLinearFilter
     properties
-        xkp1_est (:, 1) double
-        ykp1_est (:, 1) double
-        Pkp1 double
+        P0 double
         K double
-        Q double
-        R double
+        Pkp1 double
+        Pk double
+        Sk double
     end
     methods
-        function obj = KalmanFilterSS(A,B,C,Ts,Q,R,varargin)
-
-            % Call super-class constuctor
-            obj = obj@AbstractLinearFilter(A,B,C,Ts,varargin{:});
-            n = obj.n;
-            ny = obj.ny;
-
-            % Set additional properties for dynamic KF
-            obj.Q = Q;
-            assert(isequal(size(Q), [n n]))
-            obj.R = R;
-            assert(isequal(size(R), [ny ny]))
-            obj.type = "KFSS";
-            if nargin < 7
-                obj.label = obj.type;
+        function obj = KalmanFilterSS(model,label,x0,reset)
+            arguments
+                model struct
+                label (1, 1) string = ""
+                x0 (:, 1) double = []
+                reset logical = true
             end
 
-            % Compute the steady-state gain and error covariance matrix
-            [obj.Pkp1,K,~,~] = idare(A',C',Q,R,[],[]);
-            obj.K = K';
+            % Call super-class constructor
+            obj = obj@AbstractLinearFilter(model,"KFSS",label,x0,reset)
 
-            % Initialize estimates
-            obj.reset()
+            % Check size of other parameters
+            assert(isequal(size(model.Q), [obj.n obj.n]), ...
+                "ValueError: size(model.Q)")
+            assert(isequal(size(model.R), [obj.ny obj.ny]), ...
+                "ValueError: size(model.R)")
+
+            % Compute the steady-state gain and error covariance matrix
+            % This is the gain for the filtering form of the KF:
+            [obj.Kf, obj.P] = kalman_gain_ss(obj.A, obj.C, obj.Q, obj.R);
+
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function reset(obj)
@@ -62,7 +63,7 @@ classdef KalmanFilterSS < AbstractLinearFilter
 
             % Initialize state and output estimates
             obj.xkp1_est = obj.x0;
-            obj.ykp1_est = obj.C * obj.xkp1_est;
+            obj.ykp1_est = obj.model.C * obj.xkp1_est;
 
         end
         function update(obj, yk, uk)
@@ -78,9 +79,10 @@ classdef KalmanFilterSS < AbstractLinearFilter
 
             % Update and prediction of state and output estimates
             % in next timestep
-            obj.xkp1_est = obj.A * obj.xkp1_est + obj.B * uk + ...
-                obj.K * (yk - obj.C * obj.xkp1_est);
-            obj.ykp1_est = obj.C * obj.xkp1_est;
+            obj.xkp1_est = obj.model.A * obj.xkp1_est ...
+                + obj.model.B * uk ...
+                + obj.K * (yk - obj.model.C * obj.xkp1_est);
+            obj.ykp1_est = obj.model.C * obj.xkp1_est;
 
         end
     end

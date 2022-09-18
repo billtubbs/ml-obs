@@ -16,35 +16,18 @@ function [nj, n, nu, ny, Ts] = check_models(models)
     % Number of models
     nj = numel(models);
 
-    % Check and get dimensions of first model
-    if isprop(models{1}, "D")
-        [n, nu, ny] = check_dimensions(models{1}.A, models{1}.B, ...
-                models{1}.C, models{1}.D);
-        direct_trans = true;
-    else
-        [n, nu, ny] = check_dimensions(models{1}.A, models{1}.B, ...
-                models{1}.C);
-        direct_trans = false;
-    end
+    % Get dimensions of first model and see if it has direct
+    % transmission (D matrix)
+    [n, nu, ny, direct, Ts] = check_model(models{1});
 
-    % Sample period
-    Ts = models{1}.Ts;
-
-    % Check other models have same dimensions.
+    % Check other models have same dimensions and sampling 
+    % time
     for j = 2:nj
-        if direct_trans
-            [n_j, nu_j, ny_j] = check_dimensions(models{j}.A, ...
-                models{j}.B, models{j}.C, models{j}.D);
-        else
-            [n_j, nu_j, ny_j] = check_dimensions(models{j}.A, ...
-                models{j}.B, models{j}.C);
-            assert(~isprop(models{j}, "D"), ...
-                "ValueError: D")
-        end
+        [n_j, nu_j, ny_j, d_j, Ts_j] = check_model(models{j});
         assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
             "ValueError: size of A, B, and C")
-        assert(models{j}.Ts == Ts, ...
-            "ValueError: Ts")
+        assert(direct == d_j, "ValueError: D")
+        assert(Ts_j == Ts, "ValueError: Ts")
     end
 
 end

@@ -1,5 +1,7 @@
 % Kalman Filter class definition
 %
+% TODO: Delete this. Superceded by KalmanFilterP and KalmanFilterF
+%
 % obs = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
@@ -40,8 +42,17 @@
 
 % TODO: Could rename this KalmanFilterP
 
-classdef KalmanFilter < AbstractLinearFilter
+classdef KalmanFilter < matlab.mixin.Copyable
+    properties (SetAccess = immutable)
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
+    end
     properties
+        A double
+        B double
+        C double
+        Ts (1, 1) double {mustBeNonnegative}
         xkp1_est (:, 1) double
         ykp1_est (:, 1) double
         Pkp1 double
@@ -49,22 +60,57 @@ classdef KalmanFilter < AbstractLinearFilter
         Q double
         R double
         P0 double
+        label (1, 1) string = ""
+        x0 (:, 1) double
+        type (1, 1) string
     end
     methods
-        function obj = KalmanFilter(A,B,C,Ts,P0,Q,R,varargin)
+        function obj = KalmanFilter(A,B,C,Ts,P0,Q,R,label,x0)
+            arguments
+                A double
+                B double
+                C double
+                Ts (1, 1) double {mustBeNonnegative}
+                P0 double
+                Q double
+                R double
+                label (1, 1) string = ""
+                x0 (:, 1) double = []
+            end
 
-            % Call super-class constuctor
-            obj = obj@AbstractLinearFilter(A,B,C,Ts,varargin{:});
-            n = obj.n;
-            ny = obj.ny;
+            % Check model struct is specified correctly
+            [n, nu, ny] = check_dimensions(A,B,C);
 
-            % Set additional properties for dynamic KF
+            % Check sizes of other matrices
             assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
+            assert(isequal(size(Q), [n n]), "ValueError: size(Q)")
+            assert(isequal(size(R), [ny ny]), "ValueError: size(R)")
+
+            % Determine initial state values
+            if isempty(x0)
+                x0 = zeros(n, 1);  % default initial values
+            else
+                assert(isequal(size(x0), [n 1]), ...
+                    "ValueError: size(x0)")
+            end
+            if label == ""
+                label = "KF";
+            end
+
+            % Store parameters
+            obj.A = A;
+            obj.B = B;
+            obj.C = C;
+            obj.Ts = Ts;
             obj.P0 = P0;
             obj.Q = Q;
-            assert(isequal(size(Q), [n n]))
             obj.R = R;
-            assert(isequal(size(R), [ny ny]))
+            obj.label = label;
+            obj.x0 = x0;
+            obj.n = n;
+            obj.nu = nu;
+            obj.ny = ny;
+
             obj.type = "KF";
             if nargin < 8
                 obj.label = obj.type;

@@ -29,8 +29,9 @@ function [xkp1_est,Pkp1] = kalman_predict_f(A,B,Q,xk_est,Pk,uk)
 %
 
     % Make predictions of states and outputs in next time step
-    % x(k+1|k) and y(k+1|k) i.e. based on the data up to time k.
-    % (These will be used as priors in the next time step.)
+    % x_est(k+1|k) and y_est(k+1|k) i.e. based on the data up
+    % to time k. These will be used as priors in the next time 
+    % step.
     xkp1_est = A * xk_est + B * uk;
 
     % Error covariance of predicted state estimates

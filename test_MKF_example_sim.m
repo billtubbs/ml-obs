@@ -7,7 +7,7 @@
 clear all
 
 % See this Simulink model file:
-model = 'MKF_example_sim';
+sim_model = 'MKF_example_sim';
 
 % Generate randomly-occurring shocks
 % Reset random number generator
@@ -21,11 +21,8 @@ sys_rodin_step
 % Sequence length
 nT = 100;
 
-% RODD random variable parameters
-epsilon = 0.01;
-sigma_w = [0.01; 1];
-
-[Wp, alpha] = sample_random_shocks(nT+1, epsilon, sigma_w(2), sigma_w(1));
+% Generate random shock signal
+[Wp, alpha] = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
 
 % Other inputs to system
 X0 = zeros(n,1);
@@ -44,34 +41,36 @@ Q = diag([0.01^2 0.1^2]);
 R = 0.1^2;
 Bu = B(:,1);  % observer model without unmeasured inputs
 Du = D(:,1);
-KFSS = KalmanFilterSS(A,Bu,C,Du,Ts,Q,R,'KFSS');
+KFSS = KalmanFilterSS(A,Bu,C,Ts,Q,R,'KFSS');
 
 % Kalman filter with time-varying gain
 P0 = eye(n);
-KF1 = KalmanFilter(A,Bu,C,Du,Ts,P0,Q,R,'KF1');
+obs_model = model;
+obs_model.Q = Q;
+obs_model.R = R;
+KF1 = KalmanFilterF(obs_model,P0,'KF1');
 
-% Define multi-model filter 1
-P0 = eye(n);
-Q0 = diag([0.01^2 0]);
-R = 0.1^2;
-f = 15;  % fusion horizon
-m = 1;  % maximum number of shocks
-d = 3;  % spacing parameter
-MKF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,f,m,d,'MKF1');
+% % Define multi-model filter 1
+% P0 = eye(n);
+% Q0 = diag([0.01^2 0]);
+% R = 0.1^2;
+% f = 15;  % fusion horizon
+% m = 1;  % maximum number of shocks
+% d = 3;  % spacing parameter
+% MKF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
+%     Q0,R,f,m,d,'MKF1');
 
 % Define multi-model filter 2
 P0 = eye(n);
 Q0 = diag([0.01^2 0]);
 R = 0.1^2;
-f = 10;  % sequence history length
-n_filt = 5;  % number of filters
+nh = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
-MKF2 = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-    Q0,R,n_filt,f,n_min,'MKF2');
+MKF2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,nh,n_min,'MKF2');
 
 fprintf("Running Simulink simulation...\n")
-sim_out = sim(model, 'StopTime', string(nT*Ts), ...
+sim_out = sim(sim_model, 'StopTime', string(nT*Ts), ...
     'ReturnWorkspaceOutputs', 'on');
 
 % Check both Kalman filter state estimates are the same
