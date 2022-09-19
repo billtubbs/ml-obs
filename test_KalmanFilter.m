@@ -91,7 +91,7 @@ assert(isequal(round(KFFSS.Pk, 6), round(KFFSSx0.Pk, 6)))
 assert(isequal(KFFSSx0.xkp1_est, zeros(n, 1)))
 assert(KFFSSx0.ykp1_est == 0)
 
-% Define dynamic Kalman filters with KalmanFilterP 
+% Define dynamic Kalman filters with KalmanFilterP
 % and KalmanFilterF classes
 P0 = diag([1e-4 1e-4]);
 
@@ -138,7 +138,7 @@ rng(0)
 v = sqrt(Rp)*randn(nT,1);
 
 % Process noise for the whole simulation
-w = sqrt(Qp)*randn(2,nT); 
+w = sqrt(Qp)*randn(2,nT);
 
 u0 = 1;  % initial value of u
 x0 = (eye(length(A)) - A) \ (B*u0);  % steady-state value of x
@@ -173,10 +173,10 @@ for i = 1:nT
 
     % Process output in current timestep
     yk = C*xk + v(i);
-    
+
     % Record process states and output
     Xk(i, :) = xk';
-    Yk(i, :) = yk'; 
+    Yk(i, :) = yk';
     uk = U(i, :)';
 
     % Process states in next timestep
@@ -198,87 +198,100 @@ for i = 1:nT
         end
 
         % Record Kalman filter estimates
-        if isprop(obs, "xkp1_est")
-            Xkp1_est{f}(i+1, :) = observers{f}.xkp1_est';
+        if isprop(obs, "xkp1_est") || isfield(obs, "xkp1_est")
+            Xkp1_est{f}(i+1, :) = obs.xkp1_est';
         end
         if isprop(obs, "ykp1_est") || isfield(obs, "ykp1_est")
-            Ykp1_est{f}(i+1, :) = observers{f}.ykp1_est';
+            Ykp1_est{f}(i+1, :) = obs.ykp1_est';
+            assert(isequaln(C * obs.xkp1_est, obs.ykp1_est))
         end
         if isprop(obs, "xk_est") || isfield(obs, "xk_est")
-            Xk_est{f}(i, :) = observers{f}.xk_est';
+            Xk_est{f}(i, :) = obs.xk_est';
         end
         if isprop(obs, "yk_est") || isfield(obs, "yk_est")
-            Yk_est{f}(i, :) = observers{f}.yk_est';
+            Yk_est{f}(i, :) = obs.yk_est';
+            assert(isequaln(C * obs.xk_est, obs.yk_est))
         end
+
+        % TODO: Remove this once not using structs any more
+        observers{f} = obs;
 
     end
 
-    % Check updated states and predictions match
-    assert(all(abs(C * KFF.xk_est - KFF.yk_est) < 1e-14))
-    assert(all(abs(C * KFF.xkp1_est - KFF.ykp1_est) < 1e-14))
+    % TODO: Remove this once not using KFSS_old any more
+    assert(all(abs(observers{1}.xkp1_est - KFPSS.xkp1_est) < 1e-12))
+    assert(all(abs(observers{1}.ykp1_est - KFPSS.ykp1_est) < 1e-12))
 
-    % Check predictions are the same
-    assert(all(abs(KF_old.xkp1_est - KFF.xkp1_est) < 1e-14))
-    assert(all(abs(KF_old.ykp1_est - KFF.ykp1_est) < 1e-14))
+    % Check old and new predictions are the same
+    assert(all(abs(KF_old.xkp1_est - KFP.xkp1_est) < 1e-12))
+    assert(all(abs(KF_old.ykp1_est - KFP.ykp1_est) < 1e-12))
+    assert(all(abs(KF_old.xkp1_est - KFF.xkp1_est) < 1e-12))
+    assert(all(abs(KF_old.ykp1_est - KFF.ykp1_est) < 1e-12))
 
 end
 
 obs_labels = cellfun(@(obs) obs.label, observers);
 labels = ["Process" escape_latex_chars(obs_labels)];
 
-% Plot results
-figure(1); clf
-
-ax1 = subplot(411);
-plot(t, Yk, 'k'); hold on
-for f = 1:n_obs
-    plot(t, Yk_est{f}, 'Linewidth', 2)
-end
-legend(labels, 'Interpreter', 'Latex')
-ylabel('$y_1$', 'Interpreter', 'Latex')
-grid on
-
-ax2 = subplot(412);
-plot(t, Xk(:, 1), 'k'); hold on
-for f = 1:n_obs
-    plot(t, Xk_est{f}(:, 1), 'Linewidth', 2)
-end
-legend(labels, 'Interpreter', 'Latex')
-ylabel('$x_1$', 'Interpreter', 'Latex')
-grid on
-
-ax3 = subplot(413);
-plot(t, Xk(:, 2), 'k'); hold on
-for f = 1:n_obs
-    plot(t, Xk_est{f}(:, 2), 'Linewidth', 2)
-end
-legend(labels, 'Interpreter', 'Latex')
-ylabel('$x_2$', 'Interpreter', 'Latex')
-grid on
-
-ax4 = subplot(414);
-stairs(t', U', 'Linewidth', 2);
-xlabel('Time [s]', 'Interpreter', 'Latex');
-ylabel('$u_1$', 'Interpreter', 'Latex')
-grid on
-
-linkaxes([ax1 ax2 ax3 ax4], 'x')
+% % Plot results
+% figure(1); clf
+% 
+% ax1 = subplot(411);
+% plot(t, Yk, 'k'); hold on
+% for f = 1:n_obs
+%     plot(t, Yk_est{f}, 'Linewidth', 2)
+% end
+% legend(labels, 'Interpreter', 'Latex')
+% ylabel('$y_1$', 'Interpreter', 'Latex')
+% grid on
+% 
+% ax2 = subplot(412);
+% plot(t, Xk(:, 1), 'k'); hold on
+% for f = 1:n_obs
+%     plot(t, Xk_est{f}(:, 1), 'Linewidth', 2)
+% end
+% legend(labels, 'Interpreter', 'Latex')
+% ylabel('$x_1$', 'Interpreter', 'Latex')
+% grid on
+% 
+% ax3 = subplot(413);
+% plot(t, Xk(:, 2), 'k'); hold on
+% for f = 1:n_obs
+%     plot(t, Xk_est{f}(:, 2), 'Linewidth', 2)
+% end
+% legend(labels, 'Interpreter', 'Latex')
+% ylabel('$x_2$', 'Interpreter', 'Latex')
+% grid on
+% 
+% ax4 = subplot(414);
+% stairs(t', U', 'Linewidth', 2);
+% xlabel('Time [s]', 'Interpreter', 'Latex');
+% ylabel('$u_1$', 'Interpreter', 'Latex')
+% grid on
+% 
+% linkaxes([ax1 ax2 ax3 ax4], 'x')
 
 % Display results
 sim_results = [table(t,U) array2table(Xk, 'VariableNames', {'x1', 'x2'})];
 for f = 1:n_obs
     obs = observers{f};
-    labels = compose("x%d_est_", 1:n) + obs.label;
+    labels = compose("xk_est_%d_", 1:n) + obs.label;
     sim_results = [
         sim_results array2table(Xk_est{f}, ...
         'VariableNames', labels)
     ];
 end
-
-head(sim_results)
+for f = 1:n_obs
+    obs = observers{f};
+    labels = compose("xkp1_est_%d_", 1:n) + obs.label;
+    sim_results = [
+        sim_results array2table(Xkp1_est{f}, ...
+        'VariableNames', labels)
+    ];
+end
+%head(sim_results)
 
 % Verify results by comparing with outputs of Kalman_Filter.mlx
-
 %head(bench_sim_results)
 
 assert(isequal( ...
@@ -286,15 +299,21 @@ assert(isequal( ...
     round(bench_sim_results{1:100, {'xNprocess_1', 'xNprocess_2'}}, 7) ...
 ))
 
+assert(isequal( ...
+    round(sim_results{1:100, {'xkp1_est_1_KF_old', 'xkp1_est_2_KF_old'}}, 7), ...
+    round(bench_sim_results{1:100, {'xNkalman_1', 'xNkalman_2'}}, 7) ...
+))
+
 E_ykp1_est  = repmat(Yk, 1, n_obs) - cell2mat(Ykp1_est);
-mses_ykp1_est = nanmean(E_ykp1_est .^2);
+mses_ykp1_est = nanmean(E_ykp1_est.^2);
 
 E_yk_est  = repmat(Yk, 1, n_obs) - cell2mat(Yk_est);
-mses_yk_est = nanmean(E_yk_est .^2);
+mses_yk_est = nanmean(E_yk_est.^2);
 
 % TODO: Need to check these are correct
+% Observers: KFSS_old, KFPSS, KFFSS, KF_old, KFP, KFF
 assert(isequaln(round(mses_ykp1_est, 6), ...
-    [7.193407 1.167325 1.167325 1.271865 1.549510 1.271865] ...
+    [1.167325 1.167325 1.167325 1.271865 1.271865 1.271865] ...
 ))
 assert(isequaln(round(mses_yk_est, 6), ...
     [nan nan 0.612285  nan nan 0.758824] ...
@@ -506,25 +525,25 @@ assert(isequal( ...
 % plot results
 
 % figure(1); clf
-% 
+%
 % subplot(411);
 % plot(t', yNprocess, 'k', t', yNkalman, 'r', 'Linewidth', 2)
 % legend('Process output', 'KF estimates')
 % ylabel('$y$')
 % grid on
-% 
+%
 % subplot(412);
 % plot(t', xNprocess(1,:), 'k', t', xNkalman(1,:), 'r', 'Linewidth', 2)
 % legend('Process state', 'KF estimates')
 % ylabel('$x_1$')
 % grid on
-% 
+%
 % subplot(413);
 % plot(t', xNprocess(2,:), 'k', t', xNkalman(2,:), 'r', 'Linewidth', 2);
 % legend('Process state', 'KF estimates')
 % ylabel('$x_2$')
 % grid on
-% 
+%
 % subplot(414);
 % stairs(t', U', 'Linewidth', 2);
 % xlabel('Time [s]');
@@ -624,7 +643,7 @@ Y_m = Y + V;
 % Plot results
 
 % figure(2); clf
-% 
+%
 % ax1 = subplot(311);
 % plot(t, Y_m(:, 1), 'o', t, Y_m(:, 2), 'o'); hold on
 % % Modify plot colors
@@ -636,7 +655,7 @@ Y_m = Y + V;
 % ylabel('$y_i(k)$', 'Interpreter', 'latex')
 % title('Outputs')
 % grid on
-% 
+%
 % ax2 = subplot(312);
 % for i = 1:nu
 %     stairs(t, U(:, i), 'Linewidth', 2); hold on
@@ -646,7 +665,7 @@ Y_m = Y + V;
 % ylabel('$u_i(k)$', 'Interpreter', 'latex')
 % title('Known inputs')
 % grid on
-% 
+%
 % ax3 = subplot(313);
 % for i = 1:np
 %     stairs(t, P(:, i), 'Linewidth', 2); hold on

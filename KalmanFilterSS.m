@@ -77,8 +77,8 @@ classdef KalmanFilterSS < AbstractLinearFilter
         %       System inputs at current time k.
         %
 
-            % Update and prediction of state and output estimates
-            % in next timestep
+            % Update predictions of states and outputs in 
+            % next timestep
             obj.xkp1_est = obj.model.A * obj.xkp1_est ...
                 + obj.model.B * uk ...
                 + obj.K * (yk - obj.model.C * obj.xkp1_est);

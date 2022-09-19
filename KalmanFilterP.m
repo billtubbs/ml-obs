@@ -109,11 +109,12 @@ classdef KalmanFilterP < AbstractLinearFilter
             [obj.K, obj.Pkp1] = kalman_update(obj.Pkp1, obj.model.A, ...
                 obj.model.C, obj.model.Q, obj.model.R);
 
-            % Update state and output estimates in next timestep
-            obj.ykp1_est = obj.model.C * obj.xkp1_est;
+            % Update predictions of states and outputs in 
+            % next timestep
             obj.xkp1_est = obj.model.A * obj.xkp1_est ...
                 + obj.model.B * uk ...
-                + obj.K * (yk - obj.ykp1_est);
+                + obj.K * (yk - obj.model.C * obj.xkp1_est);
+            obj.ykp1_est = obj.model.C * obj.xkp1_est;
 
         end
     end
