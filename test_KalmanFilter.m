@@ -171,16 +171,13 @@ end
 t = Ts * (0:nT)';
 for i = 1:nT
 
-    % Process output in current timestep
+    % Process output and input in current timestep
     yk = C*xk + v(i);
+    uk = U(i, :)';
 
     % Record process states and output
     Xk(i, :) = xk';
     Yk(i, :) = yk';
-    uk = U(i, :)';
-
-    % Process states in next timestep
-    xk = A*xk + B*uk + w(:,i);
 
     % Check predictions in next time step
     % KFF.predict();
@@ -216,6 +213,9 @@ for i = 1:nT
         % TODO: Remove this once not using structs any more
         observers{f} = obs;
 
+        % Process states in next timestep
+        xk = A*xk + B*uk + w(:,i);
+
     end
 
     % TODO: Remove this once not using KFSS_old any more
@@ -231,11 +231,12 @@ for i = 1:nT
 end
 
 obs_labels = cellfun(@(obs) obs.label, observers);
-labels = ["Process" escape_latex_chars(obs_labels)];
 
 % % Plot results
+%
 % figure(1); clf
-% 
+% labels = ["Process" escape_latex_chars(obs_labels)];
+%
 % ax1 = subplot(411);
 % plot(t, Yk, 'k'); hold on
 % for f = 1:n_obs
@@ -276,20 +277,14 @@ sim_results = [table(t,U) array2table(Xk, 'VariableNames', {'x1', 'x2'})];
 for f = 1:n_obs
     obs = observers{f};
     labels = compose("xk_est_%d_", 1:n) + obs.label;
-    sim_results = [
-        sim_results array2table(Xk_est{f}, ...
-        'VariableNames', labels)
-    ];
+    sim_results(:, labels) = array2table(Xk_est{f});
 end
 for f = 1:n_obs
     obs = observers{f};
     labels = compose("xkp1_est_%d_", 1:n) + obs.label;
-    sim_results = [
-        sim_results array2table(Xkp1_est{f}, ...
-        'VariableNames', labels)
-    ];
+    sim_results(:, labels) = array2table(Xkp1_est{f});
 end
-%head(sim_results)
+head(sim_results)
 
 % Verify results by comparing with outputs of Kalman_Filter.mlx
 %head(bench_sim_results)
@@ -300,7 +295,7 @@ assert(isequal( ...
 ))
 
 assert(isequal( ...
-    round(sim_results{1:100, {'xkp1_est_1_KF_old', 'xkp1_est_2_KF_old'}}, 7), ...
+    round(sim_results{1:100, {'xkp1_est_1_KFSS_old', 'xkp1_est_2_KFSS_old'}}, 7), ...
     round(bench_sim_results{1:100, {'xNkalman_1', 'xNkalman_2'}}, 7) ...
 ))
 
