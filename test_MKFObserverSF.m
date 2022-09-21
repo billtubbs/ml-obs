@@ -127,7 +127,7 @@ KF2 = KalmanFilterF(models{2},P0,'KF2',x0);
 % assert(SKF1.nj == 2)
 % assert(isequal(SKF1.xkp1_est, x0))
 % assert(SKF1.ykp1_est == C{1}*x0)
-% assert(isequal(SKF1.gamma_k, 0))
+% assert(isequal(SKF1.rk, 0))
 % 
 % assert(strcmp(SKF2.type, "SKFF"))
 % assert(isequal(SKF2.A, A))
@@ -153,7 +153,7 @@ KF2 = KalmanFilterF(models{2},P0,'KF2',x0);
 % assert(isequaln(SKF2.xk_est, nan(1, 1)))
 % assert(isequaln(SKF2.Pk, nan(1)))
 % assert(isequaln(SKF2.yk_est, nan(1, 1)))
-% assert(isequal(SKF2.gamma_k, 0))
+% assert(isequal(SKF2.rk, 0))
 
 % Transition probabilities
 epsilon = 0.05;
@@ -162,12 +162,12 @@ assert(all(sum(T, 2) == 1))
 
 % System indicator sequences
 seq1 = {
-    zeros(1, nT+1);
-    [zeros(1, 20) ones(1, nT+1-20)];  % equal to Gamma'
-    [zeros(1, 40) ones(1, nT+1-40)];
     ones(1, nT+1);
+    [ones(1, 20) 2*ones(1, nT+1-20)];  % equal to Gamma'
+    [ones(1, 40) 2*ones(1, nT+1-40)];
+    2*ones(1, nT+1);
  };
-assert(isequal(seq1{2}, Gamma'))
+assert(isequal(seq1{2}, Gamma' + 1))
 
 % Define MKF-SF observer 1
 seq = seq1;
@@ -197,12 +197,12 @@ assert(MKF_SF1.nj == 2)
 assert(isequal(MKF_SF1.T, T))
 assert(isequal(MKF_SF1.xkp1_est, zeros(n, 1)))
 assert(MKF_SF1.ykp1_est == 0)
-assert(isequal(MKF_SF1.gamma_init, zeros(nh, 1)))
+assert(isequal(MKF_SF1.r0, ones(nh, 1)))
 assert(isequal(MKF_SF1.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
-assert(isequal(MKF_SF1.gamma_k, zeros(nh, 1)))
+assert(isequal(MKF_SF1.rk, ones(nh, 1)))
 assert(isequaln(MKF_SF1.p_yk_g_seq_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF_SF1.p_gammak_g_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF_SF1.p_gamma_k, nan(nh, 1)))
+assert(isequaln(MKF_SF1.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_SF1.p_rk_g_rkm1, nan(nh, 1)))
 assert(isequaln(MKF_SF1.p_seq_g_Ykm1, nan(nh, 1)))
 
 % First, define with no initial state specified (should be set to zero)
@@ -228,12 +228,12 @@ assert(MKF_SF2.nj == 2)
 assert(isequal(MKF_SF2.T, T))
 assert(isequal(MKF_SF2.xkp1_est, zeros(n, 1)))
 assert(MKF_SF2.ykp1_est == 0)
-assert(isequal(MKF_SF2.gamma_init, zeros(nh, 1)))
+assert(isequal(MKF_SF2.r0, ones(nh, 1)))
 assert(isequal(MKF_SF2.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
-assert(isequal(MKF_SF2.gamma_k, zeros(nh, 1)))
+assert(isequal(MKF_SF2.rk, ones(nh, 1)))
 assert(isequaln(MKF_SF2.p_yk_g_seq_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF_SF2.p_gammak_g_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF_SF2.p_gamma_k, nan(nh, 1)))
+assert(isequaln(MKF_SF2.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_SF2.p_rk_g_rkm1, nan(nh, 1)))
 assert(isequaln(MKF_SF2.p_seq_g_Ykm1, nan(nh, 1)))
 
 % Redefine this time with initial conditions
@@ -245,18 +245,18 @@ assert(isequal(MKF_SF2.ykp1_est, models{1}.C * x0))
 assert(isequal(MKF_SF2.p_seq_g_Yk_init, ones(nh, 1) ./ nh))
 
 % With initial prior shock values and probabilities
-gamma_init = 0;
-MKF_SF2 = MKFObserverSF(models,P0,seq,T,'MKF_SF2',x0,gamma_init);
+r0 = 1;
+MKF_SF2 = MKFObserverSF(models,P0,seq,T,'MKF_SF2',x0,r0);
 assert(isequal(MKF_SF2.xkp1_est, x0))
 assert(isequal(MKF_SF2.ykp1_est, models{1}.C * x0))
-assert(isequal(MKF_SF2.gamma_k, zeros(nh, 1)))
-gamma_init = [zeros(MKF_SF2.nh-1, 1); 1];
+assert(isequal(MKF_SF2.rk, ones(nh, 1)))
+r0 = [ones(MKF_SF2.nh-1, 1); 2];
 p_seq_g_Yk_init = [0.6; 0.4];
-MKF_SF2 = MKFObserverSF(models,P0,seq,T,'MKF_SF2',x0,gamma_init, ...
+MKF_SF2 = MKFObserverSF(models,P0,seq,T,'MKF_SF2',x0,r0, ...
     p_seq_g_Yk_init);
 assert(isequal(MKF_SF2.xkp1_est, x0))
 assert(isequal(MKF_SF2.ykp1_est, models{1}.C * x0))
-assert(isequal(MKF_SF2.gamma_k, gamma_init))
+assert(isequal(MKF_SF2.rk, r0))
 assert(isequal(MKF_SF2.p_seq_g_Yk_init, p_seq_g_Yk_init))
 
 % With default initial conditions
@@ -271,8 +271,8 @@ obs_labels = cellfun(@(x) x.label, observers, 'UniformOutput', true);
 f_mkf = 3;
 
 % Simulate observers - without measurement noise (Y)
-[Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_K_obs,MKF_trP_obs, ...
-    MKF_i,MKF_p_seq_g_Yk] = run_simulation_obs(Y,U,observers,f_mkf);
+[Xk_est,Yk_est,DiagPk,Xkp1_est,Ykp1_est,DiagPkp1,MKF_vars] = ...
+    run_simulation_obs(Y,U,observers,f_mkf);
 
 % Move prior estimates to correct time instants
 Xkp1_est = [nan(1,n*n_obs); Xkp1_est(1:end-1,:)];
@@ -340,10 +340,10 @@ assert(isequaln(MKF_SF1.i, 0))
 assert(isequal(MKF_SF1.i_next, 1))
 assert(isequal(MKF_SF1.xkp1_est, zeros(n, 1)))
 assert(MKF_SF1.ykp1_est == 0)
-assert(isequal(MKF_SF1.gamma_k, zeros(nh, 1)))
+assert(isequal(MKF_SF1.rk, ones(nh, 1)))
 assert(isequaln(MKF_SF1.p_yk_g_seq_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF_SF1.p_gammak_g_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF_SF1.p_gamma_k, nan(nh, 1)))
+assert(isequaln(MKF_SF1.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF_SF1.p_rk_g_rkm1, nan(nh, 1)))
 assert(isequaln(MKF_SF1.p_seq_g_Ykm1, nan(nh, 1)))
 
 assert(isequal(MKF2.P0, P0))
@@ -356,10 +356,10 @@ assert(isequaln(MKF2.yk_est, nan))
 assert(isequal(MKF2.xkp1_est, zeros(n, 1)))
 assert(isequal(MKF2.Pkp1, P0))
 assert(MKF2.ykp1_est == 0)
-assert(isequal(MKF2.gamma_k, zeros(nh, 1)))
+assert(isequal(MKF2.rk, ones(nh, 1)))
 assert(isequaln(MKF2.p_yk_g_seq_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF2.p_gammak_g_Ykm1, nan(nh, 1)))
-assert(isequaln(MKF2.p_gamma_k, nan(nh, 1)))
+assert(isequaln(MKF2.p_rk_g_Ykm1, nan(nh, 1)))
+assert(isequaln(MKF2.p_rk_g_rkm1, nan(nh, 1)))
 assert(isequaln(MKF2.p_seq_g_Ykm1, nan(nh, 1)))
 
 % Redefine a new observer (identical to above)

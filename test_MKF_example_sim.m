@@ -39,15 +39,15 @@ inputs.Wp = [t Wp];
 % Steady-state Kalman filter
 Q = diag([0.01^2 0.1^2]);
 R = 0.1^2;
-Bu = B(:,1);  % observer model without unmeasured inputs
-Du = D(:,1);
-KFSS = KalmanFilterSS(A,Bu,C,Ts,Q,R,'KFSS');
-
-% Kalman filter with time-varying gain
-P0 = eye(n);
 obs_model = model;
 obs_model.Q = Q;
 obs_model.R = R;
+Bu = B(:,1);  % observer model without unmeasured inputs
+Du = D(:,1);
+KFSS = KalmanFilterPSS(obs_model,'KFSS');
+
+% Kalman filter with time-varying gain
+P0 = eye(n);
 KF1 = KalmanFilterF(obs_model,P0,'KF1');
 
 % % Define multi-model filter 1

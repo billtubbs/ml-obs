@@ -1,5 +1,5 @@
 function [n, nu, ny, Ts, direct] = check_model(model)
-% [n, nu, ny, direct, Ts] = check_model(model)
+% [n, nu, ny, Ts, direct] = check_model(model)
 % Get dimensions from model struct, check they are 
 % consistent and determine if there is a D matrix 
 % (direct transmission), and return the sampling

@@ -18,12 +18,12 @@ function [nj, n, nu, ny, Ts] = check_models(models)
 
     % Get dimensions of first model and see if it has direct
     % transmission (D matrix)
-    [n, nu, ny, direct, Ts] = check_model(models{1});
+    [n, nu, ny, Ts, direct] = check_model(models{1});
 
     % Check other models have same dimensions and sampling 
     % time
     for j = 2:nj
-        [n_j, nu_j, ny_j, d_j, Ts_j] = check_model(models{j});
+        [n_j, nu_j, ny_j, Ts_j, d_j] = check_model(models{j});
         assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
             "ValueError: size of A, B, and C")
         assert(direct == d_j, "ValueError: D")

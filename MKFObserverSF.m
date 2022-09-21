@@ -42,9 +42,8 @@
 %       Arbitrary name to identify the observer.
 %   x0 : (n, 1) double
 %       Initial state estimates (optional, default zeros).
-%   gamma_init : (nh, 1) integer (optional, default zeros)
-%       Initial prior model indicator value at time k-1 
-%       (zero-based, i.e. 0 is for first model).
+%   r0 : (nh, 1) integer (optional, default zeros)
+%       Initial prior model indicator value at time k-1.
 %   p_seq_g_Yk_init : (nh, 1) double (optional, default uniform)
 %       Initial prior probabilities of each hypothesis at
 %       time k-1. If not specified, default is equal, i.e.
@@ -67,16 +66,16 @@ classdef MKFObserverSF < matlab.mixin.Copyable
         label (1, 1) string
         P0 double
         x0 (:, 1) double
-        gamma_init double {mustBeInteger, mustBeNonnegative}
+        r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)}
         p_seq_g_Yk_init double
         i (1, 1) {mustBeInteger, mustBeNonnegative}
         i_next (1, 1) {mustBeInteger, mustBeNonnegative}
-        gamma_k double
+        rk double
         p_seq_g_Ykm1 double
         p_seq_g_Yk double
         p_yk_g_seq_Ykm1 double
-        p_gammak_g_Ykm1 double
-        p_gamma_k double
+        p_rk_g_Ykm1 double
+        p_rk_g_rkm1 double
         filters struct
         idx_branch (1, :) cell
         idx_modes (1, :) cell
@@ -111,7 +110,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             end
             if nargin < 7
                 % Default assumption about model indicator values at k = -1
-                r0 = 0;
+                r0 = 1;
             end
             if nargin < 6
                 x0 = zeros(n,1);
@@ -138,7 +137,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
                 % In case single value specified
                 r0 = r0 * ones(nh, 1);
             end
-            obj.gamma_init = r0;
+            obj.r0 = r0;
             obj.p_seq_g_Yk_init = p_seq_g_Yk_init;
 
             % Check transition probability matrix
@@ -168,7 +167,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
         %
 
             % Switching variable at previous time instant
-            obj.gamma_k = obj.gamma_init;
+            obj.rk = obj.r0;
 
             % Reset sequence index
             obj.i = int16(0);
@@ -182,9 +181,9 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             % p(y(k)|Gamma(k),Y(k-1))
             obj.p_yk_g_seq_Ykm1 = nan(obj.nh, 1);
             % Pr(gamma(k)|Y(k-1))
-            obj.p_gammak_g_Ykm1 = nan(obj.nh, 1);
+            obj.p_rk_g_Ykm1 = nan(obj.nh, 1);
             % Pr(Gamma(k))
-            obj.p_gamma_k = nan(obj.nh, 1);
+            obj.p_rk_g_rkm1 = nan(obj.nh, 1);
             % Pr(Gamma(k)|Y(k-1))
             obj.p_seq_g_Ykm1 = nan(obj.nh, 1);
 
@@ -234,14 +233,14 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             % Update model indicator values gamma(k) with the
             % current values from the filter's sequence and keep a
             % copy of the previous values
-            gamma_km1 = obj.gamma_k;
-            obj.gamma_k = cellfun(@(x) x(:, obj.i), obj.seq);
+            rkm1 = obj.rk;
+            obj.rk = cellfun(@(x) x(:, obj.i), obj.seq);
 
             % Determine Pr(gamma(k)|gamma(k-1)) based on Markov transition
             % probability matrix
             % TODO: This doesn't need to be a property since gamma_k
             % and p_gamma are properties.
-            obj.p_gamma_k = prob_gamma(obj.gamma_k, obj.T(gamma_km1+1, :)');
+            obj.p_rk_g_rkm1 = prob_rk(obj.rk, obj.T(rkm1+1, :)');
 
             % Arrays to collect estimates from each filter
             Xkf_est = zeros(obj.n, 1, obj.nh);
@@ -273,14 +272,14 @@ classdef MKFObserverSF < matlab.mixin.Copyable
                 obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
 
                 % Model index at current sample time
-                ind = obj.gamma_k(f) + 1;  % MATLAB indexing
+                rk = obj.rk(f);  % MATLAB indexing
 
                 % Set filter model according to current index value
-                obj.filters{f}.A = obj.A{ind};
-                obj.filters{f}.B = obj.B{ind};
-                obj.filters{f}.C = obj.C{ind};
-                obj.filters{f}.Q = obj.Q{ind};
-                obj.filters{f}.R = obj.R{ind};
+                obj.filters{f}.A = obj.A{rk};
+                obj.filters{f}.B = obj.B{rk};
+                obj.filters{f}.C = obj.C{rk};
+                obj.filters{f}.Q = obj.Q{rk};
+                obj.filters{f}.R = obj.R{rk};
 
                 % Update observer estimates, gain and covariance matrix
                 obj.filters{f}.update(yk, uk);
@@ -302,7 +301,7 @@ classdef MKFObserverSF < matlab.mixin.Copyable
             % Compute Pr(Gamma(k)|Y(k-1)) in current timestep from
             % previous estimate (Pr(Gamma(k-1)|Y(k-1))) and transition
             % probabilities
-            obj.p_seq_g_Ykm1 = obj.p_gamma_k .* obj.p_seq_g_Yk;
+            obj.p_seq_g_Ykm1 = obj.p_rk_g_rkm1 .* obj.p_seq_g_Yk;
 
             % Bayesian update of Pr(Gamma(k)|Y(k))
             likelihood = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;

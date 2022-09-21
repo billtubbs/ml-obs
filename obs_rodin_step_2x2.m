@@ -22,15 +22,22 @@ nw = sum(~u_meas);
 Bw = B(:, ~u_meas);
 nw = sum(~u_meas);
 
+% System model for new observer functions
+obs_model = struct;
+obs_model.A = A;
+obs_model.B = Bu;
+obs_model.C = C;
+obs_model.Ts = Ts;
+
 % Steady-state Luenberger observer 1
 % Specify poles of observer dynamics
 poles = [0.8; 0.82; 0.85; 0.85];
-LB1 = LuenbergerFilter(A,Bu,C,Ts,poles,'LB1');
+LB1 = LuenbergerFilter(obs_model,poles,'LB1');
 
 % Steady-state Luenberger observer 2
 % Specify poles of observer dynamics
 poles = [0.6; 0.65; 0.6; 0.65];
-LB2 = LuenbergerFilter(A,Bu,C,Ts,poles,'LB2');
+LB2 = LuenbergerFilter(obs_model,poles,'LB2');
 
 % Process noise covariance for states 1 and 2
 % These are used by all observers
@@ -44,40 +51,32 @@ Q3 = diag([q1 q2 0.0075 0.0075]);
 % Covariance of output errors
 R = diag(sigma_M.^2);
 
+% Multiple model parameters for Kalman filters
+obs_models = {obs_model, obs_model};
+obs_models{1}.Q = Q1;
+obs_models{1}.R = R;
+obs_models{2}.Q = Q2;
+obs_models{2}.R = R;
+
 % Steady-state Kalman filter 1 - tuned to input noise
-KFSS1 = KalmanFilterSS(A,Bu,C,Ts,Q1,R,'KFSS1');
+KFSS1 = KalmanFilterPSS(obs_models{1},'KFSS1');
 
 % Steady-state Kalman filter 2 - tuned to input shocks
-KFSS2 = KalmanFilterSS(A,Bu,C,Ts,Q2,R,'KFSS2');
-
-% Observer models for new observer functions
-models = {struct, struct};
-models{1}.A = A;
-models{1}.B = Bu;
-models{1}.C = C;
-models{1}.Ts = Ts;
-models{1}.Q = Q1;
-models{1}.R = R;
-models{2}.A = A;
-models{2}.B = Bu;
-models{2}.C = C;
-models{2}.Ts = Ts;
-models{2}.Q = Q2;
-models{2}.R = R;
+KFSS2 = KalmanFilterPSS(obs_models{2},'KFSS2');
 
 % Parameters for manually-tuned Kalman filter (KF3)
-model3 = models{1};  % makes copy
+model3 = obs_models{1};  % makes copy
 model3.Q = Q3;
 
 % Kalman filter 1 - tuned to sigma_wp(1)
 % Covariance matrices
 P0 = 1000*eye(n);
-KF1 = KalmanFilterF(models{1},P0,'KF1');
+KF1 = KalmanFilterF(obs_models{1},P0,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
 % Covariance matrices
 P0 = 1000*eye(n);
-KF2 = KalmanFilterF(models{2},P0,'KF2');
+KF2 = KalmanFilterF(obs_models{2},P0,'KF2');
 
 % Kalman filter 3 - manually tuned
 % Covariance matrices

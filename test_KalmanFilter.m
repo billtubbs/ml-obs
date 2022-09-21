@@ -259,7 +259,7 @@ U_sim = [U(1:100, :) W(1:100, :)];
 t_sim = t(1:100);
 [Y_sim,t_sim,X_sim] = lsim(Gdss_sim,U_sim,t_sim,x0);
 Y_sim = Y_sim + V(1:100);
-assert(isequal(Yk(1:nT, :), Y_sim(1:nT, :)))
+assert(max(abs(Yk - Y_sim)) < 1e-14)
 
 % % Plot results
 %
