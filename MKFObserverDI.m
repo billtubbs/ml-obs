@@ -52,7 +52,7 @@ classdef MKFObserverDI < MKFObserverS
         idx_merge cell
     end
     methods
-        function obj = MKFObserverDI(models,P0,seq,T,d,label,x0, ...
+        function obj = MKFObserverDI(models,P0,seq,T,d,label,x0,r0, ...
                 p_seq_g_Yk_init,reset)
             arguments
                 models (1, :) cell
@@ -62,13 +62,14 @@ classdef MKFObserverDI < MKFObserverS
                 d double
                 label (1, 1) string = ""
                 x0 = []
+                r0 (:, 1) int16 {mustBeGreaterThan(r0, 0)} = 1
                 p_seq_g_Yk_init = []
                 reset logical = true
             end
 
             % Create super-class observer instance
             obj = obj@MKFObserverS(models,P0,seq,T,label, ...
-                x0,p_seq_g_Yk_init,false)
+                x0,r0,p_seq_g_Yk_init,false)
 
             % Number of detection intervals in horizon
             obj.n_di = size(cell2mat(obj.seq), 2);

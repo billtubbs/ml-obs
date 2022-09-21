@@ -56,7 +56,7 @@ classdef KalmanFilterP < AbstractLinearFilter
             end
 
             % Call super-class constructor
-            obj = obj@AbstractLinearFilter(model,"KFF",label,x0,reset)
+            obj = obj@AbstractLinearFilter(model,"KFP",label,x0,reset)
 
             % Check size of other parameters
             assert(isequal(size(model.Q), [obj.n obj.n]), ...

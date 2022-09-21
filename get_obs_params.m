@@ -5,16 +5,7 @@ function params = get_obs_params(obs)
 %
     switch(obs.type)
 
-        case "KFSS"  % Steady-state Kalman filters
-
-            % Params to return
-            params.A = obs.A;
-            params.B = obs.B;
-            params.C = obs.C;
-            params.Q = obs.Q;
-            params.R = obs.R;
-
-        case "KF"  % Standard Kalman filters
+        case "KF"  % Old Kalman filter TODO: delete
 
             % Params to return
             params.A = obs.A;
@@ -24,7 +15,18 @@ function params = get_obs_params(obs)
             params.R = obs.R;
             params.P0 = obs.P0;
 
-        case "KFF"  % New Kalman filters
+        case {"KFPSS", "KFFSS"}  % New steady-state Kalman filters
+
+            % Params to return
+            params.model = obs.model;
+            switch obs.type
+                case "KFPSS"
+                    params.K = obs.K;
+                case "KFFSS"
+                    params.Kf = obs.Kf;
+            end
+
+        case {"KFP", "KFF"}  % New Kalman filters
 
             % Params to return
             params.model = obs.model;
@@ -33,9 +35,7 @@ function params = get_obs_params(obs)
         case "LB"  % Luenberger observers
 
             % Params to return
-            params.A = obs.A;
-            params.B = obs.B;
-            params.C = obs.C;
+            params.model = obs.model;
             params.poles = obs.poles;
             params.K = obs.K;
 

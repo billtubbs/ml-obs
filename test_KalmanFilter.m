@@ -15,6 +15,9 @@ results_dir = 'results';
 
 sys_test_siso
 
+% Initial state of system
+x0 = [0.1; 0.5];
+
 % Check if benchmark simulation data file exists
 filename = 'KF_sim_benchmark.csv';
 if ~isfile(fullfile(results_dir, filename))
@@ -22,17 +25,21 @@ if ~isfile(fullfile(results_dir, filename))
 end
 bench_sim_results = readtable(fullfile(results_dir, filename));
 
-% Covariance matrices
+% Kalman filter parameters (not same as those of system)
 Q = diag([0.1; 0.1]);
 R = 0.5;
 N = zeros(n,ny);
-x0 = [0.1; 0.5];
+x0_est = zeros(2, 1);
+% Note: Qp and Rp are system noise variances
 
-% Define steady-state Kalman filter with KalmanFilterSS class
+% Define steady-state Kalman filter with old KalmanFilterSS class
 label = "KFSS_old";
-KFSS_old = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0);
+KFSS_old = kalman_filter_ss(A,B,C,D,Ts,Q,R,label,x0_est);
+assert(KFSS_old.R == 0.5);
+assert(isequal(KFSS_old.Q, diag([0.1; 0.1])));
+assert(isequal(KFSS_old.x0, x0_est));
 
-% Prepare a struct of model parameter
+% Prepare a struct of model parameters
 model = struct();
 model.A = A;
 model.B = B;
@@ -43,7 +50,7 @@ model.R = R;
 
 % Steady-state Kalman filter in prediction form
 label = "KFPSS";
-KFPSS = KalmanFilterPSS(model,label,x0);
+KFPSS = KalmanFilterPSS(model,label,x0_est);
 assert(strcmp(KFPSS.type, "KFPSS"))
 assert(isequal(KFPSS.model, model))
 assert(max(abs(KFPSS.K - KFSS_old.K), [], [1 2]) < 1e-12)
@@ -53,15 +60,15 @@ assert(max(abs(KFPSS.K - K_calc)) < 1e-12)
 assert(isequal(round(KFPSS.K, 6), [0.772750; 0.755731]))
 assert(isequal(round(KFPSS.Pkp1, 6), [1.509786 1.216953; 1.216953 1.219071]))
 assert(isequal(KFPSS.label, label))
-assert(isequal(KFPSS.xkp1_est, x0))
-assert(KFPSS.ykp1_est == C*x0)
+assert(isequal(KFPSS.xkp1_est, x0_est))
+assert(KFPSS.ykp1_est == C*x0_est)
 assert(KFPSS.n == n)
 assert(KFPSS.nu == nu)
 assert(KFPSS.ny == ny)
 
 % Steady-state Kalman filter in filtering form
 label = "KFFSS";
-KFFSS = KalmanFilterFSS(model,label,x0);
+KFFSS = KalmanFilterFSS(model,label,x0_est);
 assert(strcmp(KFFSS.type, "KFFSS"))
 assert(isequal(KFFSS.model, model))
 assert(max(abs((A * KFFSS.Kf) - KFSS_old.K), [], [1 2]) < 1e-12)
@@ -71,8 +78,8 @@ assert(max(abs(KFFSS.Kf - Kf_calc)) < 1e-12)
 assert(isequal(round(KFFSS.Kf, 6), [0.755731; 0.669133]))
 assert(isequal(round(KFFSS.Pk, 6), [1.509786 1.216953; 1.216953 1.219071]))
 assert(isequal(KFFSS.label, label))
-assert(isequal(KFFSS.xkp1_est, x0))
-assert(KFFSS.ykp1_est == C*x0)
+assert(isequal(KFFSS.xkp1_est, x0_est))
+assert(KFFSS.ykp1_est == C*x0_est)
 assert(isequaln(KFFSS.xk_est, nan(n, 1)))
 assert(isequaln(KFFSS.yk_est, nan))
 assert(KFFSS.n == n)
@@ -95,7 +102,7 @@ assert(KFFSSx0.ykp1_est == 0)
 % and KalmanFilterF classes
 P0 = diag([1e-4 1e-4]);
 
-KF_old = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF_old");
+KF_old = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF_old",x0_est);
 assert(isequal(KF_old.A, A))
 assert(isequal(KF_old.B, B))
 assert(isequal(KF_old.C, C))
@@ -104,26 +111,27 @@ assert(isequal(KF_old.Pkp1, P0))
 assert(isequal(KF_old.Q, Q))
 assert(isequal(KF_old.R, R))
 assert(all(isnan(KF_old.K)))
-assert(isequal(KF_old.xkp1_est, zeros(2, 1)))
-assert(KF_old.ykp1_est == 0)
+assert(isequal(KF_old.xkp1_est, x0_est))
+assert(KF_old.ykp1_est == KF_old.C * x0_est)
 
 % New version in filtering form
-KFF = KalmanFilterF(model,P0,"KFF");
+KFF = KalmanFilterF(model,P0,"KFF",x0_est);
 assert(isequal(KFF.model, model))
 assert(all(isnan(KFF.Kf)))
-assert(isequal(KFF.xkp1_est, zeros(2, 1)))
-assert(KFF.ykp1_est == 0)
+assert(isequal(KFF.xkp1_est, x0_est))
+assert(KFF.ykp1_est == KFF.model.C * x0_est)
 assert(isequal(KFF.Pkp1, P0))
 assert(all(isnan(KFF.xk_est)))
 assert(all(isnan(KFF.yk_est)))
 assert(all(isequaln(KFF.Pk, nan(2))))
 
 % New version in prediction form
-KFP = KalmanFilterP(model,P0,"KFP");
+KFP = KalmanFilterP(model,P0,"KFP",x0_est);
+assert(strcmp(KFP.type, "KFP"))
 assert(isequal(KFP.model, model))
 assert(all(isnan(KFP.K)))
-assert(isequal(KFP.xkp1_est, zeros(2, 1)))
-assert(KFP.ykp1_est == 0)
+assert(isequal(KFP.xkp1_est, x0_est))
+assert(KFP.ykp1_est == KFP.model.C * x0_est)
 assert(isequal(KFP.Pkp1, P0))
 assert(all(isnan(KFP.xk_est)))
 assert(all(isnan(KFP.yk_est)))
@@ -131,14 +139,20 @@ assert(all(isnan(KFP.yk_est)))
 % number of points to simulate
 nT = 100;
 
+% NOTE: To match benchmark results, rng seed and initialization
+% of input data must match code in Kalman_Filter_benchmark.mlx
+% rng(0)  % seed random number generator
+% v=sqrt(Rp)*randn(Np,1); % measurement noise for the whole simulation
+% w=sqrt(Qp)*randn(2,Np); % proces noise for the whole simulation
+
 % seed random number generator
 rng(0)
 
 % Measurement noise for the whole simulation
-v = sqrt(Rp)*randn(nT,1);
+V = sqrt(Rp)*randn(1, nT)';
 
 % Process noise for the whole simulation
-w = sqrt(Qp)*randn(2,nT);
+W = (sqrt(Qp)*randn(2, nT))';
 
 u0 = 1;  % initial value of u
 x0 = (eye(length(A)) - A) \ (B*u0);  % steady-state value of x
@@ -147,33 +161,38 @@ x0 = (eye(length(A)) - A) \ (B*u0);  % steady-state value of x
 xk = x0;
 
 % Input signal
-U = [zeros(10,1); ones(nT+1-10, 1)]; % process input for the whole simulation
+U = [zeros(10,1); ones(nT-10, 1)];  % process input for the whole simulation
 
 % Observers to simulate
 observers = {KFSS_old, KFPSS, KFFSS, KF_old, KFP, KFF};
+obs_labels = cellfun(@(obs) obs.label, observers);
 n_obs = numel(observers);
 
 % Matrices to collect simulation data
-Xk = zeros(nT+1, n); % process states
-Yk = zeros(nT+1, ny); % process states
+Xk = zeros(nT, n); % process states
+Yk = zeros(nT, ny); % process states
 Xk_est = cell(1, n_obs);  % process state estimates
 Yk_est = cell(1, n_obs);  % process output estimates
 Xkp1_est = cell(1, n_obs);
 Ykp1_est = cell(1, n_obs);
 for f = 1:n_obs
-    Xk_est{f} = nan(nT+1, n);
-    Yk_est{f} = nan(nT+1, ny);
-    Xkp1_est{f} = nan(nT+1, n);
-    Ykp1_est{f} = nan(nT+1, ny);
+    Xk_est{f} = nan(nT, n);
+    Yk_est{f} = nan(nT, ny);
+    Xkp1_est{f} = nan(nT, n);
+    Ykp1_est{f} = nan(nT, ny);
 end
 
 % Time vector
-t = Ts * (0:nT)';
+t = Ts * (0:nT-1)';
 for i = 1:nT
 
-    % Process output and input in current timestep
-    yk = C*xk + v(i);
+    % Inputs
+    vk = V(i, :)';
     uk = U(i, :)';
+    wk = W(i, :)';
+
+    % Process output and input in current timestep
+    yk = C*xk + vk;
 
     % Record process states and output
     Xk(i, :) = xk';
@@ -183,25 +202,27 @@ for i = 1:nT
     % KFF.predict();
     % assert(all(abs(A * KFF.xk_est + B * U(i) - KFF.xkp1_est) < 1e-14))
 
-    % Update Kalman filters
     for f = 1:n_obs
 
         obs = observers{f};
 
+        % Record Kalman filter predictions
+        if isprop(obs, "xkp1_est") || isfield(obs, "xkp1_est")
+            Xkp1_est{f}(i, :) = obs.xkp1_est';
+        end
+        if isprop(obs, "ykp1_est") || isfield(obs, "ykp1_est")
+            Ykp1_est{f}(i, :) = obs.ykp1_est';
+            assert(isequaln(C * obs.xkp1_est, obs.ykp1_est))
+        end
+
+        % Update Kalman filter
         if strcmp(obs.type, "KFSS")
             obs = update_KF(obs, uk, yk);
         else
             obs.update(yk, uk);
         end
 
-        % Record Kalman filter estimates
-        if isprop(obs, "xkp1_est") || isfield(obs, "xkp1_est")
-            Xkp1_est{f}(i+1, :) = obs.xkp1_est';
-        end
-        if isprop(obs, "ykp1_est") || isfield(obs, "ykp1_est")
-            Ykp1_est{f}(i+1, :) = obs.ykp1_est';
-            assert(isequaln(C * obs.xkp1_est, obs.ykp1_est))
-        end
+        % Record Kalman filter updated estimates
         if isprop(obs, "xk_est") || isfield(obs, "xk_est")
             Xk_est{f}(i, :) = obs.xk_est';
         end
@@ -213,10 +234,10 @@ for i = 1:nT
         % TODO: Remove this once not using structs any more
         observers{f} = obs;
 
-        % Process states in next timestep
-        xk = A*xk + B*uk + w(:,i);
-
     end
+
+    % Process states in next timestep
+    xk = A*xk + B*uk + wk;
 
     % TODO: Remove this once not using KFSS_old any more
     assert(all(abs(observers{1}.xkp1_est - KFPSS.xkp1_est) < 1e-12))
@@ -230,7 +251,15 @@ for i = 1:nT
 
 end
 
-obs_labels = cellfun(@(obs) obs.label, observers);
+% Check system simulation is correct
+% Add process noise inputs to system model
+Gdss_sim = Gdss;
+Gdss_sim.B = [Gdss_sim.B eye(2)];
+U_sim = [U(1:100, :) W(1:100, :)];
+t_sim = t(1:100);
+[Y_sim,t_sim,X_sim] = lsim(Gdss_sim,U_sim,t_sim,x0);
+Y_sim = Y_sim + V(1:100);
+assert(isequal(Yk(1:nT, :), Y_sim(1:nT, :)))
 
 % % Plot results
 %
@@ -273,7 +302,11 @@ obs_labels = cellfun(@(obs) obs.label, observers);
 % linkaxes([ax1 ax2 ax3 ax4], 'x')
 
 % Display results
-sim_results = [table(t,U) array2table(Xk, 'VariableNames', {'x1', 'x2'})];
+sim_results = [
+    table(t,U) ...
+    array2table(Xk, 'VariableNames', {'x1', 'x2'}) ...
+    array2table(Yk, 'VariableNames', {'y'})
+];
 for f = 1:n_obs
     obs = observers{f};
     labels = compose("xk_est_%d_", 1:n) + obs.label;
@@ -284,35 +317,86 @@ for f = 1:n_obs
     labels = compose("xkp1_est_%d_", 1:n) + obs.label;
     sim_results(:, labels) = array2table(Xkp1_est{f});
 end
-head(sim_results)
+for f = 1:n_obs
+    obs = observers{f};
+    labels = compose("yk_est_%d_", 1:ny) + obs.label;
+    sim_results(:, labels) = array2table(Yk_est{f});
+end
+for f = 1:n_obs
+    obs = observers{f};
+    labels = compose("ykp1_est_%d_", 1:ny) + obs.label;
+    sim_results(:, labels) = array2table(Ykp1_est{f});
+end
+%head(sim_results)
 
 % Verify results by comparing with outputs of Kalman_Filter.mlx
 %head(bench_sim_results)
 
+% System states
 assert(isequal( ...
     round(sim_results{1:100, {'x1', 'x2'}}, 7), ...
     round(bench_sim_results{1:100, {'xNprocess_1', 'xNprocess_2'}}, 7) ...
 ))
 
+% Check steady-state correction gains compared to that from
+% benchmark simulation. See script Kalman_Filter_benchmark.mlx
+% >> fprintf("%.6f %.6f\n", KalmanFilter.B')
+% 0.250000 0.772750
+% 0.000000 0.755731
+%
+assert(isequal(round(KFSS_old.K, 6), [0.772750; 0.755731]))
+assert(isequal(round(KFPSS.K, 6), [0.772750; 0.755731]))
+assert(isequal(round(A * KFFSS.Kf, 6), [0.772750; 0.755731]))
+
+% Predictions of steady-state estimators
 assert(isequal( ...
-    round(sim_results{1:100, {'xkp1_est_1_KFSS_old', 'xkp1_est_2_KFSS_old'}}, 7), ...
-    round(bench_sim_results{1:100, {'xNkalman_1', 'xNkalman_2'}}, 7) ...
+    round(sim_results{:, {'xkp1_est_1_KFSS_old', 'xkp1_est_2_KFSS_old'}}, 7), ...
+    round(bench_sim_results{:, {'xNkalman_1', 'xNkalman_2'}}, 7) ...
+))
+assert(isequal( ...
+    round(sim_results{:, {'xkp1_est_1_KFPSS', 'xkp1_est_2_KFPSS'}}, 7), ...
+    round(bench_sim_results{:, {'xNkalman_1', 'xNkalman_2'}}, 7) ...
+))
+assert(isequal( ...
+    round(sim_results{:, {'xkp1_est_1_KFFSS', 'xkp1_est_2_KFFSS'}}, 7), ...
+    round(bench_sim_results{:, {'xNkalman_1', 'xNkalman_2'}}, 7) ...
 ))
 
-E_ykp1_est  = repmat(Yk, 1, n_obs) - cell2mat(Ykp1_est);
-mses_ykp1_est = nanmean(E_ykp1_est.^2);
+% Calculate state estimation errors and mean-squared errors
+E_xkp1_est  = repmat(Xk, 1, n_obs) - cell2mat(Xkp1_est);
+E_xkp1_est  = reshape(E_xkp1_est, [], n, n_obs);
+mses_xkp1_est = squeeze(mean(E_xkp1_est.^2, [1 2]))';
+E_xk_est  = repmat(Xk, 1, n_obs) - cell2mat(Xk_est);
+E_xk_est  = reshape(E_xk_est, [], n, n_obs);
+mses_xk_est = squeeze(mean(E_xk_est.^2, [1 2]))';
 
+% Calculate output estimation errors and mean-squared errors
 E_yk_est  = repmat(Yk, 1, n_obs) - cell2mat(Yk_est);
-mses_yk_est = nanmean(E_yk_est.^2);
+mses_yk_est = mean(E_yk_est.^2);
+E_ykp1_est  = repmat(Yk, 1, n_obs) - cell2mat(Ykp1_est);
+mses_yk_est = mean(E_ykp1_est.^2);
 
 % TODO: Need to check these are correct
 % Observers: KFSS_old, KFPSS, KFFSS, KF_old, KFP, KFF
-assert(isequaln(round(mses_ykp1_est, 6), ...
-    [1.167325 1.167325 1.167325 1.271865 1.271865 1.271865] ...
+assert(isequaln(round(mses_xkp1_est, 6), ...
+    [3.590839 3.590839 3.590839 4.531142 4.531142 4.531142] ...
 ))
-assert(isequaln(round(mses_yk_est, 6), ...
-    [nan nan 0.612285  nan nan 0.758824] ...
+assert(isequaln(round(mses_xk_est, 6), ...
+    [nan nan 2.118641  nan nan 3.106096] ...
 ))
+%TODO: Why are dynamic KFs worse?
+
+% MSE from benchmark simulation:
+% >> mse = mean(( ...
+%        (bench_sim_results{:, {'xNprocess_1', 'xNprocess_2'}} ...
+%         - bench_sim_results{:, {'xNkalman_1', 'xNkalman_2'}} ...
+%    )).^2, [1 2])
+% 
+% mse =
+% 
+%     3.5908
+% 
+assert(all(round(mses_xkp1_est(1:3), 6) == 3.590839))
 
 
 %% SISO system example from GEL-7029 course, homework 12.
@@ -331,11 +415,11 @@ V = 0.8; % estimate of Vp used in the filter design
 P0 = eye(n)*1000; % Initialize covariance matrix
 Q = diag(repmat(W,n,1));
 R = diag(repmat(V,ny,1));
-x0 = [0.1; 0.5];
+x0_est = [0.1; 0.5];
 
 % Define dynamic Kalman filter using kalman_filter function
 label = 'KF';
-KF_old = KalmanFilter(A,B,C,Ts,P0,Q,R,label,x0);
+KF_old = KalmanFilter(A,B,C,Ts,P0,Q,R,label,x0_est);
 assert(strcmp(KF_old.type, "KF"))
 assert(isequal(KF_old.A, A))
 assert(isequal(KF_old.B, B))
@@ -346,8 +430,8 @@ assert(isequal(KF_old.Q, Q))
 assert(isequal(KF_old.R, R))
 assert(isequal(KF_old.Pkp1, P0))
 assert(isequal(KF_old.label, label))
-assert(isequal(KF_old.xkp1_est, x0))
-assert(KF_old.ykp1_est == C*x0)
+assert(isequal(KF_old.xkp1_est, x0_est))
+assert(KF_old.ykp1_est == C*x0_est)
 assert(KF_old.n == n)
 assert(KF_old.nu == nu)
 assert(KF_old.ny == ny)
@@ -360,12 +444,12 @@ model.C = C;
 model.Q = Q;
 model.R = R;
 model.Ts = Ts;
-KFF = KalmanFilterF(model,P0,label,x0);
+KFF = KalmanFilterF(model,P0,label,x0_est);
 assert(strcmp(KFF.type, "KFF"))
 assert(isequal(KFF.model, model))
 assert(isequal(KFF.label, label))
-assert(isequal(KFF.xkp1_est, x0))
-assert(KFF.ykp1_est == C*x0)
+assert(isequal(KFF.xkp1_est, x0_est))
+assert(KFF.ykp1_est == C*x0_est)
 assert(isequal(KFF.Pkp1, P0))
 assert(all(isnan(KFF.xk_est)))
 assert(all(isequaln(KFF.Pk, nan(2))))
@@ -398,36 +482,34 @@ nT = 100;
 rng(0)
 
 % Measurement noise for the whole simulation
-V = nan(nT+1,1);
-V(1:end-1,:) = sqrt(Rp)*randn(1,nT)';
+V = (sqrt(Rp)*randn(1,nT))';
 
 % Process noise for the whole simulation
-W = nan(nT+1,2);
-W(1:end-1,:) = (sqrt(Qp)*randn(2,nT))';
+W = (sqrt(Qp)*randn(2,nT))';
 
 % Intialize system (at k = 0)
-x0 = zeros(n, 1);
-xk = x0;
+x0_est = zeros(n, 1);
+xk = x0_est;
 
 % Input signal - pseudo-random binary sequence
-U = nan(nT+1,1);
+U = nan(nT,1);
 warning('off')
 U(1:nT,1) = idinput(nT, 'PRBS', [0 0.5]);
 warning('on')
 
 % Matrices to collect simulation data
-xNprocess = nan(n, nT+1); % process states
-yNprocess = nan(ny, nT+1); % process outputs
-xNkalman1 = nan(n, nT+1); % estimated states
-yNkalman1 = nan(ny, nT+1); % estimated process outputs
-KNkalman1 = nan(n, nT+1); % observer correction gains
-diagPNkalman1 = nan(n, nT+1); % diag of observer covariance matrix
-xNkalman2 = nan(n, nT+1); % estimated states
-yNkalman2 = nan(ny, nT+1); % estimated process outputs
-KNkalman2 = nan(n, nT+1); % observer correction gains
-diagPNkalman2 = nan(n, nT+1); % diag of observer covariance matrix
+xNprocess = nan(n, nT); % process states
+yNprocess = nan(ny, nT); % process outputs
+xNkalman1 = nan(n, nT); % estimated states
+yNkalman1 = nan(ny, nT); % estimated process outputs
+KNkalman1 = nan(n, nT); % observer correction gains
+diagPNkalman1 = nan(n, nT); % diag of observer covariance matrix
+xNkalman2 = nan(n, nT); % estimated states
+yNkalman2 = nan(ny, nT); % estimated process outputs
+KNkalman2 = nan(n, nT); % observer correction gains
+diagPNkalman2 = nan(n, nT); % diag of observer covariance matrix
 
-t = Ts * (0:nT)';
+t = Ts * (0:nT-1)';
 
 for i = 1:nT
 
@@ -556,9 +638,6 @@ end
 
 bench_sim_results = readtable(fullfile(results_dir, filename));
 
-% Set RNG seed
-rng(0)
-
 % Noise variances
 sigma_p = 0;  % input disturbances
 sigma_M = 0.1;  % measurement noise
@@ -594,46 +673,55 @@ Bu = B(:, u_meas);
 Du = D(:, u_meas);
 
 % Default initial condition
-x0 = zeros(n, 1);
+x0_est = zeros(n, 1);
 
 % Observer parameters
 Q = 0.01 .* eye(n);
 R = 0.1 .* eye(ny);
 P0 = 1e-4 .* eye(n);
 
-% Define Kalman filters
-KFSS_test = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,"KFSS_test",x0);
-KFFSS = KalmanFilterSS(A,Bu,C,Ts,Q,R,"KFSS",x0);
-KF_test = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,"KF_test",x0);
-KF_old = KalmanFilter(A,Bu,C,Ts,P0,Q,R,"KF",x0);
-
-% New version
+% Prepare a struct of model parameters
+model = struct();
 model.A = A;
 model.B = Bu;
 model.C = C;
+model.Ts = Ts;
 model.Q = Q;
 model.R = R;
-model.Ts = Ts;
-KFF = KalmanFilterF(model,P0,"KFF",x0);
 
-observers = {KFFSS, KF_old, KFSS_test, KF_test, KFF};
+% Define Kalman filters
+KFSS_old = kalman_filter_ss(A,Bu,C,Du,Ts,Q,R,"KFSS_old",x0_est);
+KFPSS = KalmanFilterPSS(model,"KFPSS",x0_est);
+KFFSS = KalmanFilterFSS(model,"KFFSS",x0_est);
+KF_old = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,"KF_old",x0_est);
+KFP = KalmanFilterP(model,P0,"KFP",x0_est);
+KFF = KalmanFilterF(model,P0,"KFF",x0_est);
+
+KF_old2 = KalmanFilter(A,Bu,C,Ts,P0,Q,R,"KF_old2",x0_est);
+
+observers = {KFSS_old, KFPSS, KFFSS, KF_old, KFP, KFF};
+obs_labels = cellfun(@(obs) obs.label, observers);
 n_obs = numel(observers);
 
 % Number of timesteps to simulate
 nT = 100;
-t = Ts*(0:nT)';
+t = Ts*(0:nT-1)';
+
+% Set RNG seed
+rng(0)
 
 % Random inputs
-P = sigma_p^2 .* [zeros(5, np); randn([45 np]); zeros(nT+1-50, np)];
-U = [zeros(5, nu); idinput([45 nu]); [-0.1 0.25].*ones(nT+1-50, nu)];
+P = sigma_p^2 .* [zeros(5, np); randn([45 np]); zeros(nT-50, np)];
+U = [zeros(5, nu); idinput([45 nu]); [-0.1 0.25].*ones(nT-50, nu)];
 V = sigma_M^2 .* randn([nT+1 ny]);
+V = V(1:nT, :);
 
 % Simulate system
 U_sim = [U P];
-[Y, t, X] = lsim(Gpss, U_sim, t, x0);
+[Yk, t, Xk] = lsim(Gpss, U_sim, t, x0_est);
 
 % Add measurement noise
-Y_m = Y + V;
+Yk_m = Yk + V;
 
 % Plot results
 
@@ -670,70 +758,89 @@ Y_m = Y + V;
 % title('Unknown inputs')
 % grid on
 
-Xk_est = nan(nT+1, n*n_obs);
-Yk_est = nan(nT+1, n*n_obs);
-Xkp1_est = nan(nT+1, n*n_obs);
-Ykp1_est = nan(nT+1, ny*n_obs);
-E_obs = nan(nT+1, ny*n_obs);
-trP_obs = nan(nT+1, n_obs);
+% Matrices to collect simulation data
+Xk_est = cell(1, n_obs);
+Yk_est = cell(1, n_obs);
+Xkp1_est = cell(1, n_obs);
+Ykp1_est = cell(1, n_obs);
+trPk_obs = cell(1, n_obs);
+trPkp1_obs = cell(1, n_obs);
+for f = 1:n_obs
+    Xk_est{f} = nan(nT, n);
+    Yk_est{f} = nan(nT, ny);
+    Xkp1_est{f} = nan(nT, n);
+    Ykp1_est{f} = nan(nT, ny);
+end
 
 for i = 1:nT
 
-    yk = Y_m(i, :)';
+    yk = Yk_m(i, :)';
     if i > 1
         uk = U(i-1, :)';
     else
         uk = zeros(nu, 1);
     end
 
-    % Record observer estimates of state predictions
-    for j = 1:n_obs
-        Xkp1_est(i, (j-1)*n+1:j*n) = observers{j}.xkp1_est';
-        Ykp1_est(i, (j-1)*ny+1:j*ny) = observers{j}.ykp1_est';
-        if isstruct(observers{j})
-            % Old struct-based observers
-            trP_obs(i, j) = trace(observers{j}.P);
+    for f = 1:n_obs
+
+        obs = observers{f};
+
+        % Record Kalman filter predictions
+        if isprop(obs, "xkp1_est") || isfield(obs, "xkp1_est")
+            Xkp1_est{f}(i, :) = obs.xkp1_est';
+        end
+        if isprop(obs, "ykp1_est") || isfield(obs, "ykp1_est")
+            Ykp1_est{f}(i, :) = obs.ykp1_est';
+            assert(isequaln(C * obs.xkp1_est, obs.ykp1_est))
+        end
+        switch obs.type
+            case {"KFP", "KFPSS"}
+                trPkp1_obs{f}(i, :) = trace(obs.Pkp1);
+        end
+
+        % Update Kalman filter
+        if any(strcmp(obs.type, ["KFSS", "KF"]))
+            obs = update_KF(obs, uk, yk);
         else
-            switch observers{j}.type
-                case {"KF", "KFSS"}
-                    trP_obs(i, j) = trace(observers{j}.Pkp1);
-                case {"KFF"}
-                    trP_obs(i, j) = trace(observers{j}.Pk);
-            end
+            obs.update(yk, uk);
         end
-    end
 
-    % Update observer gains and covariance matrix
-    KFFSS.update(yk, uk);
-    KF_old.update(yk, uk);
-    KFSS_test = update_KF(KFSS_test, uk, yk);
-    assert(strcmp(observers{3}.label, "KFSS_test"))
-    observers{3} = KFSS_test;
-    KF_test = update_KF(KF_test, uk, yk);
-    assert(strcmp(observers{4}.label, "KF_test"))
-    observers{4} = KF_test;
-    KFF.update(yk, uk);
-
-    % Record updated estimates of current state (of
-    % filtering observers only)
-    for j = 5:5
-        Xk_est(i, (j-1)*n+1:j*n) = observers{j}.xk_est';
-        Yk_est(i, (j-1)*ny+1:j*ny) = observers{j}.yk_est';
-        E_obs(i, (j-1)*ny+1:j*ny) = yk' - observers{j}.yk_est';
-        trP_obs(i, j) = trace(observers{j}.Pk);
-    end
-
-    % Calculate estimation errors
-    if i > 1
-        for j = 1:4  % use prior prediction estimates
-            E_obs(i, (j-1)*ny+1:j*ny) = (yk' - Ykp1_est(i-1, (j-1)*ny+1:j*ny));
+        % Record Kalman filter updated estimates
+        if isprop(obs, "xk_est") || isfield(obs, "xk_est")
+            Xk_est{f}(i, :) = obs.xk_est';
         end
-    end
-    for j = 5:5  % use updated posterior estimates
-        E_obs(i, (j-1)*ny+1:j*ny) = (yk' - Yk_est(i, (j-1)*ny+1:j*ny));
+        if isprop(obs, "yk_est") || isfield(obs, "yk_est")
+            Yk_est{f}(i, :) = obs.yk_est';
+            assert(isequaln(C * obs.xk_est, obs.yk_est))
+        end
+        switch obs.type
+            case {"KFF", "KFFSS"}
+                trPk_obs{f}(i, :) = trace(obs.Pk);
+        end
+
+        % TODO: Remove this once not using structs any more
+        observers{f} = obs;
+
     end
 
 end
+
+% Calculate state estimation errors and mean-squared errors
+E_xkp1_est  = repmat(Xk, 1, n_obs) - cell2mat(Xkp1_est);
+E_xkp1_est  = reshape(E_xkp1_est, [], n, n_obs);
+mses_xkp1_est = squeeze(mean(E_xkp1_est.^2, [1 2]))';
+E_xk_est  = repmat(Xk, 1, n_obs) - cell2mat(Xk_est);
+E_xk_est  = reshape(E_xk_est, [], n, n_obs);
+mses_xk_est = squeeze(mean(E_xk_est.^2, [1 2]))';
+
+% Calculate output estimation errors and mean-squared errors
+E_ykp1_est  = repmat(Yk, 1, n_obs) - cell2mat(Ykp1_est);
+E_ykp1_est  = reshape(E_ykp1_est, [], ny, n_obs);
+mses_ykp1_est = mean(E_ykp1_est.^2);
+E_yk_est  = repmat(Yk, 1, n_obs) - cell2mat(Yk_est);
+E_yk_est  = reshape(E_yk_est, [], ny, n_obs);
+mses_yk_est = mean(E_yk_est.^2);
+
 
 % Save benchmark results - from observers 3, 4
 % bench_sim_results = [table(t,U,P,Y,V,Y_m) ...
@@ -744,12 +851,39 @@ end
 % writetable(bench_sim_results, fullfile(results_dir, filename))
 
 % Combine results into table - only first two observers
-sim_results = [table(t,U,P,Y,V,Y_m) ...
-    array2table(X, 'VariableNames', {'X_1', 'X_2', 'X_3', 'X_4'}) ...
-    array2table(Xkp1_est(:, 1:2*n), 'VariableNames', {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4', 'X_est_5', 'X_est_6', 'X_est_7', 'X_est_8'}) ...
-    array2table(Ykp1_est(:, 1:2*ny), 'VariableNames', {'Y_est_1', 'Y_est_2', 'Y_est_3', 'Y_est_4'}) ...
-    array2table(trP_obs(:, 1:2), 'VariableNames', {'trP_obs_1', 'trP_obs_2'})];
+% sim_results = [table(t,U,P,Yk,V,Yk_m) ...
+%     array2table(Xk, 'VariableNames', {'X_1', 'X_2', 'X_3', 'X_4'}) ...
+%     array2table(Xkp1_est(:, 1:2*n), 'VariableNames', {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4', 'X_est_5', 'X_est_6', 'X_est_7', 'X_est_8'}) ...
+%     array2table(Ykp1_est(:, 1:2*ny), 'VariableNames', {'Y_est_1', 'Y_est_2', 'Y_est_3', 'Y_est_4'}) ...
+%     array2table(trP_obs(:, 1:2), 'VariableNames', {'trP_obs_1', 'trP_obs_2'})];
 %sim_results
+
+% Display results
+sim_results = [
+    table(t,U,P,Yk,V,Yk_m) ...
+    array2table(Xk, 'VariableNames', {'x1', 'x2', 'x3', 'x4'}) ...
+];
+for f = 1:n_obs
+    obs = observers{f};
+    labels = compose("xkp1_est_%d_", 1:n) + obs.label;
+    sim_results(:, labels) = array2table(Xkp1_est{f});
+end
+for f = 1:n_obs
+    obs = observers{f};
+    labels = compose("xk_est_%d_", 1:n) + obs.label;
+    sim_results(:, labels) = array2table(Xk_est{f});
+end
+for f = 1:n_obs
+    obs = observers{f};
+    labels = compose("yk_est_%d_", 1:ny) + obs.label;
+    sim_results(:, labels) = array2table(Yk_est{f});
+end
+for f = 1:n_obs
+    obs = observers{f};
+    labels = compose("ykp1_est_%d_", 1:ny) + obs.label;
+    sim_results(:, labels) = array2table(Ykp1_est{f});
+end
+%head(sim_results)
 
 % Plot observer estimates
 % j = 4;
@@ -768,20 +902,42 @@ sim_results = [table(t,U,P,Y,V,Y_m) ...
 
 % Verify results by comparing with saved benchmark results
 %head(bench_sim_results)
+% First check simulation inputs and outputs
+selected_labels = {'t', 'U', 'P', 'Yk', 'V', 'Yk_m', 'x1', 'x2', 'x3', 'x4'};
 assert(isequaln( ...
-    round(sim_results.Variables, 7), ...
-    round(bench_sim_results.Variables, 7) ...
+    round(sim_results{:, selected_labels}, 7), ...
+    round(bench_sim_results{1:100, 1:15}, 7) ...
 ))
 
-% Compare KFF (filtering) estimates with KF (prediction)
-assert(strcmp(observers{2}.label, "KF"))
-assert(strcmp(observers{5}.label, "KFF"))
+% Check observer estimates - steady state Kalman filters
+selected_labels = ["xkp1_est_1" "xkp1_est_2" "xkp1_est_3" "xkp1_est_4"];
+assert(isequaln( ...
+    round(sim_results{:, selected_labels + "_" + "KFSS_old"}, 7), ...
+    round(bench_sim_results{1:100, {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4'}}, 7) ...
+))
+assert(isequaln( ...
+    round(sim_results{:, selected_labels + "_" + "KFPSS"}, 7), ...
+    round(bench_sim_results{1:100, {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4'}}, 7) ...
+))
+assert(isequaln( ...
+    round(sim_results{:, selected_labels + "_" + "KFFSS"}, 7), ...
+    round(bench_sim_results{1:100, {'X_est_1', 'X_est_2', 'X_est_3', 'X_est_4'}}, 7) ...
+))
 
-% Check magnitude of differences
-y_est_diffs = max(abs(Xk_est(:, (5-1)*n+1:5*n) ...
-    - Xkp1_est(:, (2-1)*n+1:2*n)));
-assert(all(y_est_diffs < [0.4 0.4 0.07 0.07]))
-assert(all(y_est_diffs > 0.001))
+% Check observer estimates - dynamic Kalman filters
+selected_labels = ["xkp1_est_1" "xkp1_est_2" "xkp1_est_3" "xkp1_est_4"];
+assert(isequaln( ...
+    round(sim_results{:, selected_labels + "_" + "KF_old"}, 7), ...
+    round(bench_sim_results{1:100, {'X_est_5', 'X_est_6', 'X_est_7', 'X_est_8'}}, 7) ...
+))
+assert(isequaln( ...
+    round(sim_results{:, selected_labels + "_" + "KFP"}, 7), ...
+    round(bench_sim_results{1:100, {'X_est_5', 'X_est_6', 'X_est_7', 'X_est_8'}}, 7) ...
+))
+assert(isequaln( ...
+    round(sim_results{:, selected_labels + "_" + "KFF"}, 7), ...
+    round(bench_sim_results{1:100, {'X_est_5', 'X_est_6', 'X_est_7', 'X_est_8'}}, 7) ...
+))
 
 
 %% Test copy methods
@@ -792,11 +948,20 @@ sys_test_siso
 Q = diag([0.1; 0.1]);
 R = 0.5;
 N = zeros(n,ny);
-x0 = [0.1; 0.5];
+x0_est = [0.1; 0.5];
 P0 = diag([1e-4 1e-4]);
 
+% Prepare a struct of model parameters
+model = struct();
+model.A = A;
+model.B = B;
+model.C = C;
+model.Ts = Ts;
+model.Q = Q;
+model.R = R;
+
 % Define steady-state Kalman
-KFFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS",x0);
+KFFSS = KalmanFilterPSS(model,"KFSS",x0_est);
 
 % Define dynamic Kalman filter
 KF_old = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF");
@@ -833,7 +998,7 @@ KFF.model.A(1, 1) = KFF.model.A(1, 1) + 0.1;
 assert(isequal(KFF_hcopy.model.A(1, 1), KFF.model.A(1, 1)))
 
 % Redefine steady-state Kalman
-KFFSS = KalmanFilterSS(A,B,C,Ts,Q,R,"KFSS",x0);
+KFFSS = KalmanFilterPSS(model,"KFSS",x0_est);
 
 % Redefine dynamic Kalman filter
 KF_old = KalmanFilter(A,B,C,Ts,P0,Q,R,"KF");

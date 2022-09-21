@@ -1,12 +1,12 @@
 % SISO system example from GEL-7029 in file Kalman_Filter.mlx
 
-G = tf(2,conv([10 1],[15 1]));
+Gc = tf(2,conv([10 1],[15 1]));
 Ts = 3;
-G = ss(c2d(G,Ts,'zoh'));
-A = G.a; 
-B = G.b;
-C = G.c;
-D = G.d;
+Gdss = ss(c2d(Gc,Ts,'zoh'));
+A = Gdss.a; 
+B = Gdss.b;
+C = Gdss.c;
+D = Gdss.d;
 
 % Dimensions
 n = size(A, 1); % number of states

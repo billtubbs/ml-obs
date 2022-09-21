@@ -78,8 +78,8 @@ classdef KalmanFilterPSS < AbstractLinearFilter
         % states and output at the next sample time:
         %         x_est(k+1|k)
         %         y_est(k+1|k)
-        %     given the current measurement y(k) and the 
-        %     current input u(k).
+        % given the current measurement y(k) and the current 
+        % input u(k).
         %
         % Arguments:
         %   yk : vector, size (ny, 1)

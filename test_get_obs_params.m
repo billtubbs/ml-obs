@@ -12,12 +12,9 @@ obs_rodin_step
 %% Test all fieldnames returned
 
 params = get_obs_params(KFSS1);
-assert(isequal(fieldnames(params), {'A', 'B', 'C', 'Q', 'R'}'))
-assert(isequal(params.A, KFSS1.A))
-assert(isequal(params.B, KFSS1.B))
-assert(isequal(params.C, KFSS1.C))
-assert(isequal(params.Q, KFSS1.Q))
-assert(isequal(params.R, KFSS1.R))
+assert(isequal(fieldnames(params), {'model', 'K'}'))
+assert(isequal(params.model, KFSS1.model))
+assert(isequal(params.K, KFSS1.K))
 
 params = get_obs_params(KF1);
 assert(isequal(fieldnames(params), {'model', 'P0'}'))
@@ -25,10 +22,8 @@ assert(isequal(params.model, KF1.model))
 assert(isequal(params.P0, KF1.P0))
 
 params = get_obs_params(LB1);
-assert(isequal(fieldnames(params), {'A', 'B', 'C', 'poles', 'K'}'))
-assert(isequal(params.A, LB1.A))
-assert(isequal(params.B, LB1.B))
-assert(isequal(params.C, LB1.C))
+assert(isequal(fieldnames(params), {'model', 'poles', 'K'}'))
+assert(isequal(params.model, LB1.model))
 assert(isequal(params.poles, LB1.poles))
 assert(isequal(params.K, LB1.K))
 

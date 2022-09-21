@@ -2,6 +2,8 @@
 
 clear all
 
+addpath("~/ml-plot-utils")
+
 seed = 0;
 rng(seed)
 
@@ -75,9 +77,7 @@ grid on
 
 ax3 = subplot(5,1,5);
 stairs(t,Gamma,'Linewidth',2)
-max_min = [min(min(Gamma)) max(max(Gamma))];
-bd = max([0.1 diff(max_min)*0.1]);
-ylim(max_min + [-bd bd])
+ylim(axes_limits_with_margin(Gamma, 0.1, [0 1]))
 xlabel('t')
 ylabel('gamma(k)')
 title('Model sequence')
@@ -96,10 +96,8 @@ assert(isequal(size(models{1}.Q), size(models{2}.Q)))
 assert(isequal(size(models{1}.R), size(models{2}.R)))
 
 % Standard Kalman filters
-KF1 = KalmanFilterF(models{1}.A,models{1}.B,models{1}.C,Ts,P0, ...
-    models{1}.Q,models{1}.R,'KF1',x0);
-KF2 = KalmanFilterF(models{2}.A,models{2}.B,models{2}.C,Ts,P0, ...
-    models{2}.Q,models{2}.R,'KF2',x0);
+KF1 = KalmanFilterF(models{1},P0,'KF1',x0);
+KF2 = KalmanFilterF(models{2},P0,'KF2',x0);
 
 % Define scheduled MKF filter
 % seq = Gamma';

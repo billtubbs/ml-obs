@@ -61,7 +61,7 @@ classdef MKFObserverSF_RODD < MKFObserverDI
     end
     methods
         function obj = MKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
-                sigma_wp,Q0,R,f,m,d,label,x0)
+                sigma_wp,Q0,R,f,m,d,label,x0,r0)
             arguments
                 model struct
                 u_meas (:, 1) logical
@@ -75,6 +75,7 @@ classdef MKFObserverSF_RODD < MKFObserverDI
                 d (1, 1) double {mustBeInteger}
                 label (1, 1) string = ""
                 x0 = []
+                r0 (:, 1) int16 {mustBeGreaterThan(r0, 0)} = 1
             end
 
             % Number of states
@@ -157,7 +158,7 @@ classdef MKFObserverSF_RODD < MKFObserverDI
             p_seq_g_Yk_init = ones(nh, 1) / nh;
 
             % Create MKF super-class observer instance
-            obj = obj@MKFObserverDI(models,P0,seq,T,d,label,x0, ...
+            obj = obj@MKFObserverDI(models,P0,seq,T,d,label,x0,r0, ...
                 p_seq_g_Yk_init,false)
 
             % Add additional variables used by RODD observer

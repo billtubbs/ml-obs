@@ -5,18 +5,21 @@
 % (i.e. with static gain).
 %
 % Arguments:
-%   A, B, C : matrices
-%       Discrete-time system model matrices.
-%   Ts : double
-%       Sampling period.
-%   Q : matrix, size (n, n)
-%       Process noise covariance.
-%   R : matrix, size (ny, ny)
-%       Output measurement noise covariance.
+%   model : struct
+%       Struct containing the parameters of a linear
+%       model of the system dynamics. These include: A, B, 
+%       and C for the system matrices, Q and R for the
+%       state error covariance and output measurement 
+%       noise covariance, and the sampling period, Ts.
 %   label : string (optional)
 %       Name.
 %   x0 : vector, size(n, 1), (optional)
-%       Initial state estimates.
+%       Initial state estimates at time k = 0.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
 %
 
 classdef KalmanFilterSS < AbstractLinearFilter
@@ -47,7 +50,8 @@ classdef KalmanFilterSS < AbstractLinearFilter
 
             % Compute the steady-state gain and error covariance matrix
             % This is the gain for the filtering form of the KF:
-            [obj.Kf, obj.P] = kalman_gain_ss(obj.A, obj.C, obj.Q, obj.R);
+            [Kf, obj.Pkp1] = kalman_gain_ss(obj.model.A, obj.model.C, obj.model.Q, obj.model.R);
+            obj.K = obj.model.A * Kf;
 
             if reset
                 % Initialize variables

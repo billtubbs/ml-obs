@@ -19,12 +19,12 @@ Du = D(:, u_meas);
 % Steady-state Luenberger observer 1
 % Specify poles of observer dynamics
 poles = [0.8; 0.8];
-LB1 = LuenbergerFilter(A,Bu,C,Ts,poles,'LB1');
+LB1 = LuenbergerFilter(model,poles,'LB1');
 
 % Steady-state Luenberger observer 2
 % Specify poles of observer dynamics
 poles = [0.6; 0.6];
-LB2 = LuenbergerFilter(A,Bu,C,Ts,poles,'LB2');
+LB2 = LuenbergerFilter(model,poles,'LB2');
 
 % Specify covariance for state variable 1
 % This is used by all observers
@@ -58,12 +58,10 @@ model3 = models{1};  % makes copy
 model3.Q = Q3;
 
 % Steady-state Kalman filter 1 - tuned to sigma_wp(1)
-R = sigma_M^2;
-KFSS1 = KalmanFilterSS(A,Bu,C,Ts,Q1,R,'KFSS1');
+KFSS1 = KalmanFilterPSS(models{1},'KFSS1');
 
 % Steady-state Kalman filter 2 - tuned to sigma_wp(2)
-R = sigma_M^2;
-KFSS2 = KalmanFilterSS(A,Bu,C,Ts,Q2,R,'KFSS2');
+KFSS2 = KalmanFilterPSS(models{2},'KFSS2');
 
 % Kalman filter 1 - tuned to sigma_wp(1)
 P0 = 1000*eye(n);
