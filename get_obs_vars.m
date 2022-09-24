@@ -7,10 +7,23 @@ function vars = get_obs_vars(obs)
 % TODO: Write a test script for set_obs_vars and get_obs_vars
     switch(obs.type)
 
-        case {"KFSS", "LB"}  % Steady-state filters
+        case {"KFPSS", "LB"}  % Steady-state filters
 
             % Get variables
             vars.xkp1_est = obs.xkp1_est;
+            vars.ykp1_est = obs.ykp1_est;
+
+        case {"KFFSS"}  % Steady-state filters
+
+            % Get variables
+            vars.xkp1_est = obs.xkp1_est;
+
+        case {"KFP"}  % Kalman filter prediction
+
+            % Get variables
+            vars.xkp1_est = obs.xkp1_est;
+            vars.ykp1_est = obs.ykp1_est;
+            vars.Pkp1 = obs.Pkp1;
 
         case {"KFF", "SKF", "SKF_S"}  % Kalman filter and switching KF
 

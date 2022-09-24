@@ -1,4 +1,11 @@
-% Test make_data_vectors.m and unpack_data_vectors.m
+% Test the following functions used to run observers
+% in Simulink
+% 
+%  - get_obs_vars.m
+%  - make_data_vectors.m
+%  - unpack_data_vectors.m
+%
+
 
 %% Test make_data_vectors
 
@@ -103,7 +110,66 @@ assert(isequal(vdata.types, {'uint8', 'uint8', 'uint8'}))
 assert(isequal(vdata.dims, {[1 1], [2 1], [2 3]}))
 
 
-%% Test with Kalman filter object
+%% Test get_obs_vars.m and get_obs_vars_vecs.m
+
+% Load system and disturbance model from file
+sys_rodin_step
+
+% Load observers from file
+obs_rodin_step
+
+vars = get_obs_vars(KF1);
+assert(isequal(fieldnames(vars), {'xkp1_est', 'Pkp1'}'))
+assert(isequal(vars.xkp1_est, KF1.xkp1_est))
+assert(isequal(vars.Pkp1, KF1.Pkp1))
+vars_vecs = get_obs_vars_vecs(KF1);
+assert(isequal(vars_vecs, [KF1.xkp1_est' KF1.Pkp1(:)']))
+
+vars = get_obs_vars(KFPSS1);
+assert(isequal(fieldnames(vars), {'xkp1_est', 'ykp1_est'}'))
+assert(isequal(vars.xkp1_est, KFPSS1.xkp1_est))
+assert(isequal(vars.ykp1_est, KFPSS1.ykp1_est))
+vars_vecs = get_obs_vars_vecs(KFPSS1);
+assert(isequal(vars_vecs, [KF1.xkp1_est' KF1.ykp1_est']))
+
+vars = get_obs_vars(LB1);
+assert(isequal(fieldnames(vars), {'xkp1_est', 'ykp1_est'}'))
+assert(isequal(vars.xkp1_est, LB1.xkp1_est))
+assert(isequal(vars.ykp1_est, LB1.ykp1_est))
+vars_vecs = get_obs_vars_vecs(LB1);
+assert(isequal(vars_vecs, [LB1.xkp1_est' LB1.ykp1_est']))
+
+vars = get_obs_vars(MKF_SF1);
+assert(isequal(fieldnames(vars), {'xkp1_est', 'Pkp1', 'p_seq_g_Yk', ...
+    'xkp1_est_f', 'Pkp1_f', 'int16'}'))
+assert(isequal(vars.xkp1_est, MKF_SF1.xkp1_est))
+assert(isequal(vars.Pkp1, MKF_SF1.Pkp1))
+assert(isequal(vars.p_seq_g_Yk, MKF_SF1.p_seq_g_Yk))
+assert(isequal(vars.xkp1_est_f, MKF_SF1.filters.Xkp1_est))
+assert(isequal(vars.Pkp1_f, MKF_SF1.filters.Pkp1))
+assert(isequal(fieldnames(vars.int16), {'rk', 'i', 'i_next', 'i2', 'i2_next', 'seq'}'))
+assert(isequal(vars.int16.rk, MKF_SF1.rk))
+assert(isequal(vars.int16.i, MKF_SF1.i))
+assert(isequal(vars.int16.i_next, MKF_SF1.i_next))
+assert(isequal(vars.int16.i2, MKF_SF1.i2))
+assert(isequal(vars.int16.i2_next, MKF_SF1.i2_next))
+assert(isequal(vars.int16.seq, MKF_SF1.seq))
+
+vars = get_obs_vars(MKF_SP1);
+assert(isequal(fieldnames(vars), {'xkp1_est', 'Pkp1', 'p_seq_g_Yk', ...
+    'xkp1_est_f', 'Pkp1_f', 'int16'}'))
+assert(isequal(vars.xkp1_est, MKF_SP1.xkp1_est))
+assert(isequal(vars.Pkp1, MKF_SP1.Pkp1))
+assert(isequal(vars.p_seq_g_Yk, MKF_SP1.p_seq_g_Yk))
+assert(isequal(vars.xkp1_est_f, MKF_SP1.filters.Xkp1_est))
+assert(isequal(vars.Pkp1_f, MKF_SP1.filters.Pkp1))
+assert(isequal(fieldnames(vars.int16), {'rk', 'f_main', 'f_hold'}'))
+assert(isequal(vars.int16.rk, MKF_SP1.rk))
+assert(isequal(vars.int16.f_main, MKF_SP1.f_main))
+assert(isequal(vars.int16.f_hold, MKF_SP1.f_hold))
+
+
+%% Test in simulation with Kalman filter object
 
 % Load system and disturbance model from file
 sys_rodin_step

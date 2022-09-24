@@ -11,10 +11,10 @@ obs_rodin_step
 
 %% Test all fieldnames returned
 
-params = get_obs_params(KFSS1);
+params = get_obs_params(KFPSS1);
 assert(isequal(fieldnames(params), {'model', 'K'}'))
-assert(isequal(params.model, KFSS1.model))
-assert(isequal(params.K, KFSS1.K))
+assert(isequal(params.model, KFPSS1.model))
+assert(isequal(params.K, KFPSS1.K))
 
 params = get_obs_params(KF1);
 assert(isequal(fieldnames(params), {'model', 'P0'}'))

@@ -36,21 +36,38 @@ inputs.U = [t U];
 inputs.V = [t V];
 inputs.Wp = [t Wp];
 
-% Steady-state Kalman filter
+% Observer model without disturbance noise input
+Bu = B(:, u_meas);
+Bw = B(:, ~u_meas);
+Du = D(:, u_meas);
+
+% Steady-state Kalman filters
 Q = diag([0.01^2 0.1^2]);
 R = 0.1^2;
 obs_model = model;
+obs_model.B = Bu;
+obs_model.D = Du;
 obs_model.Q = Q;
 obs_model.R = R;
 Bu = B(:,1);  % observer model without unmeasured inputs
 Du = D(:,1);
-KFSS = KalmanFilterPSS(obs_model,'KFSS');
 
-% Kalman filter with time-varying gain
+% Prediction form
+KFPSS = KalmanFilterPSS(obs_model,'KFPSS');
+
+% Filtering form
+KFFSS = KalmanFilterFSS(obs_model,'KFFSS');
+
+% Dynamic Kalman filters
 P0 = eye(n);
-KF1 = KalmanFilterF(obs_model,P0,'KF1');
 
-% % Define multi-model filter 1
+% Prediction form
+KFP = KalmanFilterP(obs_model,P0,'KFP');
+
+% Filtering form
+KFF = KalmanFilterF(obs_model,P0,'KFF');
+
+% Multi-model filter - sequence fusion
 % P0 = eye(n);
 % Q0 = diag([0.01^2 0]);
 % R = 0.1^2;
@@ -60,7 +77,7 @@ KF1 = KalmanFilterF(obs_model,P0,'KF1');
 % MKF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,'MKF1');
 
-% Define multi-model filter 2
+% Multi-model - sequence pruning
 P0 = eye(n);
 Q0 = diag([0.01^2 0]);
 R = 0.1^2;

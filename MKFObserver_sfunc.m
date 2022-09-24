@@ -1,6 +1,8 @@
 function MKFObserver_sfunc(block)
 %% Simulate a process observer in Simulink
 %
+% This is a general purpose S-function for simulating different
+% classes of process observers.
 %
 
 setup(block);
@@ -43,13 +45,13 @@ block.InputPort(2).Complexity = 'Real';
 block.InputPort(2).DirectFeedthrough = false;
 block.InputPort(2).SamplingMode = 'Sample';
 
-% Output 1: x_est(k);
+% Output 1: x_est(k|k);
 block.OutputPort(1).Dimensions = obs.n;
 block.OutputPort(1).DatatypeID = 0; % double
 block.OutputPort(1).Complexity = 'Real';
 block.OutputPort(1).SamplingMode = 'Sample';
 
-% Output 2: y_est(k)
+% Output 2: y_est(k|k)
 block.OutputPort(2).Dimensions = obs.ny;
 block.OutputPort(2).DatatypeID = 0; % double
 block.OutputPort(2).Complexity = 'Real';
@@ -107,7 +109,7 @@ obs = block.DialogPrm(1).Data;
 
 switch obs.type
 
-    case {'KFSS', 'KFF', 'LB'}  % observers with only double vars
+    case {'KFFSS', 'KFF', 'LB'}  % observers with only double vars
 
         % Make data vectors containing all variables
         vec_double = get_obs_vars_vecs(obs);
@@ -166,7 +168,7 @@ obs = block.DialogPrm(1).Data;
 
 switch obs.type
     
-    case {'KFSS', 'KFF', 'LB'}  % observers with only double vars
+    case {'KFFSS', 'KFF', 'LB'}  % observers with only double vars
 
         % Get data vectors containing all variables
         vec_double = get_obs_vars_vecs(obs);
@@ -220,7 +222,7 @@ obs = block.DialogPrm(1).Data;
 
 switch obs.type
 
-    case {'KFSS', 'KFF', 'LB'}  % observers with only double vars
+    case {'KFFSS', 'KFF', 'LB'}  % observers with only double vars
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
@@ -268,7 +270,7 @@ assert(isequal(size(yk), [obs.ny 1]))
 
 switch obs.type
 
-    case {'KF', 'KFSS', 'LB'}
+    case {'KFFSS', 'KFF', 'LB'}
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;

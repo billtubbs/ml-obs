@@ -58,10 +58,10 @@ model3 = models{1};  % makes copy
 model3.Q = Q3;
 
 % Steady-state Kalman filter 1 - tuned to sigma_wp(1)
-KFSS1 = KalmanFilterPSS(models{1},'KFSS1');
+KFPSS1 = KalmanFilterPSS(models{1},'KFSS1');
 
 % Steady-state Kalman filter 2 - tuned to sigma_wp(2)
-KFSS2 = KalmanFilterPSS(models{2},'KFSS2');
+KFPSS2 = KalmanFilterPSS(models{2},'KFSS2');
 
 % Kalman filter 1 - tuned to sigma_wp(1)
 P0 = 1000*eye(n);
@@ -139,4 +139,4 @@ MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
 % TODO: Restore
 % observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SF1, MKF_SF2, ...
 %     MKF3, MKF_SF95, MKF_SP1, MKF_SP2};
-observers = {LB1, LB2, KFSS1, KFSS2, KF1, KF2, KF3, MKF_SP1, MKF_SP2};
+observers = {LB1, LB2, KFPSS1, KFPSS2, KF1, KF2, KF3, MKF_SP1, MKF_SP2};

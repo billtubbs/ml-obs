@@ -24,7 +24,7 @@ vars = get_obs_vars(obs);
 
 switch obs.type
 
-    case {"KFSS", "LB"}  % steady-state filters
+    case {"KFPSS", "LB"}  % steady-state filters
 
         vars_double = {vars.xkp1_est, vars.ykp1_est};
 
@@ -32,20 +32,26 @@ switch obs.type
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
-    case "KFF"  % standard Kalman filter
+    case "KFP"  % Kalman filter - prediction form
 
-        vars_double = {vars.xkp1_est, vars.ykp1_est, vars.Pk};
+        vars_double = {vars.xkp1_est, vars.ykp1_est, vars.Pkp1};
 
         % Convert dynamic variables to vectors
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
-    case {"MKF_SF", "MKF_SF95", "MKF_SF98", "MKF_SP"}  % multi-model Kalman filters
+    case "KFF"  % Kalman filter - filtering form
 
-        vars_double = {vars.xkp1_est, vars.ykp1_est, vars.p_seq_g_Yk, ...
-            vars.xkp1_est_f, vars.ykp1_est_f, vars.P_f};
+        vars_double = {vars.xkp1_est, vars.Pkp1};
 
-        vars.rk, 
+        % Convert dynamic variables to vectors
+        vdata = make_data_vectors(vars_double);
+        varargout{1} = cell2mat(vdata.vecs);
+
+    case {"MKF_SF", "MKF_SP", "MKF_SF_RODD95", "MKF_SF_RODD98"}  % multi-model Kalman filters
+
+        vars_double = {vars.xkp1_est, vars.Pkp1, vars.p_seq_g_Yk, ...
+            vars.xkp1_est_f, vars.Pkp1_f};
 
         % Convert dynamic variables to vectors
         vdata = make_data_vectors(vars_double);
