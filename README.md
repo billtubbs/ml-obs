@@ -1,6 +1,6 @@
 # process-observers
 
-MATLAB scripts for simulating [process observers](https://en.wikipedia.org/wiki/State_observer) for online state estimation, including multiple-model observers suitable for estimating process with *infrequently-occuring*, *abrupt*, *unmeasured disturbances*.  
+MATLAB scripts for simulating [process observers](https://en.wikipedia.org/wiki/State_observer) for online state estimation, including switching systems, multiple-model observers and specialised observers for estimating the states of processes with *infrequently-occuring*, *abrupt*, *unmeasured disturbances*.
 
 The observers are implemented as MATLAB objects (classes) with similar arguments, properties and methods. They are intended to be used for research purposes to evaluate and compare the behaviour of different multi-model observer algorithms.
 
@@ -75,8 +75,8 @@ The observer objects can also be included in Simulink models using custom blocks
 
 Basic observers:
 - [LuenbergerFilter.m](LuenbergerFilter.m) - Luenberger observer (with static correction gain) [[2]](#2).
-- [KalmanFilterPSS.m](KalmanFilterP.m) - steady-state Kalman filter [[1]](#1) (with static correction gain) - prediction form.
-- [KalmanFilterFSS.m](KalmanFilterP.m) - steady-state Kalman filter (with static correction gain) - filtering form.
+- [KalmanFilterPSS.m](KalmanFilterPSS.m) - steady-state Kalman filter [[1]](#1) (with static correction gain) - prediction form.
+- [KalmanFilterFSS.m](KalmanFilterFSS.m) - steady-state Kalman filter (with static correction gain) - filtering form.
 - [KalmanFilterP.m](KalmanFilterP.m) - Kalman filter - prediction form.
 - [KalmanFilterF.m](KalmanFilterF.m) - Kalman filter - filtering form.
 
