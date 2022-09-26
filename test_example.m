@@ -1,7 +1,5 @@
 % Test Minimal example used in ReadMe
 
-%TODO: Need to replace KalmanFilter with new KalmanFilterF
-
 clear all
 
 % Known inputs
@@ -23,29 +21,21 @@ Ts = 0.5;
 Gpd = tf(0.3, [1 -0.7], Ts);
 
 % State-space representation of above process model
-A = 0.7;
-B = 1;
-C = 0.3;
-D = 0;
-
-% Kalman filter parameters
-P0 = 1;  % estimated variance of the initial state estimate
-Q = 0.01;  % estimated process noise variance
-R = 0.5^2;  % estimated measurement noise variance
-KF1 = KalmanFilter(A,B,C,Ts,P0,Q,R,'KF1');
-
-% Above to be replaced with:
-
-% State-space representation of above process model
 model.A = 0.7;
 model.B = 1;
 model.C = 0.3;
 model.Ts = Ts;
+[n, nu, ny] = check_model(model);
 
 % Kalman filter parameters
 P0 = 1;  % estimated variance of the initial state estimate
 model.Q = 0.01;  % estimated process noise variance
 model.R = 0.5^2;  % estimated measurement noise variance
+
+% Kalman filter 1 - prediction form
+KF1 = KalmanFilterP(model,P0,'KF1');
+
+% Kalman filter 2 - filtering form
 KF2 = KalmanFilterF(model,P0,'KF2');
 
 
@@ -53,35 +43,43 @@ KF2 = KalmanFilterF(model,P0,'KF2');
 
 % Number of sample periods
 nT = size(Ym, 1) - 1;
-% Array to store observer estimates
+% Arrays to store observer estimates
+Xk_est = nan(nT+1, n);
 Yk_est = nan(nT+1, 1);
+Xkp1_est = nan(nT+1, n);
 Ykp1_est = nan(nT+1, 1);
+
 % Save initial estimate (at t=0)
+Xkp1_est(1,:) = KF1.xkp1_est';
 Ykp1_est(1,:) = KF1.ykp1_est;
 for i = 1:nT
 
-    % Update observer with measurements
+    % Update observers with measurements
     KF1.update(Ym(i), U(i));
     KF2.update(Ym(i), U(i));
 
-    % Get estimate of output at next sample time
-    Ykp1_est(i+1,:) = KF2.ykp1_est;
-    Yk_est(i,:) = KF2.yk_est;
+    % Prediction of states and outputs at next sample time
+    Xkp1_est(i+1,:) = KF1.xkp1_est';
+    Ykp1_est(i+1,:) = KF1.ykp1_est;
 
-    % Check results identical
+    % Check preedictions are identical
     assert(abs(KF1.xkp1_est - KF2.xkp1_est) < 1e-14)
     assert(abs(KF1.Pkp1 - KF2.Pkp1) < 1e-14)
+
+    % Estimate of states and output at current time
+    Xk_est(i,:) = KF2.xk_est;
+    Yk_est(i,:) = KF2.yk_est;
 
 end
 
 % Check results
 
-% Y_est_test = [
-%          0    0.1876    0.2997    0.3680    0.5749    0.7048    0.7832 ...
-%     0.8460    0.8933    0.9359    0.9625    0.9702    0.9866    0.9924 ...
-%     0.9944    0.9978    0.9979    0.9982    1.0024    1.0051    1.0070 ...
-% ]';
-% assert(isequal(round(Ykp1_est, 4), Y_est_test))
+Ykp1_est_test = [
+         0    0.0498    0.1063    0.3245    0.5359    0.6769    0.7679 ...
+    0.8360    0.8862    0.9298    0.9578    0.9671    0.9844    0.9908 ...
+    0.9933    0.9970    0.9974    0.9979    1.0021    1.0049    1.0068 ...
+]';
+assert(isequal(round(Ykp1_est, 4), Ykp1_est_test))
 
 Yk_est_test = [
     0.0712    0.1518    0.0350    0.3370    0.5384    0.6685    0.7658 ...
@@ -94,9 +92,9 @@ assert(isequaln(round(Yk_est, 4), Yk_est_test))
 
 % figure(1)
 % t = Ts*(0:nT)';
-% plot(t,Ym,'o',t,Ykp1_est,'o-',t,Yk_est,'-')
+% plot(t,Ym,'o',t,Ykp1_est,'.-',t,Yk_est,'.-')
 % grid on
 % xlabel('Time')
 % ylabel('Process output')
-% legend('Ym','Ypred','Yest')
+% legend('y(k)','y(k+1) prediction','y(k) estimate')
 % title("Observer estimates compared to process measurements")
