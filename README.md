@@ -86,6 +86,7 @@ Observers with switching system models:
 
 General multi-model observers:
 - [MKFObserver.m](MKFObserver.m) - multi-model Kalman filter observer.
+- [MKFObserverS.m](MKFObserverS.m) - multi-model Kalman filter observer with a pre-determined mode sequence.
 - [MKFObserverGPB1.m](MKFObserverGPB1.m) - sub-optimal multi-model observer using the first-order generalised pseudo-Bayesian algorithm. [[5]](#5), [[6]](#6).
 - [MKFObserverGPB2.m](MKFObserverGPB2.m) - sub-optimal multi-model observer using the second-order generalised pseudo-Bayesian algorithm. [[5]](#5), [[6]](#6).
 - [MKFObserverSF.m](MKFObserverSF.m) - sub-optimal multi-model observer with sequence fusion algorithm.
@@ -93,6 +94,7 @@ General multi-model observers:
 
 Specialised observers for disturbance estimation:
 - [MKFObserverSF_RODD.m](MKFObserverSF_RODD.m) - multi-model observer for state estimation in the presence of *randomly-occurring deterministic disturbances* (RODDs) as described in Robertson et al. [[3]](#3).
+- [MKFObserverSF_RODD95.m](MKFObserverSF_RODD95.m) - multi-model observer for state estimation in the presence of *randomly-occurring deterministic disturbances* (RODDs) as described in Robertson and Lee [[8]](#8).
 - [MKFObserverSP_RODD.m](MKFObserverSP_RODD.m) - multi-model observer for state estimation in the presence of *infreuently-occurring disturbances* with an adaptive sequence pruning multiple model algorithm described in Eriksson and Isaksson [[4]](#4).
 
 There are also extended Kalman filter (EKF) versions — *these are currently still under development and not fully tested*:
@@ -253,3 +255,5 @@ A comprehensive set of unit test scripts are included.  You can run all the test
 <a id="6">[6]</a> Buxbaum, P. J.; Haddad, R. A. (1969). Recursive Optimal Estimation for a Class of Non-Gaussian Processes. In Proceedings of the symposium on computer processing in communications; Polytechnic Press: New York, NY, USA, pp 375–399.
 
 <a id="7">[7]</a> Andersson, P. (1985). Adaptive Forgetting in Recursive Identification through Multiple Models†. International Journal of Control, 42 (5), 1175–1193. https://doi.org/10.1080/00207178508933420.
+
+<a id="8">[8]</a> Robertson, D. G.; Lee, J. H. (1998). A Method for the Estimation of Infrequent Abrupt Changes in Nonlinear Systems. Automatica, 34 (2), 261–270. https://doi.org/10.1016/S0005-1098(97)00192-1.
