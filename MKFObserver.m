@@ -302,7 +302,7 @@ classdef MKFObserver < matlab.mixin.Copyable
 
         end
         function update(obj, yk, uk, rk, rkm1)
-        % obj.update(yk, uk, rk)
+        % obj.update(yk, uk, rk, rkm1)
         % updates the estimates of the multi-model Kalman filter
         % and calculates the predictions of the states and output
         % at the next sample time.

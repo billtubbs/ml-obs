@@ -3,8 +3,8 @@
 %
 
 clear all
-show_plots = true;
-%show_plots = false;
+%show_plots = true;
+show_plots = false;
 
 % Generate randomly-occurring shocks
 % Reset random number generator

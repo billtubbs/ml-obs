@@ -1,4 +1,4 @@
-function KalmanFilterF_sfunc(block)
+function KalmanFilterP_sfunc(block)
 %% Simulate a Kalman filter in Simulink
 %
 % This version is for the KalmanFilterP class, which is the
@@ -205,7 +205,7 @@ yk = block.InputPort(2).Data;
 % Variables from memory
 xkp1_est = block.Dwork(1).Data;
 ykp1_est = block.Dwork(2).Data;
-Pkp1 = reshape(block.Dwork(2).Data, [obs.n obs.n]);
+Pkp1 = reshape(block.Dwork(3).Data, [obs.n obs.n]);
 
 % Get observer object
 obs = block.DialogPrm(1).Data;
@@ -213,7 +213,7 @@ obs = block.DialogPrm(1).Data;
 % Update variables from Simulink memory
 obs.xkp1_est = xkp1_est;
 obs.ykp1_est = ykp1_est;
-obs.Pkp1 = reshape(Pkp1, obs.n, obs,n);
+obs.Pkp1 = reshape(Pkp1, obs.n, obs.n);
 
 % Kalman filter update
 obs.update(yk, uk);

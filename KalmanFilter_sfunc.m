@@ -125,7 +125,7 @@ block.Dwork(2).Complexity      = 'Real'; % real
 block.Dwork(2).UsedAsDiscState = true;
 
 % Dynamic estimate covariance matrix: P
-block.Dwork(3).Name            = 'P';
+block.Dwork(3).Name            = 'Pkp1';
 block.Dwork(3).Dimensions      = obs.n*obs.n;
 block.Dwork(3).DatatypeID      = 0;      % double
 block.Dwork(3).Complexity      = 'Real'; % real
@@ -205,19 +205,19 @@ yk = block.InputPort(2).Data;
 % Variables from memory
 xkp1_est = block.Dwork(1).Data;
 ykp1_est = block.Dwork(2).Data;
-P = reshape(block.Dwork(3).Data, [obs.n obs.n]);
+Pkp1 = reshape(block.Dwork(3).Data, [obs.n obs.n]);
 
 % Calculate Kalman filter updates
-[K, P] = kalman_update(P, obs.A, obs.C, obs.Q, obs.R);
+[K, Pkp1] = kalman_update(Pkp1, obs.model.A, obs.model.C, obs.model.Q, obs.model.R);
 
 % Update state and output estimates for next timestep
-xkp1_est = obs.A * xkp1_est + obs.B * uk + K * (yk - ykp1_est);
-ykp1_est = obs.C * xkp1_est;
+xkp1_est = obs.model.A * xkp1_est + obs.model.B * uk + K * (yk - ykp1_est);
+ykp1_est = obs.model.C * xkp1_est;
 
 % Save updated variables as row vectors
 block.Dwork(1).Data = xkp1_est;
 block.Dwork(2).Data = ykp1_est;
-block.Dwork(3).Data = P(:);
+block.Dwork(3).Data = Pkp1(:);
 
 %end Update
 

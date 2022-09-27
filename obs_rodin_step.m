@@ -57,11 +57,17 @@ models{2}.R = R;
 model3 = models{1};  % makes copy
 model3.Q = Q3;
 
-% Steady-state Kalman filter 1 - tuned to sigma_wp(1)
-KFPSS1 = KalmanFilterPSS(models{1},'KFSS1');
+% Steady-state Kalman filter 1 - prediction form - tuned to sigma_wp(1)
+KFPSS1 = KalmanFilterPSS(models{1},'KFPSS1');
 
-% Steady-state Kalman filter 2 - tuned to sigma_wp(2)
-KFPSS2 = KalmanFilterPSS(models{2},'KFSS2');
+% Steady-state Kalman filter 2 - prediction form - tuned to sigma_wp(2)
+KFPSS2 = KalmanFilterPSS(models{2},'KFPSS2');
+
+% Steady-state Kalman filter 1 - filtering form - tuned to sigma_wp(1)
+KFFSS1 = KalmanFilterFSS(models{1},'KFFSS1');
+
+% Steady-state Kalman filter 2 - filtering form  - tuned to sigma_wp(2)
+KFFSS2 = KalmanFilterFSS(models{2},'KFFSS2');
 
 % Kalman filter 1 - tuned to sigma_wp(1)
 P0 = 1000*eye(n);
@@ -74,6 +80,10 @@ KF2 = KalmanFilterF(models{2},P0,'KF2');
 % Kalman filter 3 - manually tuned
 P0 = 1000*eye(n);
 KF3 = KalmanFilterF(model3,P0,'KF3');
+
+% Kalman filter 3 - prediction form - manually tuned
+P0 = 1000*eye(n);
+KFP3 = KalmanFilterP(model3,P0,'KFP3');
 
 % TODO: Not working yet
 % Multiple model observer with sequence fusion #1

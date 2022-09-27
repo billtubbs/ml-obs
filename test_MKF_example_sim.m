@@ -67,17 +67,18 @@ KFP = KalmanFilterP(obs_model,P0,'KFP');
 % Filtering form
 KFF = KalmanFilterF(obs_model,P0,'KFF');
 
-% Multi-model filter - sequence fusion
-% P0 = eye(n);
-% Q0 = diag([0.01^2 0]);
-% R = 0.1^2;
-% f = 15;  % fusion horizon
-% m = 1;  % maximum number of shocks
-% d = 3;  % spacing parameter
-% MKF1 = MKFObserverSF(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-%     Q0,R,f,m,d,'MKF1');
+% Multi-model observer - sequence fusion
+% TODO: This is not currently working
+P0 = eye(n);
+Q0 = diag([0.01^2 0]);
+R = 0.1^2;
+f = 15;  % fusion horizon
+m = 1;  % maximum number of shocks
+d = 3;  % spacing parameter
+MKF1 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+    Q0,R,f,m,d,'MKF1');
 
-% Multi-model - sequence pruning
+% Multi-model observer - sequence pruning
 P0 = eye(n);
 Q0 = diag([0.01^2 0]);
 R = 0.1^2;
@@ -90,11 +91,12 @@ fprintf("Running Simulink simulation...\n")
 sim_out = sim(sim_model, 'StopTime', string(nT*Ts), ...
     'ReturnWorkspaceOutputs', 'on');
 
-% Check both Kalman filter state estimates are the same
-assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KFSS.Data), [], [1 2]) < 1e-6)
+% Check built-in Simulink Kalman filter block estimates are same as
+% steady-state Matlab observer object
+assert(max(abs(sim_out.X_hat_KF.Data - sim_out.X_hat_KFPSS.Data), [], [1 2]) < 1e-12)
 
 % Check Kalman filter estimates are close to true system states
-assert(mean(abs(sim_out.X_hat_KFSS.Data - sim_out.X.Data), [1 2]) < 0.5)
+assert(mean(abs(sim_out.X_hat_KFPSS.Data - sim_out.X.Data), [1 2]) < 0.25)
 
 % Load simulation results produced by test_MKF_example.m
 % Save results - these are used by test_MKF_example_sim.m
@@ -108,10 +110,21 @@ sim_results = readtable(fullfile(results_dir, filename));
 % - Xk_est_MKF1, Yk_est_MKF1
 % - Xk_est_MKF2, Yk_est_MKF2
 
-% Check all Simulink observer estimates are same as MATLAB estimates
-assert(max(abs(sim_out.X_hat_KFSS.Data - sim_results{:, {'Xk_est_KFSS_1', 'Xk_est_KFSS_2'}}), [], [1 2]) < 1e-12)
-assert(max(abs(sim_out.X_hat_KF1.Data - sim_results{:, {'Xk_est_KF1_1', 'Xk_est_KF1_2'}}), [], [1 2]) < 1e-12)
-assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results{:, {'Xk_est_MKF1_1', 'Xk_est_MKF1_2'}}), [], [1 2]) < 1e-12)
+% Check all Simulink observer estimates are same as simulation results
+% from file
+
+% Steady-state Kalman filter - prediction form
+assert(max(abs(sim_out.X_hat_KFPSS.Data - ...
+    sim_results{:, {'Xk_est_KFSS_1', 'Xk_est_KFSS_2'}}), [], [1 2]) < 1e-12)
+
+% Dynamic Kalman filter - prediction form
+assert(max(abs(sim_out.X_hat_KFP.Data - sim_results{:, {'Xk_est_KF1_1', 'Xk_est_KF1_2'}}), [], [1 2]) < 1e-12)
+
+% Multiple-model observer - SF
+%assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results{:, {'Xk_est_MKF1_1', 'Xk_est_MKF1_2'}}), [], [1 2]) < 1e-12)
+
+% Multiple-model observer - SP
+%TODO: Estimates seem to be the same but one step ahead
 assert(max(abs(sim_out.X_hat_MKF2.Data - sim_results{:, {'Xk_est_MKF2_1', 'Xk_est_MKF2_2'}}), [], [1 2]) < 1e-12)
 
 %disp("Simulations complete")

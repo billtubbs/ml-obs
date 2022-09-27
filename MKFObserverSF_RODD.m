@@ -5,7 +5,7 @@
 % deterministic disturbances (RODDs) as described in 
 % Robertson et al. (1995, 1998).
 %
-% obs = MKFObserverSF_RODDMKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
+% obs = MKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
 %     sigma_wp,Q0,R,f,m,d,label,x0)
 %
 % Arguments:

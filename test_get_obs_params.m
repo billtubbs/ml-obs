@@ -16,6 +16,11 @@ assert(isequal(fieldnames(params), {'model', 'K'}'))
 assert(isequal(params.model, KFPSS1.model))
 assert(isequal(params.K, KFPSS1.K))
 
+params = get_obs_params(KFFSS1);
+assert(isequal(fieldnames(params), {'model', 'Kf'}'))
+assert(isequal(params.model, KFFSS1.model))
+assert(isequal(params.Kf, KFFSS1.Kf))
+
 params = get_obs_params(KF1);
 assert(isequal(fieldnames(params), {'model', 'P0'}'))
 assert(isequal(params.model, KF1.model))
@@ -27,10 +32,7 @@ assert(isequal(params.model, LB1.model))
 assert(isequal(params.poles, LB1.poles))
 assert(isequal(params.K, LB1.K))
 
-nT = 100;
-t = Ts*(0:nT)';
-
-% Define a scheduled Kalman filter
+% Define a switching Kalman filter
 P0 = 1000*eye(n);
 Q1 = diag([Q0(1,1) sigma_wp(1,1)^2]);
 Q2 = diag([Q0(1,1) sigma_wp(1,2)^2]);
@@ -42,12 +44,26 @@ models{1}.Q = Q1;
 models{2}.Q = Q2;
 models{1}.R = R;
 models{2}.R = R;
-seq = {zeros(1, nT+1)};
-seq{1}(t == 10) = 1;
-SKF1 = SKFObserverS(models,P0,seq{1},"SKF1");
-
+SKF1 = SKFObserver(models,P0,"SKF1");
 params = get_obs_params(SKF1);
 assert(isequal(fieldnames(params), {'models', 'P0', 'nj'}'))
+assert(isequal(params.models, SKF1.models))
+assert(isequal(params.P0, SKF1.P0))
+assert(isequal(params.nj, SKF1.nj))
+
+% Simulation parameters
+nT = 100;
+t = Ts*(0:nT)';
+
+% Define a switching Kalman filter with sequence
+seq = {zeros(1, nT+1)};
+seq{1}(t == 10) = 1;
+SKF2 = SKFObserverS(models,P0,seq{1},"SKF2");
+params = get_obs_params(SKF2);
+assert(isequal(fieldnames(params), {'models', 'P0', 'nj'}'))
+assert(isequal(params.models, SKF2.models))
+assert(isequal(params.P0, SKF2.P0))
+assert(isequal(params.nj, SKF2.nj))
 
 % TODO: test other types of MKF
 % params = get_obs_params(MKF3);
