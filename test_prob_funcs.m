@@ -6,6 +6,7 @@
 %  - prob_gamma_given_w.m
 %  - n_filters.m
 %  - seq_prob.m
+%  - prob_gamma.m
 %
 
 clear all
@@ -154,8 +155,6 @@ assert(isequal(prob_rk([2; 2], epsilon), [0.015; 0.02]))
 assert(isequal(prob_rk([3; 3], epsilon), [0.005; 0.01]))
 assert(isequal(prob_rk([1 1 2 3; 3 2 1 1], epsilon), ...
     [0.98 0.98 0.015 0.005; 0.01 0.02 0.97 0.97]))
-
-
 
 
 %% Test n_filters.m and seq_prob.m

@@ -1,4 +1,9 @@
-% Test check_model.m, check_models.m, and check_dimensions
+% Test model parameter-checking functions
+% 
+%  - check_dimensions.m
+%  - check_model.m
+%  - check_models.m
+%
 
 clear all
 rng(0)
