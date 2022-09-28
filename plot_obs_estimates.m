@@ -19,7 +19,9 @@ function plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels,intp)
         y_label = sprintf("$y_%d(k)$", i);
         ylabel(y_label,'Interpreter',intp)
         title(strjoin(["Output" y_label]),'Interpreter',intp)
-        legend([obs_labels {'true'}],'Interpreter',intp)
+        if nargin > 5
+            legend([obs_labels {'true'}],'Interpreter',intp)
+        end
         grid on
     end
 
@@ -33,7 +35,9 @@ function plot_obs_estimates(t,X,X_est,Y,Y_est,obs_labels,intp)
         ylim(max_min + [-bd bd])
         y_label = sprintf("$x_%d(k)$", i);
         ylabel(y_label,'Interpreter',intp)
-        legend([obs_labels {'true'}],'Interpreter',intp)
+        if nargin > 5
+            legend([obs_labels {'true'}],'Interpreter',intp)
+        end
         title(strjoin(['State' y_label]),'Interpreter',intp)
         grid on
     end
