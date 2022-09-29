@@ -31,11 +31,23 @@ function vars = get_obs_vars(obs)
             vars.xkp1_est = obs.xkp1_est;
             vars.Pkp1 = obs.Pkp1;
 
-        case {"MKF_DI", "MKF_SF_RODD", "MKF_SF_RODD95"}
+        case {"MKF_S", "MKF_SF_RODD95"}  % multi-model Kalman filters with sequences
 
             % Get double variables
             vars.xkp1_est = obs.xkp1_est;
-            vars.Pkp1 = obs.Pkp1;
+            vars.p_seq_g_Yk = obs.p_seq_g_Yk;
+            vars.xkp1_est_f = obs.filters.Xkp1_est;
+            vars.Pkp1_f = obs.filters.Pkp1;
+
+            % Get integer variables
+            vars.int16.rk = obs.rk;
+            vars.int16.i = obs.i;
+            vars.int16.i_next = obs.i_next;
+
+        case {"MKF_DI", "MKF_SF_RODD"}
+
+            % Get double variables
+            vars.xkp1_est = obs.xkp1_est;
             vars.p_seq_g_Yk = obs.p_seq_g_Yk;
             vars.xkp1_est_f = obs.filters.Xkp1_est;
             vars.Pkp1_f = obs.filters.Pkp1;
@@ -46,13 +58,11 @@ function vars = get_obs_vars(obs)
             vars.int16.i_next = obs.i_next;
             vars.int16.i2 = obs.i2;
             vars.int16.i2_next = obs.i2_next;
-            vars.int16.seq = obs.seq;
 
-        case {"MKF", "MKF_S", "MKF_SF", "MKF_SP"}  % multi-model Kalman filters
+        case {"MKF", "MKF_SF", "MKF_SP"}  % multi-model Kalman filters - without sequences
 
             % Get double variables
             vars.xkp1_est = obs.xkp1_est;
-            vars.Pkp1 = obs.Pkp1;
             vars.p_seq_g_Yk = obs.p_seq_g_Yk;
             vars.xkp1_est_f = obs.filters.Xkp1_est;
             vars.Pkp1_f = obs.filters.Pkp1;

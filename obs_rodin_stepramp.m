@@ -4,7 +4,7 @@
 addpath("~/process-observers/")
 
 assert(exist("A", 'var'), strcat("System model not defined. ", ...
-    "Run script 'sys_rodin_step.m' first."))
+    "Run script 'sys_rodin_stepramp.m' first."))
 
 % Check observability of system
 Qobs = obsv(A, C);
@@ -18,12 +18,12 @@ Du = D(:, u_meas);
 
 % Steady-state Luenberger observer 1
 % Specify poles of observer dynamics
-poles = [0.8; 0.8];
+poles = [0.6; 0.7; 0.8];
 LB1 = LuenbergerFilter(model,poles,'LB1');
 
 % Steady-state Luenberger observer 2
 % Specify poles of observer dynamics
-poles = [0.6; 0.6];
+poles = [0.6; 0.7; 0.8];
 LB2 = LuenbergerFilter(model,poles,'LB2');
 
 % Specify covariance for state variable 1
@@ -31,9 +31,9 @@ LB2 = LuenbergerFilter(model,poles,'LB2');
 q1 = 0.01;
 
 % Different values for covariance matrix
-Q1 = diag([q1 sigma_wp(1)^2]);
-Q2 = diag([q1 sigma_wp(2)^2]);
-Q3 = diag([q1 0.1^2]);
+Q1 = diag([q1 sigma_wp(1, 1)^2 sigma_wp(2, 1)^2]);
+Q2 = diag([q1 sigma_wp(1, 2)^2 sigma_wp(2, 1)^2]);
+Q3 = diag([q1 sigma_wp(1, 1)^2 sigma_wp(2, 2)^2]);
 
 % Covariance of output errors
 R = sigma_M^2;
@@ -52,10 +52,16 @@ models{2}.C = C;
 models{2}.Ts = Ts;
 models{2}.Q = Q2;
 models{2}.R = R;
+models{3}.A = A;
+models{3}.B = Bu;
+models{3}.C = C;
+models{3}.Ts = Ts;
+models{3}.Q = Q3;
+models{3}.R = R;
 
 % Parameters for manually-tuned Kalman filter (KF3)
-model3 = models{1};  % makes copy
-model3.Q = Q3;
+model4 = models{1};  % makes copy
+model4.Q = diag([q1 0.1^2 0.001^2]);  % TODO: needs calibrating
 
 % Steady-state Kalman filter 1 - prediction form - tuned to sigma_wp(1)
 KFPSS1 = KalmanFilterPSS(models{1},'KFPSS1');
@@ -79,17 +85,17 @@ KF2 = KalmanFilterF(models{2},P0,'KF2');
 
 % Kalman filter 3 - manually tuned
 P0 = 1000*eye(n);
-KF3 = KalmanFilterF(model3,P0,'KF3');
+KF3 = KalmanFilterF(model4,P0,'KF3');
 
 % Kalman filter 3 - prediction form - manually tuned
 P0 = 1000*eye(n);
-KFP3 = KalmanFilterP(model3,P0,'KFP3');
+KFP3 = KalmanFilterP(model4,P0,'KFP3');
 
 % TODO: Not working yet
 % Multiple model observer with sequence fusion #1
 label = 'MKF_SF1';
 P0 = 1000*eye(n);
-Q0 = diag([q1 0]);
+Q0 = diag([q1 0 0]);
 R = sigma_M^2;
 f = 15;  % fusion horizon
 m = 1;  % maximum number of shocks
@@ -100,7 +106,7 @@ MKF_SF1 = MKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
 % Multiple model observer with sequence fusion #2
 label = 'MKF_SF2';
 P0 = 1000*eye(n);
-Q0 = diag([q1 0]);
+Q0 = diag([q1 0 0]);
 R = sigma_M^2;
 f = 15;  % fusion horizon
 m = 2;  % maximum number of shocks
@@ -129,9 +135,9 @@ MKF_SF2 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
 % Multiple model observer with sequence pruning #1
 label = 'MKF_SP1';
 P0 = 1000*eye(n);
-Q0 = diag([q1 0]);
+Q0 = diag([q1 0 0]);
 R = sigma_M^2;
-nh = 10;  % number of filters
+nh = 28;  % number of filters
 n_min = 7;  % minimum life of cloned filters
 MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
     nh,n_min,label);
@@ -139,10 +145,10 @@ MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
 % Multiple model observer with sequence pruning #2
 label = 'MKF_SP2';
 P0 = 1000*eye(n);
-Q0 = diag([q1 0]);
+Q0 = diag([q1 0 0]);
 R = sigma_M^2;
-nh = 25;  % number of filters
-n_min = 21;  % minimum life of cloned filters
+nh = 50;  % number of filters
+n_min = 15;  % minimum life of cloned filters
 MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
     nh,n_min,label);
 

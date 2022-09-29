@@ -28,7 +28,15 @@ switch obs.type
 
         vars_double = {vars.xkp1_est, vars.ykp1_est};
 
-        % Convert dynamic variables to vectors
+        % Convert variables to vectors
+        vdata = make_data_vectors(vars_double);
+        varargout{1} = cell2mat(vdata.vecs);
+
+    case "KFFSS"  % steady-state Kalman filter - filtering form
+
+        vars_double = {vars.xkp1_est};
+
+        % Convert variables to vectors
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
@@ -36,7 +44,7 @@ switch obs.type
 
         vars_double = {vars.xkp1_est, vars.ykp1_est, vars.Pkp1};
 
-        % Convert dynamic variables to vectors
+        % Convert variables to vectors
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
@@ -44,16 +52,38 @@ switch obs.type
 
         vars_double = {vars.xkp1_est, vars.Pkp1};
 
-        % Convert dynamic variables to vectors
+        % Convert variables to vectors
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
-    case {"MKF_SF", "MKF_SP", "MKF_SF_RODD95", "MKF_SF_RODD98"}  % multi-model Kalman filters
+    case {"MKF_SF", "MKF_SF_RODD95"}  % multi-model Kalman filters
 
-        vars_double = {vars.xkp1_est, vars.Pkp1, vars.p_seq_g_Yk, ...
+        vars_double = {vars.xkp1_est, vars.p_seq_g_Yk, ...
             vars.xkp1_est_f, vars.Pkp1_f};
 
-        % Convert dynamic variables to vectors
+        % Convert variables to vectors
+        vdata = make_data_vectors(vars_double);
+        vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
+        varargout{1} = cell2mat(vdata.vecs);
+        varargout{2} = cell2mat(vdata_int16.vecs);
+
+    case "MKF_SF_RODD"
+
+        vars_double = {vars.xkp1_est, vars.p_seq_g_Yk, ...
+            vars.xkp1_est_f, vars.Pkp1_f};
+
+        % Convert variables to vectors
+        vdata = make_data_vectors(vars_double);
+        vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
+        varargout{1} = cell2mat(vdata.vecs);
+        varargout{2} = cell2mat(vdata_int16.vecs);
+
+    case "MKF_SP"
+
+        vars_double = {vars.xkp1_est, vars.p_seq_g_Yk, ...
+            vars.xkp1_est_f, vars.Pkp1_f};
+
+        % Convert variables to vectors
         vdata = make_data_vectors(vars_double);
         vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
         varargout{1} = cell2mat(vdata.vecs);

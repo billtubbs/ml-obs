@@ -1,4 +1,11 @@
 % Test group functions used by AFMM observer
+%
+% - add_to_group_with_replacement
+% - take_from_2_groups
+%
+% TODO: These are for the old version of MKFObserverAFMM and
+% should be redundant now. DELETE this file.
+%
 
 clear all
 
