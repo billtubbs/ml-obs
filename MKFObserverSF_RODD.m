@@ -5,7 +5,7 @@
 % deterministic disturbances (RODDs) as described in 
 % Robertson et al. (1995, 1998).
 %
-% obs = MKFObserverSF_RODDMKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
+% obs = MKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
 %     sigma_wp,Q0,R,f,m,d,label,x0)
 %
 % Arguments:
@@ -53,7 +53,7 @@ classdef MKFObserverSF_RODD < MKFObserverDI
         alpha double
         beta (1, 1) double
         p_seq double
-        p_gamma double
+        p_rk double
         Q0 double
         R double
         epsilon double
@@ -78,9 +78,9 @@ classdef MKFObserverSF_RODD < MKFObserverDI
                 r0 (:, 1) int16 {mustBeGreaterThan(r0, 0)} = 1
             end
 
-            % Number of states
-            [n, nu, ny] = check_dimensions(model.A, model.B, model.C);
-            if isprop(model, "D")
+            % Get model dimensions and sample period
+            [n, nu, ny, Ts, direct] = check_model(model);
+            if direct
                 assert(isequal(model.D, zeros(ny, nu)), ...
                     "ValueError: direct transmission (model.D)")
             end
@@ -173,7 +173,7 @@ classdef MKFObserverSF_RODD < MKFObserverDI
             obj.alpha = alpha;
             obj.beta = beta;
             obj.p_seq = p_seq;
-            obj.p_gamma = p_rk;
+            obj.p_rk = p_rk;
             obj.type = "MKF_SF_RODD";
 
             % Initialize all variables

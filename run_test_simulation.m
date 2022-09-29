@@ -25,7 +25,7 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
             K_obs_f = cell(nT+1, nh);
             trP_obs_f = nan(nT+1, nh);
             MKF_X_est_f = cell(nT+1, nh);
-        case {"MKF_SP"}
+        case {"MKF_SP", "MKF_SP_RODD"}
             nh = obs.nh;
             MKF_p_seq_g_Yk = nan(nT+1, nh);
             K_obs_f = cell(nT+1, nh);
@@ -161,14 +161,14 @@ function [obs, sim_results] = run_test_simulation(nT,Ts,n,ny,U_m,Y_m, ...
     sim_results.K_obs = K_obs;
     sim_results.trP_obs = trP_obs;
     switch obs.type
-        case {'KF', 'KFSS'}
+        case {"KF", "KFSS"}
             sim_results.K_obs = K_obs;
-        case {'MKF', 'MKF_SF', 'MKF_SF95'}
+        case {"MKF", "MKF_S", "MKF_SF", "MKF_SF_RODD", "MKF_SF_RODD95"}
             sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
             sim_results.K_obs_f = K_obs_f;
             sim_results.trP_obs_f = trP_obs_f;
             sim_results.MKF_X_est_f = MKF_X_est_f;
-        case 'MKF_SP'
+        case "MKF_SP"
             sim_results.MKF_p_seq_g_Yk = MKF_p_seq_g_Yk;
             sim_results.K_obs_f = K_obs_f;
             sim_results.trP_obs_f = trP_obs_f;

@@ -51,26 +51,46 @@ classdef MKFObserverSF_RODD95 < MKFObserverS
         d (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
+        sys_model struct
         beta (1, 1) double
         p_seq double
-        p_gamma double
+        p_rk double
         Q0 {mustBeNumeric}
+        R double
         epsilon double
         sigma_wp double
     end
     methods
-        function obj = MKFObserverSF_RODD95(A,B,C,Ts,u_meas,P0,epsilon, ...
-                sigma_wp,Q0,R,f,m,d,label,x0)
+        function obj = MKFObserverSF_RODD95(model,u_meas,P0,epsilon, ...
+                sigma_wp,Q0,R,f,m,d,label,x0,r0)
+            arguments
+                model struct
+                u_meas (:, 1) logical
+                P0 double
+                epsilon double
+                sigma_wp double
+                Q0 (:, :) double
+                R (:, :) double
+                f (1, 1) double {mustBeInteger}
+                m (1, 1) double {mustBeInteger}
+                d (1, 1) double {mustBeInteger}
+                label (1, 1) string = ""
+                x0 = []
+                r0 (:, 1) int16 {mustBeGreaterThan(r0, 0)} = 1
+            end
 
-            % Number of states
-            n = check_dimensions(A, B, C);
+            % Get model dimensions and sample period
+            [n, nu, ny, Ts, direct] = check_model(model);
+            if direct
+                assert(isequal(model.D, zeros(ny, nu)), ...
+                    "ValueError: direct transmission (model.D)")
+            end
 
-            % Check size of initial process covariance matrix
-            assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
-
-            % Initial state estimates
-            if nargin < 15
-                x0 = zeros(n,1);
+            % Determine initial state values
+            if isempty(x0)
+                x0 = zeros(n, 1);  % default initial states
+            else
+                assert(isequal(size(x0), [n 1]), "ValueError: x0")
             end
 
             % Check size of process covariance default matrix
@@ -79,8 +99,8 @@ classdef MKFObserverSF_RODD95 < MKFObserverS
             % Observer model without disturbance noise input
             nw = sum(~u_meas);  % Number of input disturbances
             assert(nw > 0, "ValueError: u_meas");
-            Bu = B(:, u_meas);
-            Bw = B(:, ~u_meas);
+            Bu = model.B(:, u_meas);
+            Bw = model.B(:, ~u_meas);
 
             % Convert fusion horizon to number of detection intervals
             assert(rem(f, d) == 0, "ValueError: Fusion horizon and " ...
@@ -122,13 +142,14 @@ classdef MKFObserverSF_RODD95 < MKFObserverS
             % Tolerance parameter (total probability of defined sequences)
             beta = sum(p_seq);
 
-            % System models are the same
-            model.A = A;
-            model.B = Bu;
-            model.C = C;
-            model.R = R;
-            model.Ts = Ts;
-            models = {model, model};
+            % System models are all the same - only Q switches
+            model_obs = model;
+            model_obs.B = Bu;
+            models = repmat({model_obs}, 1, nj);
+            for i = 1:nj
+                models{i}.Q = Q{i};
+                models{i}.R = R;
+            end
 
             % Only the Q parameter is different
             models{1}.Q = Q{1};
@@ -138,16 +159,18 @@ classdef MKFObserverSF_RODD95 < MKFObserverS
             obj = obj@MKFObserverS(models,P0,seq,T,label,x0);
 
             % Add additional variables used by RODD observer
+            obj.sys_model = model;
             obj.u_meas = u_meas;
             obj.P0 = P0;
             obj.Q0 = Q0;
+            obj.R = R;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
             obj.m = m;
             obj.d = d;
             obj.beta = beta;
             obj.p_seq = p_seq;
-            obj.p_gamma = p_rk;
+            obj.p_rk = p_rk;
             obj.type = "MKF_SF_RODD95";
 
         end
