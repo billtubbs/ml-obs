@@ -28,6 +28,8 @@ G12 = -G11;
 G21 = 1.5 / (1 + 16*s);
 G22 = G21;
 Gc = [G11 G12; G21 G22];
+Gc.InputName = ["CW flow", "HW flow"];
+Gc.OutputName = ["Temperature", "Level"];
 Gd = c2d(Gc,Ts,'zoh');
 
 % ARIMA noise process
