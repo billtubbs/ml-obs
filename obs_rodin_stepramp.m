@@ -76,25 +76,25 @@ KFFSS1 = KalmanFilterFSS(models{1},'KFFSS1');
 KFFSS2 = KalmanFilterFSS(models{2},'KFFSS2');
 
 % Kalman filter 1 - tuned to sigma_wp(1)
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 KF1 = KalmanFilterF(models{1},P0,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 KF2 = KalmanFilterF(models{2},P0,'KF2');
 
 % Kalman filter 3 - manually tuned
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 KF3 = KalmanFilterF(model4,P0,'KF3');
 
 % Kalman filter 3 - prediction form - manually tuned
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 KFP3 = KalmanFilterP(model4,P0,'KFP3');
 
 % TODO: Not working yet
 % Multiple model observer with sequence fusion #1
 label = 'MKF_SF1';
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 Q0 = diag([q1 0 0]);
 R = sigma_M^2;
 f = 15;  % fusion horizon
@@ -105,7 +105,7 @@ MKF_SF1 = MKFObserverSF_RODD(model,u_meas,P0,epsilon, ...
 
 % Multiple model observer with sequence fusion #2
 label = 'MKF_SF2';
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 Q0 = diag([q1 0 0]);
 R = sigma_M^2;
 f = 15;  % fusion horizon
@@ -123,7 +123,7 @@ MKF_SF2 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
 % % Multiple model observer with sequence fusion based on 
 % % Robertson et al. (1995) paper.
 % label = 'MKF_SF95';
-% P0 = 1000*eye(n);
+% P0 = 1*eye(n);
 % Q0 = diag([q1 0]);
 % R = sigma_M^2;
 % f = 15;  % fusion horizon
@@ -134,7 +134,7 @@ MKF_SF2 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
 
 % Multiple model observer with sequence pruning #1
 label = 'MKF_SP1';
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 Q0 = diag([q1 0 0]);
 R = sigma_M^2;
 nh = 28;  % number of filters
@@ -144,7 +144,7 @@ MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
 
 % Multiple model observer with sequence pruning #2
 label = 'MKF_SP2';
-P0 = 1000*eye(n);
+P0 = 1*eye(n);
 Q0 = diag([q1 0 0]);
 R = sigma_M^2;
 nh = 50;  % number of filters

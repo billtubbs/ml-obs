@@ -6,6 +6,9 @@
 
 clear all
 
+%show_plots = true;
+show_plots = false;
+
 % See this Simulink model file:
 sim_model = 'MKF_example_sim';
 
@@ -31,6 +34,44 @@ U = zeros(nT+1,1);
 U(t>=5) = 1;
 V = sigma_M*randn(nT+1, 1);
 
+% Simulate system in MATLAB
+[Y,T,X] = lsim(Gpss,[U Wp],t,X0);
+Ym = Y + V;  % measurement
+
+if show_plots
+    figure(2)
+    subplot(2,1,1)
+    plot(t,Y,t,Ym); grid on
+    ylabel('y(k) and y_m(k)')
+    legend('y(k)', 'ym(k)')
+    title('Outputs')
+    subplot(2,1,2)
+    stairs(t, [U Wp]); grid on
+    xlabel('k')
+    ylabel('u(k) and wp(k)')
+    legend('u(k)', 'wp(k)')
+    title('Inputs')
+end
+
+% Simulate system in MATLAB
+[Y,T,X] = lsim(Gpss,[U Wp],t,X0);
+Ym = Y + V;  % measurement
+
+if show_plots
+    figure(2)
+    subplot(2,1,1)
+    plot(t,Y,t,Ym); grid on
+    ylabel('y(k) and y_m(k)')
+    legend('y(k)', 'ym(k)')
+    title('Outputs')
+    subplot(2,1,2)
+    stairs(t, [U Wp]); grid on
+    xlabel('k')
+    ylabel('u(k) and wp(k)')
+    legend('u(k)', 'wp(k)')
+    title('Inputs')
+end
+
 % Inputs to simulink model
 inputs.U = [t U];
 inputs.V = [t V];
@@ -41,7 +82,7 @@ Bu = B(:, u_meas);
 Bw = B(:, ~u_meas);
 Du = D(:, u_meas);
 
-% Steady-state Kalman filters
+% Kalman filter parameters
 Q = diag([0.01^2 0.1^2]);
 R = 0.1^2;
 obs_model = model;
@@ -49,8 +90,6 @@ obs_model.B = Bu;
 obs_model.D = Du;
 obs_model.Q = Q;
 obs_model.R = R;
-Bu = B(:,1);  % observer model without unmeasured inputs
-Du = D(:,1);
 
 % Prediction form
 KFPSS = KalmanFilterPSS(obs_model,'KFPSS');
@@ -63,6 +102,7 @@ P0 = eye(n);
 
 % Prediction form
 KFP = KalmanFilterP(obs_model,P0,'KFP');
+KF_old = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF_old');
 
 % Filtering form
 KFF = KalmanFilterF(obs_model,P0,'KFF');
@@ -115,10 +155,27 @@ sim_results = readtable(fullfile(results_dir, filename));
 
 % Steady-state Kalman filter - prediction form
 assert(max(abs(sim_out.X_hat_KFPSS.Data - ...
-    sim_results{:, {'Xk_est_KFSS_1', 'Xk_est_KFSS_2'}}), [], [1 2]) < 1e-12)
+    sim_results{:, {'Xkp1_est_KFPSS_1', 'Xkp1_est_KFPSS_2'}}), [], [1 2]) < 1e-12)
+
+% TODO: Remove this
+observers = {KF_old};
+[Y,t,X] = lsim(Gpss,[U Wp],t);
+assert(max(abs(X - sim_out.X.Data), [], [1 2]) < 1e-12)
+Ym = Y + V;
+assert(max(abs(Ym - sim_out.Y.Data)) < 1e-12)
+[Xk_est_old,Yk_est_old,DiagPk,MKF_vars] = ...
+      run_simulation_obs(Ym,U,alpha,[],observers,[]);
+
+% % Check estimates of old KF struct same as data on file
+% assert(max(abs(Xk_est_old - ...
+%     sim_results{:, {'Xkp1_est_KFP_1', 'Xkp1_est_KFP_2'}}), [], [1 2]) < 1e-12)
+
+% Check KFP is the same as old KF struct
+assert(max(abs(sim_out.X_hat_KFP.Data - Xk_est_old), [], [1 2]) < 1e-12)
 
 % Dynamic Kalman filter - prediction form
-assert(max(abs(sim_out.X_hat_KFP.Data - sim_results{:, {'Xk_est_KF1_1', 'Xk_est_KF1_2'}}), [], [1 2]) < 1e-12)
+assert(max(abs(sim_out.X_hat_KFP.Data - ...
+    sim_results{:, {'Xkp1_est_KFP_1', 'Xkp1_est_KFP_2'}}), [], [1 2]) < 1e-12)
 
 % Multiple-model observer - SF
 %assert(max(abs(sim_out.X_hat_MKF1.Data - sim_results{:, {'Xk_est_MKF1_1', 'Xk_est_MKF1_2'}}), [], [1 2]) < 1e-12)
