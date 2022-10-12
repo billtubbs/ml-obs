@@ -17,9 +17,9 @@ function [Kf, P] = kalman_gain_ss(A, C, Q, R)
 %
 
     % Using the Matlab idare function:
-    [P, K, ~, ~] = idare(A', C', Q, R, [], []);
-    K = K';
-    Kf = A \ K;
+    %[P, K, ~, ~] = idare(A', C', Q, R, [], []);
+    %K = K';
+    %Kf = A \ K;
 
     % Using dlqe function from the control systems toolbox:
     % Note: this function is marked as 'obsolete'
