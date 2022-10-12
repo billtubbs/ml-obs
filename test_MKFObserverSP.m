@@ -19,10 +19,10 @@ sys_rodin_step
 obs_rodin_step
 
 % Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
+Bu = B(:, u_known);
+Du = D(:, u_known);
+nu = sum(u_known);
+nw = sum(~u_known);
 
 % Set noise variances for observer design
 sigma_M = 0.1;
@@ -47,9 +47,9 @@ assert(MKF_SP1.ny == 1)
 assert(MKF_SP1.nj == 2)
 assert(isequal(MKF_SP1.sys_model, model))
 assert(isequal(MKF_SP1.Ts, Ts))
-assert(isequaln(MKF_SP1.u_meas, u_meas))
-assert(isequal(MKF_SP1.models{1}.Q, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF_SP1.models{2}.Q, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequaln(MKF_SP1.io.u_known, u_known))
+assert(isequal(MKF_SP1.models{1}.Q, [0.01 0; 0 sigma_wp{1}(1)^2]))
+assert(isequal(MKF_SP1.models{2}.Q, [0.01 0; 0 sigma_wp{1}(2)^2]))
 assert(isequal(MKF_SP1.models{1}.R, R))
 assert(isequal(MKF_SP1.models{2}.R, R))
 % assert(isequal(size(MKF_SP1.seq), [MKF_SP1.nh 1]))
@@ -88,9 +88,9 @@ assert(MKF_SP2.ny == 1)
 assert(MKF_SP2.nj == 2)
 assert(isequal(MKF_SP2.sys_model, model))
 assert(isequal(MKF_SP2.Ts, Ts))
-assert(isequaln(MKF_SP2.u_meas, u_meas))
-assert(isequal(MKF_SP2.models{1}.Q, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF_SP2.models{2}.Q, [0.01 0; 0 sigma_wp(2)^2]))
+assert(isequaln(MKF_SP2.io.u_known, u_known))
+assert(isequal(MKF_SP2.models{1}.Q, [0.01 0; 0 sigma_wp{1}(1)^2]))
+assert(isequal(MKF_SP2.models{2}.Q, [0.01 0; 0 sigma_wp{1}(2)^2]))
 assert(isequal(MKF_SP2.models{1}.R, R))
 assert(isequal(MKF_SP2.models{2}.R, R))
 % assert(isequal(size(MKF_SP2.seq), [MKF_SP2.nh 1]))
@@ -112,9 +112,8 @@ end
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
-io.u_known = u_meas;
+io.u_known = u_known;
 io.y_meas = true(ny, 1);
-sigma_wp = {sigma_wp};
 MKF_SP_testx0 = MKFObserverSP_RODD(model,io,P0,epsilon, ...
                 sigma_wp,Q0,R,nh,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
@@ -137,7 +136,7 @@ obs_rodin_step
 obs = MKF_SP1;
 assert(isequal(obs.xkp1_est, [0; 0]))
 nT = 10;
-U_m = zeros(nT+1, sum(u_meas));
+U_m = zeros(nT+1, sum(u_known));
 Y_m = zeros(nT+1, ny);
 for i = 1:(nT+1)
     uk = U_m(i,:)';
@@ -149,7 +148,9 @@ end
 
 % Check steady-state at x0 = [1; 0]
 x0 = [1; 0];
-obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+obs = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
     label,x0);
 assert(isequal(obs.xkp1_est, x0))
 nT = 10;
@@ -176,17 +177,19 @@ sys_rodin_step
 obs_rodin_step
 
 x0 = [0; 0];
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
 nh = 5;
 n_min = 2;
-obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+obs = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
     label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
 % % Generate test simulation data
 % nT = 10;
-% U_m = zeros(nT+1, sum(u_meas));
+% U_m = zeros(nT+1, sum(u_known));
 % % Add a random shock
-% Wp = zeros(nT+1, sum(~u_meas));
+% Wp = zeros(nT+1, sum(~u_known));
 % Wp(5, :) = 1;
 % % Compute outputs (n0 measurement noise)
 % [Y_m, t] = lsim(Gpss, [U_m Wp], t);
@@ -581,15 +584,17 @@ n_min = 1;  % NOTE: this produces identical results to previous
             % hypothesis leaving holding group goes into main group
             % first (as in this version) or can be immediately 
             % eliminated before going to main group (as previously).
-obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+obs = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp,Q0,R,nh, ...
     n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
 % % Generate test simulation data
 % nT = 10;
-% U_m = zeros(nT+1, sum(u_meas));
+% U_m = zeros(nT+1, sum(u_known));
 % % Add a random shock
-% Wp = zeros(nT+1, sum(~u_meas));
+% Wp = zeros(nT+1, sum(~u_known));
 % Wp(5, :) = 1;
 % % Compute outputs (n0 measurement noise)
 % [Y_m, t] = lsim(Gpss, [U_m Wp], t);
@@ -1051,8 +1056,8 @@ models = {obs_model, obs_model};
 P0 = 1000*eye(n);
 Q0 = diag([q1 0]);
 P0_init = repmat({P0}, 1, 2);
-models{1}.Q = diag([Q0(1,1) sigma_wp(1,1)^2]);
-models{2}.Q = diag([Q0(1,1) sigma_wp(1,2)^2]);
+models{1}.Q = diag([Q0(1,1) sigma_wp{1}(1)^2]);
+models{2}.Q = diag([Q0(1,1) sigma_wp{1}(2)^2]);
 seq = {ones(1, nT+1); ones(1, nT+1)};
 seq{2}(t == 10) = 2;
 p_rk = [1-epsilon epsilon]';
@@ -1312,13 +1317,13 @@ assert(MKF_SP1.ny == 2)
 assert(MKF_SP1.nj == 3)
 assert(isequal(MKF_SP1.sys_model, model))
 assert(MKF_SP1.Ts == Ts)
-assert(isequaln(MKF_SP1.u_meas, u_meas))
+assert(isequaln(MKF_SP1.io.u_known, u_known))
 assert(isequal(MKF_SP1.models{1}.Q, ...
-    diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 1)^2])))
+    diag([0.01 0.01 sigma_wp{1}(1)^2 sigma_wp{2}(1)^2])))
 assert(isequal(MKF_SP1.models{2}.Q, ...
-    diag([0.01 0.01 sigma_wp(1, 2)^2 sigma_wp(2, 1)^2])))
+    diag([0.01 0.01 sigma_wp{1}(2)^2 sigma_wp{2}(1)^2])))
 assert(isequal(MKF_SP1.models{3}.Q, ...
-    diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 2)^2])))
+    diag([0.01 0.01 sigma_wp{1}(1)^2 sigma_wp{2}(2)^2])))
 assert(isequal([MKF_SP1.models{1}.R MKF_SP1.models{2}.R MKF_SP1.models{3}.R], ...
     repmat(R, 1, 3)))
 %assert(isequal(size(MKF_SP1.seq), [MKF_SP1.nh 1]))
@@ -1351,10 +1356,10 @@ assert(MKF_SP2.ny == 2)
 assert(MKF_SP2.nj == 3)
 assert(isequal(MKF_SP1.sys_model, model))
 assert(MKF_SP2.Ts == Ts)
-assert(isequaln(MKF_SP2.u_meas, u_meas))
-assert(isequal(MKF_SP2.models{1}.Q, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 1)^2])))
-assert(isequal(MKF_SP2.models{2}.Q, diag([0.01 0.01 sigma_wp(1, 2)^2 sigma_wp(2, 1)^2])))
-assert(isequal(MKF_SP2.models{3}.Q, diag([0.01 0.01 sigma_wp(1, 1)^2 sigma_wp(2, 2)^2])))
+assert(isequaln(MKF_SP2.io.u_known, u_known))
+assert(isequal(MKF_SP2.models{1}.Q, diag([0.01 0.01 sigma_wp{1}(1)^2 sigma_wp{2}(1)^2])))
+assert(isequal(MKF_SP2.models{2}.Q, diag([0.01 0.01 sigma_wp{1}(2)^2 sigma_wp{2}(1)^2])))
+assert(isequal(MKF_SP2.models{3}.Q, diag([0.01 0.01 sigma_wp{1}(1)^2 sigma_wp{2}(2)^2])))
 assert(isequal([MKF_SP2.models{1}.R MKF_SP1.models{2}.R MKF_SP1.models{3}.R], ...
     repmat(R, 1, 3)))
 % assert(isequal(size(MKF_SP2.seq), [MKF_SP2.nh 1]))
@@ -1371,7 +1376,9 @@ assert(isequaln(MKF_SP2.yk_est, nan(ny, 1)))
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
-MKF_SP_testx0 = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+MKF_SP_testx0 = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp, ...
     Q0,R,MKF_SP2.nh,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal(MKF_SP_testx0.r0, ones(MKF_SP_testx0.nh, 1)))
@@ -1389,7 +1396,9 @@ obs_rodin_step_2x2
 x0 = [0; 0; 0; 0];
 nh = 10;  % number of filters
 n_min = 3;  % minimum life of cloned filters
-obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+obs = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
     label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
@@ -1877,28 +1886,28 @@ model.D = D;
 model.Ts = Ts;
 
 % Designate measured input and output signals
-u_meas = [true; true; false; false];
+u_known = [true; true; false; false];
 y_meas = [true; true];
 
 % Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
+Bu = B(:, u_known);
+Du = D(:, u_known);
+nu = sum(u_known);
+nw = sum(~u_known);
 
 % Disturbance input (used by SKF observer)
-Bw = B(:, ~u_meas);
-nw = sum(~u_meas);
+Bw = B(:, ~u_known);
+nw = sum(~u_known);
 
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
 sigma_M = [0.1; 0.1];
-sigma_wp = [0.01 1; 0.01 1];
+sigma_wp = {[0.01 1], [0.01 1]};
 
 % Different values for covariance matrix
-Q1 = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
-Q2 = diag([0.01 0.01 sigma_wp(1,2)^2 sigma_wp(2,1)^2]);
-Q3 = diag([0.01 0.01 sigma_wp(1,1)^2 sigma_wp(2,2)^2]);
+Q1 = diag([0.01 0.01 sigma_wp{1}(1)^2 sigma_wp{2}(1)^2]);
+Q2 = diag([0.01 0.01 sigma_wp{1}(2)^2 sigma_wp{2}(1)^2]);
+Q3 = diag([0.01 0.01 sigma_wp{1}(1)^2 sigma_wp{2}(2)^2]);
 
 % Covariance of output errors
 R = diag(sigma_M.^2);
@@ -1938,7 +1947,9 @@ Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 nh = 15;  % number of filters
 n_min = 5;  % minimum life of cloned filters
-MKF_SP1 = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+MKF_SP1 = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp,Q0,R,nh, ...
     n_min,label);
 
 % Multiple model observer with sequence pruning 2
@@ -1948,7 +1959,9 @@ Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 nh = 30;  % number of filters
 n_min = 10;  % minimum life of cloned filters
-MKF_SP2 = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+MKF_SP2 = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp, ...
     Q0,R,nh,n_min,label);
 
 % Simulation settings

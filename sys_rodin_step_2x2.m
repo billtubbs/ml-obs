@@ -111,7 +111,7 @@ x0 = zeros(n, 1);
 % Parameters for random inputs
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
-sigma_wp = [0.01 1; 0.01 1];
+sigma_wp = {[0.01 1], [0.01 1]};
 
 % Process noise standard deviation
 sigma_W = zeros(n, 1);

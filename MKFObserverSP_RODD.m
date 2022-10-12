@@ -45,8 +45,10 @@
 %       estimates.
 %   epsilon : (nw, 1) double
 %       Probability(s) of shock disturbance(s).
-%   sigma_wp : (nw, 2) double
-%       Standard deviation(s) of shock disturbance(s).
+%   sigma_wp : (1, nw) cell array
+%       Standard deviations of disturbances. Each element of
+%       the cell array is either a scalar for a standard (Gaussian)
+%       noise or a (2, 1) vector for a random shock disturbance.
 %   Q0 : (n, n) double
 %       Process noise covariance matrix (n, n) with 
 %       variances for each state on the diagonal. The  
@@ -91,8 +93,8 @@ classdef MKFObserverSP_RODD < MKFObserver
         p_seq double
         Q0 double
         R double
-        epsilon double
-        sigma_wp double
+        epsilon double  % TODO: make into cell like sigma_wp
+        sigma_wp cell
         n_main
         n_hold
         f_main
@@ -122,6 +124,8 @@ classdef MKFObserverSP_RODD < MKFObserver
                 assert(isequal(model.D, zeros(ny, nu)), ...
                     "ValueError: direct transmission not implemented")
             end
+            assert(isequal(size(io.u_known), [nu, 1]))
+            assert(isequal(size(io.y_meas), [ny, 1]))
 
             % Check size of initial process covariance matrix
             assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
@@ -149,12 +153,11 @@ classdef MKFObserverSP_RODD < MKFObserver
             % Construct observer model without unmeasured disturbance
             % inputs
             Bu = model.B(:, io.u_known);
-            Bw = model.B(:, ~io.u_known);
 
             % Construct process noise covariance matrices for each 
             % possible input disturbance (returns a cell array)
-            [Q, p_rk_g_rkm1] = construct_Q_model_SP(Q0, Bw, epsilon, ...
-                sigma_wp, nw);
+            [Q, p_rk_g_rkm1] = construct_Q_model_SP(Q0, model.B, ...
+                io.u_known, epsilon, sigma_wp);
 
             % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
@@ -201,7 +204,7 @@ classdef MKFObserverSP_RODD < MKFObserver
 
             % Add additional variables used by SP observer
             obj.sys_model = model;
-            obj.io.u_known = io.u_known;
+            obj.io = io;
             %obj.seq = seq;
             obj.n_min = n_min;
             obj.n_main = n_main;

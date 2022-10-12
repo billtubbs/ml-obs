@@ -13,14 +13,14 @@ unobs = length(A) - rank(Qobs);
 assert(unobs == 0);
 
 % Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Du = D(:, u_meas);
-nu = sum(u_meas);
-nw = sum(~u_meas);
+Bu = B(:, u_known);
+Du = D(:, u_known);
+nu = sum(u_known);
+nw = sum(~u_known);
 
 % Disturbance input (used by SKF observer)
-Bw = B(:, ~u_meas);
-nw = sum(~u_meas);
+Bw = B(:, ~u_known);
+nw = sum(~u_known);
 
 % System model for new observer functions
 obs_model = struct;
@@ -44,8 +44,8 @@ LB2 = LuenbergerFilter(obs_model,poles,'LB2');
 q1 = 0.01; q2 = 0.01;
 
 % Different values for covariance matrix
-Q1 = diag([q1 q2 sigma_wp(1,1)^2 sigma_wp(2,1)^2]);
-Q2 = diag([q1 q2 sigma_wp(1,2)^2 sigma_wp(2,2)^2]);
+Q1 = diag([q1 q2 sigma_wp{1}(1)^2 sigma_wp{2}(1)^2]);
+Q2 = diag([q1 q2 sigma_wp{1}(2)^2 sigma_wp{2}(2)^2]);
 Q3 = diag([q1 q2 0.0075 0.0075]);
 
 % Covariance of output errors
@@ -91,7 +91,7 @@ KF3 = KalmanFilterF(model3,P0,'KF3');
 % f = 25;  % fusion horizon
 % m = 2;  % maximum number of shocks
 % d = 5;  % spacing parameter
-% MKF_SF1 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% MKF_SF1 = MKFObserverSF(A,B,C,Ts,u_known,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,label);
 % 
 % % Multiple model observer with sequence fusion #2
@@ -103,13 +103,13 @@ KF3 = KalmanFilterF(model3,P0,'KF3');
 % f = 30;  % fusion horizon
 % m = 2;  % maximum number of shocks
 % d = 10;  % spacing parameter
-% MKF_SF2 = MKFObserverSF(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% MKF_SF2 = MKFObserverSF(A,B,C,Ts,u_known,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,label);
 % 
 % % Multiple model observer with sequence fusion based on method
 % % described in Robertson et al. 1995.
 % label = 'MKF_SF95';
-% MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+% MKF_SF95 = MKFObserverSF95(A,B,C,Ts,u_known,P0,epsilon,sigma_wp, ...
 %     Q0,R,f,m,d,label);
 % 
 % General MKF - should be equivalent to MKF2
@@ -126,7 +126,9 @@ Q0 = diag([q1 q2 0 0]);
 R = diag(sigma_M.^2);
 nh = 19;  % number of filters
 n_min = 5;  % minimum life of cloned filters
-MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+MKF_SP1 = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp, ...
     Q0,R,nh,n_min,label);
 
 % Multiple model observer with sequence pruning #2
@@ -136,7 +138,7 @@ Q0 = diag([q1 q2 0 0]);
 R = diag(sigma_M.^2);
 nh = 25;  % number of filters
 n_min = 9;  % minimum life of cloned filters
-MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP2 = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp, ...
     Q0,R,nh,n_min,label);
 
 % TODO: Restore
