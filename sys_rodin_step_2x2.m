@@ -86,15 +86,15 @@ D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 
 % Designate measured input and output signals
-u_meas = [true; true; false; false];
+u_known = [true; true; false; false];
 y_meas = [true; true];
-nu = sum(u_meas);
-nw = sum(~u_meas);
+nu = sum(u_known);
+nw = sum(~u_known);
 
 % Dimensions
 n = size(A, 1);
-nu = sum(u_meas);
-nw = sum(~u_meas);
+nu = sum(u_known);
+nw = sum(~u_known);
 ny = size(C, 1);
 
 % Model parameter struct used by observers

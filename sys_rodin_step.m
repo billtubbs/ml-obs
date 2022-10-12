@@ -70,13 +70,13 @@ D = zeros(1, 2);
 Gpss = ss(A,B,C,D,Ts);
 
 % Designate which input and output variables are measured
-u_meas = [true; false];
+u_known = [true; false];
 y_meas = true;
 
 % Dimensions
 n = size(A, 1);
-nu = sum(u_meas);
-nw = sum(~u_meas);
+nu = sum(u_known);
+nw = sum(~u_known);
 ny = size(C, 1);
 
 % Model parameter struct used by observers

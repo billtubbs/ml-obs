@@ -1,10 +1,10 @@
-% Test functions MKFObserverSP.m and update_AFMM.m
+% Test functions MKFObserverSP_RODD.m and update_AFMM.m
 
 clear all
 
 % If plotting:
-plot_dir = 'plots';
-addpath("~/ml-plot-utils")
+%plot_dir = 'plots';
+%addpath("~/ml-plot-utils")
 
 seed = 0;
 rng(seed)
@@ -112,7 +112,10 @@ end
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5];
-MKF_SP_testx0 = MKFObserverSP(model,u_meas,P0,epsilon, ...
+io.u_known = u_meas;
+io.y_meas = true(ny, 1);
+sigma_wp = {sigma_wp};
+MKF_SP_testx0 = MKFObserverSP_RODD(model,io,P0,epsilon, ...
                 sigma_wp,Q0,R,nh,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal( ...
@@ -146,7 +149,7 @@ end
 
 % Check steady-state at x0 = [1; 0]
 x0 = [1; 0];
-obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
     label,x0);
 assert(isequal(obs.xkp1_est, x0))
 nT = 10;
@@ -175,7 +178,7 @@ obs_rodin_step
 x0 = [0; 0];
 nh = 5;
 n_min = 2;
-obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
     label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
@@ -573,12 +576,12 @@ obs_rodin_step
 x0 = [0; 0];
 nh = 5;
 n_min = 1;  % NOTE: this produces identical results to previous
-            % MKFObserverSP and mkf_observer_AFMM with n_min = 2;
+            % MKFObserverSP_RODD and mkf_observer_AFMM with n_min = 2;
             % This is due to the interpretation about whether a
             % hypothesis leaving holding group goes into main group
             % first (as in this version) or can be immediately 
             % eliminated before going to main group (as previously).
-obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
+obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
     n_min,label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
@@ -1368,7 +1371,7 @@ assert(isequaln(MKF_SP2.yk_est, nan(ny, 1)))
 
 % Check optional definition with an initial state estimate works
 x0 = [0.1; 0.5; -0.2; -0.4];
-MKF_SP_testx0 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP_testx0 = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,MKF_SP2.nh,n_min,label,x0);
 assert(isequal(MKF_SP_testx0.xkp1_est, x0))
 assert(isequal(MKF_SP_testx0.r0, ones(MKF_SP_testx0.nh, 1)))
@@ -1386,7 +1389,7 @@ obs_rodin_step_2x2
 x0 = [0; 0; 0; 0];
 nh = 10;  % number of filters
 n_min = 3;  % minimum life of cloned filters
-obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
+obs = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh,n_min, ...
     label,x0);
 assert(isequal(obs.xkp1_est, x0))
 
@@ -1935,7 +1938,7 @@ Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 nh = 15;  % number of filters
 n_min = 5;  % minimum life of cloned filters
-MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
+MKF_SP1 = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R,nh, ...
     n_min,label);
 
 % Multiple model observer with sequence pruning 2
@@ -1945,7 +1948,7 @@ Q0 = diag([0.01 0.01 0 0]);
 R = diag(sigma_M.^2);
 nh = 30;  % number of filters
 n_min = 10;  % minimum life of cloned filters
-MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SP2 = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,nh,n_min,label);
 
 % Simulation settings

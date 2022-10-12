@@ -133,7 +133,9 @@ Q0 = diag([q1 0]);
 R = sigma_M^2;
 nh = 10;  % number of filters
 n_min = 7;  % minimum life of cloned filters
-MKF_SP1 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
+io.u_known = u_meas;
+io.y_meas = true(ny, 1);
+MKF_SP1 = MKFObserverSP_RODD(model,io,P0,epsilon,{sigma_wp},Q0,R, ...
     nh,n_min,label);
 
 % Multiple model observer with sequence pruning #2
@@ -143,7 +145,7 @@ Q0 = diag([q1 0]);
 R = sigma_M^2;
 nh = 25;  % number of filters
 n_min = 21;  % minimum life of cloned filters
-MKF_SP2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
+MKF_SP2 = MKFObserverSP_RODD(model,u_meas,P0,epsilon,sigma_wp,Q0,R, ...
     nh,n_min,label);
 
 % TODO: Restore
