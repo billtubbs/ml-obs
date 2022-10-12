@@ -4,8 +4,29 @@
 clear all
 
 
-%% Test on SISO system
-% with one known innput and one randomly-occurring step input disturbance
+%% Test on SISO system with no RODDs
+% with one known input and one standard (Gaussian) input disturbance
+
+Q0 = [ 0.0100         0
+            0         0];
+B = [1 0; 0 1];
+u_known = [true false]';
+alpha = 0.01;
+sigma_wp = {0.01};
+
+[Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp);
+Q_test = {
+    [ 0.0100       0
+           0       0.0001]
+};
+
+assert(isequal(Q, Q_test))
+assert(isequal(p_rk, 1))
+
+
+
+%% Test on SISO system with one RODD
+% with one known input and one randomly-occurring step input disturbance
 
 Q0 = [ 0.0100         0
             0         0];
@@ -26,8 +47,43 @@ assert(isequal(Q, Q_test))
 assert(isequal(p_rk, [0.99; 0.01]))
 
 
-%% Test on 2x2 system
-% with two randomly-occuring step input disturbances
+%% Test on 2x2 system with one RODD
+
+Q0 = [
+    0.0100         0         0         0
+         0    0.0100         0         0
+         0         0         0         0
+         0         0         0         0
+];
+
+B = [
+     1     0     0     0
+     0     1     0     0
+     0     0     1     0
+     0     0     0     1
+];
+u_known = [true true false false]';
+epsilon = [0.01];
+sigma_wp = {0.01, [0.01 1]};
+d = 1;
+alpha = (1 - (1 - epsilon).^d);
+
+[Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp);
+Q_test = {
+    [    0.0100         0         0         0
+              0    0.0100         0         0
+              0         0    0.0001         0
+              0         0         0    0.0001] ...
+    [    0.0100         0         0         0
+              0    0.0100         0         0
+              0         0    0.0001         0
+              0         0         0    1.0000]
+};
+assert(isequal(Q, Q_test));
+assert(isequal(round(p_rk, 6), [0.99 0.01]'));
+
+
+%% Test on 2x2 system with two RODDs
 
 Q0 = [
     0.0100         0         0         0
@@ -67,8 +123,42 @@ assert(isequal(Q, Q_test));
 assert(isequal(round(p_rk, 6), [0.9801 0.0099 0.0099]'));
 
 
-%% Test on 3 input system
-% with three randomly-occuring step input disturbances
+%% Test on 3x2 system with no RODDs
+
+Q0 = [
+    0.0100         0         0         0         0
+         0    0.0100         0         0         0
+         0         0         0         0         0
+         0         0         0         0         0
+         0         0         0         0         0
+];
+
+B = [
+     1     0     0     0     0
+     0     1     0     0     0
+     0     0     1     0     0
+     0     0     0     1     0
+     0     0     0     0     1
+];
+u_known = [true true false false false]';
+epsilon = [];
+sigma_wp = {0.01, 0.02, 0.03};
+d = 1;
+alpha = (1 - (1 - epsilon).^d);
+
+[Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp);
+Q_test = {
+    [    0.0100         0         0         0         0
+              0    0.0100         0         0         0
+              0         0    0.0001         0         0
+              0         0         0    0.0004         0
+              0         0         0         0    0.0009] ...
+};
+assert(isequal(Q, Q_test));
+assert(p_rk == 1)
+
+
+%% Test on 3x2 system with 3 RODDs
 
 Q0 = [
     0.0100         0         0         0         0
@@ -94,7 +184,6 @@ sigma_wp = {
 };
 d = 1;
 alpha = (1 - (1 - epsilon).^d);
-nw = size(sigma_wp, 1);
 
 [Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp);
 Q_test = {
