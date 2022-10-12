@@ -83,6 +83,8 @@
 classdef MKFObserverSP_RODD < MKFObserver
     properties (SetAccess = immutable)
         io struct
+        nw double {mustBeInteger, mustBeNonnegative}
+        n_shocks double {mustBeInteger, mustBeNonnegative}
         n_min double {mustBeInteger, mustBeNonnegative}
     end
     properties
@@ -170,16 +172,19 @@ classdef MKFObserverSP_RODD < MKFObserver
             % Initialize indicator sequences with 1s
             %seq = mat2cell(int16(ones(nh, nf)), int16(ones(1, nh)), nf);
 
+            % Number of random shock signals
+            n_shocks = sum(cellfun(@(s) size(s, 2) > 1, sigma_wp));
+
             % Define filter groups ('main', 'holding' and 'unused')
             n_min = int16(n_min);
             assert(n_min > 0)
             assert(nh > 0)
-            n_hold = nw * n_min;
+            n_hold = n_shocks * n_min;
             n_main = nh - n_hold;
 
             % Check there are enough filters in total to accommodate
             % those in the holding group + at least one in main group
-            assert(n_main >= nw, "ValueError: nh is too low.")
+            assert(n_main >= n_shocks, "ValueError: nh is too low.")
 
             % Filter indices
             f_main = int16(1:n_main);
@@ -205,7 +210,8 @@ classdef MKFObserverSP_RODD < MKFObserver
             % Add additional variables used by SP observer
             obj.sys_model = model;
             obj.io = io;
-            %obj.seq = seq;
+            obj.nw = nw;
+            obj.n_shocks = n_shocks;
             obj.n_min = n_min;
             obj.n_main = n_main;
             obj.n_hold = n_hold;
