@@ -280,6 +280,17 @@ classdef MKFObserver < matlab.mixin.Copyable
                     cov_yk = triu(cov_yk.',1) + tril(cov_yk);
                 end
 
+                % Check if it is symmteric, positive definite
+                tf = issymmetric(cov_yk);
+                if ~tf
+                    error("ValueError: cov_yk not symmetric")
+                end
+                d = eig(cov_yk);
+                isposdef = all(d > 0);
+                if ~isposdef
+                    error("ValueError: cov_yk not positive definite")
+                end
+
                 % Probability density of output prediction (assuming a
                 % multivariate normal distribution) based on prior
                 % estimates computed in previous timestep

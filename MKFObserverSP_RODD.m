@@ -191,8 +191,14 @@ classdef MKFObserverSP_RODD < MKFObserver
             f_hold = int16(n_main+1:n_main+n_hold);
 
             % System models are all the same - only Q switches
-            model_obs = model;
+            model_obs = struct;
+            model_obs.A = model.A;
             model_obs.B = Bu;
+            model_obs.C = model.C;
+            if direct
+                model_obs.D = model.D;
+            end
+            model_obs.Ts = model.Ts;
             models = repmat({model_obs}, 1, nj);
             for i = 1:nj
                 models{i}.Q = Q{i};

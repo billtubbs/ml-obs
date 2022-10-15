@@ -28,11 +28,11 @@ Delta = [1 -delta1];
 Gd = tf(Omega, Delta, Ts);
 
 % ARIMA noise process
-thetaN0 = 1;
-phiN1 = 0.2;
-ThetaN = [0 thetaN0];  % direct transmission
-PhiN = [1 -phiN1];
-HNd = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+% thetaN0 = 1;
+% phiN1 = 0.2;
+% ThetaN = [0 thetaN0];  % direct transmission
+% PhiN = [1 -phiN1];
+% HNd = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
 
 % RODD step disturbance process
 ThetaD = 1;

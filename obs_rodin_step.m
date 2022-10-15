@@ -16,15 +16,18 @@ Bu = B(:, u_known);
 Bw = B(:, ~u_known);
 Du = D(:, u_known);
 
+obs_model = model;
+obs_model.B = Bu;
+
 % Steady-state Luenberger observer 1
 % Specify poles of observer dynamics
 poles = [0.8; 0.8];
-LB1 = LuenbergerFilter(model,poles,'LB1');
+LB1 = LuenbergerFilter(obs_model,poles,'LB1');
 
 % Steady-state Luenberger observer 2
 % Specify poles of observer dynamics
 poles = [0.6; 0.6];
-LB2 = LuenbergerFilter(model,poles,'LB2');
+LB2 = LuenbergerFilter(obs_model,poles,'LB2');
 
 % Specify covariance for state variable 1
 % This is used by all observers
@@ -39,43 +42,43 @@ Q3 = diag([q1 0.1^2]);
 R = sigma_M^2;
 
 % Observer models for new observer functions
-models = {struct, struct};
-models{1}.A = A;
-models{1}.B = Bu;
-models{1}.C = C;
-models{1}.Ts = Ts;
-models{1}.Q = Q1;
-models{1}.R = R;
-models{2}.A = A;
-models{2}.B = Bu;
-models{2}.C = C;
-models{2}.Ts = Ts;
-models{2}.Q = Q2;
-models{2}.R = R;
+obs_models = {struct, struct};
+obs_models{1}.A = A;
+obs_models{1}.B = Bu;
+obs_models{1}.C = C;
+obs_models{1}.Ts = Ts;
+obs_models{1}.Q = Q1;
+obs_models{1}.R = R;
+obs_models{2}.A = A;
+obs_models{2}.B = Bu;
+obs_models{2}.C = C;
+obs_models{2}.Ts = Ts;
+obs_models{2}.Q = Q2;
+obs_models{2}.R = R;
 
 % Parameters for manually-tuned Kalman filter (KF3)
-model3 = models{1};  % makes copy
+model3 = obs_models{1};  % makes copy
 model3.Q = Q3;
 
 % Steady-state Kalman filter 1 - prediction form - tuned to sigma_wp(1)
-KFPSS1 = KalmanFilterPSS(models{1},'KFPSS1');
+KFPSS1 = KalmanFilterPSS(obs_models{1},'KFPSS1');
 
 % Steady-state Kalman filter 2 - prediction form - tuned to sigma_wp(2)
-KFPSS2 = KalmanFilterPSS(models{2},'KFPSS2');
+KFPSS2 = KalmanFilterPSS(obs_models{2},'KFPSS2');
 
 % Steady-state Kalman filter 1 - filtering form - tuned to sigma_wp(1)
-KFFSS1 = KalmanFilterFSS(models{1},'KFFSS1');
+KFFSS1 = KalmanFilterFSS(obs_models{1},'KFFSS1');
 
 % Steady-state Kalman filter 2 - filtering form  - tuned to sigma_wp(2)
-KFFSS2 = KalmanFilterFSS(models{2},'KFFSS2');
+KFFSS2 = KalmanFilterFSS(obs_models{2},'KFFSS2');
 
 % Kalman filter 1 - tuned to sigma_wp(1)
 P0 = 1000*eye(n);
-KF1 = KalmanFilterF(models{1},P0,'KF1');
+KF1 = KalmanFilterF(obs_models{1},P0,'KF1');
 
 % Kalman filter 2 - tuned to sigma_wp(2)
 P0 = 1000*eye(n);
-KF2 = KalmanFilterF(models{2},P0,'KF2');
+KF2 = KalmanFilterF(obs_models{2},P0,'KF2');
 
 % Kalman filter 3 - manually tuned
 P0 = 1000*eye(n);

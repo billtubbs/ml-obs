@@ -25,9 +25,8 @@ function [n, nu, ny, Ts, direct] = check_model(model)
 %       True if model has a D matrix.
 %
 
-    if isprop(model, "D")
-        [n, nu, ny] = check_dimensions(model.A, model.B, model.C, ...
-            model.D);
+    if isfield(model, "D") || isprop(model, "D")
+        [n, nu, ny] = check_dimensions(model.A, model.B, model.C, model.D);
         direct = true;
     else
         [n, nu, ny] = check_dimensions(model.A, model.B, model.C);

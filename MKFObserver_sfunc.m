@@ -35,14 +35,14 @@ obs = block.DialogPrm(1).Data;
 block.InputPort(1).Dimensions = obs.nu;
 block.InputPort(1).DatatypeID = 0;  % double
 block.InputPort(1).Complexity = 'Real';
-block.InputPort(1).DirectFeedthrough = false;
+block.InputPort(1).DirectFeedthrough = true;  % Necessary for observers
 block.InputPort(1).SamplingMode = 'Sample';
 
 % Input 2: y(k)
 block.InputPort(2).Dimensions = obs.ny;
 block.InputPort(2).DatatypeID = 0;  % double
 block.InputPort(2).Complexity = 'Real';
-block.InputPort(2).DirectFeedthrough = false;
+block.InputPort(2).DirectFeedthrough = true;  % Necessary for observers
 block.InputPort(2).SamplingMode = 'Sample';
 
 % Output 1: x_est(k|k);
@@ -149,8 +149,6 @@ switch obs.type
 
 end
 
-
-
 %end PostPropagationSetup
 
 
@@ -194,7 +192,6 @@ switch obs.type
         %dlmwrite(sprintf('test-%s-int16.csv', obs.label), vec_int16, 'delimiter', ',');
 
 end
-
 
 %end InitializeConditions
 
