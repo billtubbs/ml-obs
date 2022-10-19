@@ -31,25 +31,31 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     [n_d, nu_d, ny_d, Ts, ~] = check_model(Gid);
 
     % Augment the plant model with the disturbance model
-    A = [Gd.A Gd.B(:, MVs); zeros(nw,n) Gid.A];
-    Bu = [Gd.B(:, MVs) zeros(n,nw); zeros(nw,nu) Gid.B];
+    A = [Gd.A Gd.B(:,MVs); zeros(size(Gid.A,1),size(Gd.A,2)) Gid.A];
+    Bu = [Gd.B(:,MVs); zeros(ny,nw)];
     Cm = [Gd.C zeros(ny,nu)];
-    D = Gd.D;
+    D = Gd.D(:,MVs);
     % This should produce the same system as
     % Gpred = series([1 0; 0 Gid], Gd)
 
     % Prediction model 
     Gpred = ss(A,Bu,Cm,D,Ts);
 
-    % Calculate Kalman filter gains
+    % Measurement noise model
     Gmn = ss(eye(ny, ny),'Ts',Ts);
-    B_est = [[Gd.B;zeros(ny,nu)] [zeros(n,nu);Gid.B] zeros(n+ny,nu)];
-    D_est = [Gd.D Gid.D Gmn.D];
+
+    % Noise input matrix - see equation for w(k)
+    B_est = padarray(blkdiag(Gd.B(:,MVs), Gid.B), [0 size(Gmn.B,2)], 'post');
+
+    % Noise direct transmission matrix - see equation for v(k)
+    D_est = [Gd.D(:,MVs) Gid.D Gmn.D];
+
+    % Kalman filter noise covariance parameters
     Q = B_est * B_est';
     R = D_est * D_est';
     N = B_est * D_est';
-    G = eye(n+ny);
-    H = zeros(ny,n+ny);
+    G = eye(n+nw);
+    H = zeros(ny,n+nw);
     [~, L, ~, M] = kalman(ss(A,[Bu G],Cm,[D H],Ts),Q,R,N);
 
     % Check gains and model are identical to those of the MPC

@@ -6,6 +6,11 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
 % Also returns the discrete-time prediction model used
 % by the estimator.
 %
+% This script is based on this worked-example described 
+% in the documentation:
+%  - Implement Custom State Estimator Equivalent to Built-In Kalman Filter,
+%    https://www.mathworks.com/help/mpc/ug/design-estimator-equivalent-to-mpc-built-in-kf.html
+%
 
     % Get output disturbance model
     God = getoutdist(mpcobj);
@@ -33,16 +38,21 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
     % Prediction model 
     Gpred = ss(A,Bu,Cm,D,Ts);
 
-    % Calculate Kalman filter gains
+    % Measurement noise model
     Gmn = ss(eye(ny),'Ts',Ts);
-    B_est = [[Gd.B; zeros(size(God.B,1),size(Gd.B,2))] ... 
-             [zeros(size(Gd.B,1),size(God.B,2)); God.B] ...
-             [zeros(size(Gd.B,1),size(Gmn.B,2)); 
-              zeros(size(God.B,1),size(Gmn,2))]];
+
+    % Noise input matrix - see equation for w(k)
+    B_est = padarray(blkdiag(Gd.B, God.B), [0 size(Gmn.B,2)], 'post');
+
+    % Noise direct transmission matrix - see equation for v(k)
     D_est = [Gd.D God.D Gmn.D];
+
+    % Kalman filter noise covariance parameters
     Q = B_est * B_est';
     R = D_est * D_est';
     N = B_est * D_est';
+
+    % Calculate Kalman filter gains
     G = eye(n+ny);
     H = zeros(ny,n+ny);
     [~, L, ~, M] = kalman(ss(A,[Bu G],Cm,[D H],Ts),Q,R,N);
