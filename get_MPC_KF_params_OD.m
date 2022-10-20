@@ -12,15 +12,21 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
 %    https://www.mathworks.com/help/mpc/ug/design-estimator-equivalent-to-mpc-built-in-kf.html
 %
 
+    % Get scaling factors on MVs, DVs, and CVs
+    %MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
+    OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
+
     % Get output disturbance model
     God = getoutdist(mpcobj);
 
-    % Get scaling factors on MVs, DVs, and CVs
-    MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
-    OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
-
-    % Re-scale disturbance model outputs
-    %God.C = God.C ./ OV_scale_factors;
+    % Get measurement noise model
+    if ~isempty(mpcobj.Model.Noise)
+        Gmn = mpcobj.Model.Noise;
+    else
+        % Default measurement noise model
+        ny = size(mpcobj,'mo');
+        Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',mpcobj.Ts);
+    end
 
     % Make sure there are no input disturbances
     assert(isempty(getindist(mpcobj)))
@@ -33,7 +39,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
         Gd = mpcobj.Model.Plant;
     end
 
-    % Determine dimensions of model
+    % Get dimensions of model
     [n, nu, ny, Ts, ~] = check_model(Gd);
 
     % Augment the plant model with the disturbance model
@@ -44,9 +50,6 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
 
     % Prediction model 
     Gpred = ss(A,Bu,Cm,D,Ts);
-
-    % Measurement noise model
-    Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',Ts);
 
     % Noise input matrix - see equation for w(k)
     B_est = padarray(blkdiag(Gd.B, God.B), [0 size(Gmn.B,2)], 'post');

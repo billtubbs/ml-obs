@@ -6,13 +6,22 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
 % model used by the estimator.
 %
 
+    % Get scaling factors on MVs, DVs, and CVs
+    %MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
+    %DV_scale_factors = extractfield(mpcobj.DisturbanceVariables,'ScaleFactor');
+    OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
+
     % Get intput disturbance model
     Gid = getindist(mpcobj);
 
-    % Get scaling factors on MVs, DVs, and CVs
-    MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
-    DV_scale_factors = extractfield(mpcobj.DisturbanceVariables,'ScaleFactor');
-    OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
+    % Get measurement noise model
+    if ~isempty(mpcobj.Model.Noise)
+        Gmn = mpcobj.Model.Noise;
+    else
+        % Default measurement noise model
+        ny = size(mpcobj,'mo');
+        Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',mpcobj.Ts);
+    end
 
     % Make sure there are no output disturbances
     assert(isempty(getoutdist(mpcobj)))
@@ -26,25 +35,22 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     end
 
     % Get dimensions of system model
-    [n, nu, ny, Ts, ~] = check_model(Gd);
+    [n, ~, ny, Ts] = check_model(Gd);
     MVs = Gd.InputGroup.Manipulated;
     nu = numel(MVs);
     UDs = Gd.InputGroup.Unmeasured;
     nw = numel(UDs);
 
     % Augment the plant model with the disturbance model
-    A = [Gd.A Gd.B(:,MVs); zeros(size(Gid.A,1),size(Gd.A,2)) Gid.A];
-    Bu = [Gd.B(:,MVs); zeros(ny,nw)];
-    Cm = [Gd.C zeros(ny,nu)];
+    A = [Gd.A Gd.B(:,UDs); zeros(size(Gid.A,1),size(Gd.A,2)) Gid.A];
+    Bu = [Gd.B(:,MVs); zeros(ny,nu)];
+    Cm = [Gd.C zeros(ny,nw)];
     D = Gd.D(:,MVs);
     % This should produce the same system as
     % Gpred = series([1 0; 0 Gid], Gd)
 
     % Prediction model 
     Gpred = ss(A,Bu,Cm,D,Ts);
-
-    % Measurement noise model
-    Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',Ts);
 
     % Noise input matrix - see equation for w(k)
     B_est = padarray(blkdiag(Gd.B(:,MVs), Gid.B), [0 size(Gmn.B,2)], 'post');
