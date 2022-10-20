@@ -15,6 +15,13 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
     % Get output disturbance model
     God = getoutdist(mpcobj);
 
+    % Get scaling factors on MVs, DVs, and CVs
+    MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
+    OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
+
+    % Re-scale disturbance model outputs
+    %God.C = God.C ./ OV_scale_factors;
+
     % Make sure there are no input disturbances
     assert(isempty(getindist(mpcobj)))
 
@@ -39,7 +46,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
     Gpred = ss(A,Bu,Cm,D,Ts);
 
     % Measurement noise model
-    Gmn = ss(eye(ny),'Ts',Ts);
+    Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',Ts);
 
     % Noise input matrix - see equation for w(k)
     B_est = padarray(blkdiag(Gd.B, God.B), [0 size(Gmn.B,2)], 'post');
@@ -63,6 +70,6 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
     assert(max(abs(M - M1), [], [1 2]) < 1e-10)
     assert(max(abs(A - A1), [], [1 2]) < 1e-10)
     assert(max(abs(Cm - Cm1), [], [1 2]) < 1e-10)
-    assert(max(abs(Bu1 - Bu), [], [1 2]) < 1e-10)
+    assert(max(abs(Bu - Bu1), [], [1 2]) < 1e-10)
 
 end

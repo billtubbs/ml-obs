@@ -96,7 +96,35 @@ mpcverbosity off;
 model = setmpcsignals(model,'MV',1:2); % inputs 1 and 2 are MVs
 model = setmpcsignals(model,'MO',1:2); % outputs 1 and 2 are MOs 
 mpcobj = mpc(model,Ts);
-mpcobj.Weights.OutputVariables = [0.5 0.2];
+
+% Operating points
+u_op = [10;20];
+y_op = [30;40];
+mpcobj.model.Nominal.U=u_op;
+mpcobj.model.Nominal.Y=y_op;
+
+% Prediction and control horizons
+mpcobj.PredictionHorizon = 20;
+mpcobj.ControlHorizon = 1;
+
+% TODO: Need to get it working with scaling factors on MVs. 'ScaleFactor',{50,50}
+
+% Constraints and scaling for Mvs
+mpcobj.MV = struct('Min',{0,0},'Max',{50,50}, ... % u_1min u_2min   u1max u2max
+                   'RateMin',{-10,-10},'RateMax',{10,10}, ... % deltau_1min deltau_2min   deltau_1max deltau_2max
+                   'RateMinECR',{0,0},'RateMaxECR',{0,0}, ... % V^deltau_1min V^deltau_2min   V^deltau_1max V^deltau_2max (0 = hard constraints)
+                   'MinECR',{0,0},'MaxECR',{0,0}, ... % V^u_1min V^u_2min   V^u_1max V^u_2max (0 = hard constraints)
+                   'ScaleFactor',{1,1}); % range of u_1 range of u_2     
+
+% Constraints and scaling for OVs (OV = OutputVariables = MO + UO - here we only have MOs)
+mpcobj.OV = struct('Min',{10,10},'Max',{90,90}, ... %y1min y2min   y1max y2max
+                   'MinECR',{1,1},'MaxECR',{1,1}, ...% V^y_1min V^y_2min   V^y_1max V^y_2max (1 = soft constraints)
+                   'ScaleFactor',{80,80}); ... % range of y_1 range of y_2      
+% Weights
+mpcobj.Weights.OutputVariables = [2 0.5]; % phi1 and phi2
+mpcobj.Weights.ManipulatedVariablesRate = [0.1 0.1]; % lambda1 and lambda2
+mpcobj.Weights.ECR = 1e5; % rho_epsilon
+%
 
 % This should already be set by default
 %setoutdist(mpcobj,'integrators');
@@ -117,8 +145,8 @@ assert(isequal(round(Q, 6), [ ...
   0  0  0         0         0         0         0  0  0  4  0
   0  0  0         0         0         0         0  0  0  0  4]))
 assert(isequal(R, [ ...
-     1     0
-     0     1
+     80^2  0
+     0     80^2
 ]))
 assert(isequal(round(Gpred.A, 6), [ ...
   0  0  0  0.483333  0  0  0  1  0  0  0
@@ -147,8 +175,8 @@ assert(isequal(round(Gpred.B, 6), [ ...
          0         0
 ]))
 assert(isequal(round(Gpred.C, 6), [ ...
-  1  0  0  0  0  0  0  0  0  1  0
-  0  1  0  0  0  0  0  0  0  0  1
+  1  0  0  0  0  0  0  0  0  80 0
+  0  1  0  0  0  0  0  0  0  0  80
 ]))
 
 
@@ -268,7 +296,6 @@ Gd = minreal(Gd);
 mpcverbosity off;
 Gd = setmpcsignals(Gd,'MV',1:2,'UD',3:4,'MO',1:2);
 mpcobj = mpc(Gd,Ts);
-mpcobj.Weights.OutputVariables = [0.5 0.2];
 
 % Set the default input disturbance model
 setindist(mpcobj,'integrators');
@@ -284,23 +311,22 @@ mpcobj.model.Nominal.Y=y_op;
 mpcobj.PredictionHorizon = 20;
 mpcobj.ControlHorizon = 1;
 
-% TODO: Need to get it working with more comprehensive MPC Settings
-%       E.g. scaling factors.
+% TODO: Need to get it working with scaling factors on MVs. 'ScaleFactor',{50,50}
 
-% % Constraints and scaling for Mvs
-% mpcobj.MV = struct('Min',{0,0},'Max',{50,50}, ... % u_1min u_2min   u1max u2max
-%                    'RateMin',{-10,-10},'RateMax',{10,10}, ... % deltau_1min deltau_2min   deltau_1max deltau_2max
-%                    'RateMinECR',{0,0},'RateMaxECR',{0,0}, ... % V^deltau_1min V^deltau_2min   V^deltau_1max V^deltau_2max (0 = hard constraints)
-%                    'MinECR',{0,0},'MaxECR',{0,0}, ... % V^u_1min V^u_2min   V^u_1max V^u_2max (0 = hard constraints)
-%                    'ScaleFactor',{50,50}); % range of u_1 range of u_2     
-% 
-% % Constraints and scaling for OVs (OV = OutputVariables = MO + UO - here we only have MOs)
-% mpcobj.OV = struct('Min',{10,10},'Max',{90,90}, ... %y1min y2min   y1max y2max
-%                    'MinECR',{1,1},'MaxECR',{1,1}, ...% V^y_1min V^y_2min   V^y_1max V^y_2max (1 = soft constraints)
-%                    'ScaleFactor',{80,80}); ... % range of y_1 range of y_2      
+% Constraints and scaling for Mvs
+mpcobj.MV = struct('Min',{0,0},'Max',{50,50}, ... % u_1min u_2min   u1max u2max
+                   'RateMin',{-10,-10},'RateMax',{10,10}, ... % deltau_1min deltau_2min   deltau_1max deltau_2max
+                   'RateMinECR',{0,0},'RateMaxECR',{0,0}, ... % V^deltau_1min V^deltau_2min   V^deltau_1max V^deltau_2max (0 = hard constraints)
+                   'MinECR',{0,0},'MaxECR',{0,0}, ... % V^u_1min V^u_2min   V^u_1max V^u_2max (0 = hard constraints)
+                   'ScaleFactor',{1,1}); % range of u_1 range of u_2     
+
+% Constraints and scaling for OVs (OV = OutputVariables = MO + UO - here we only have MOs)
+mpcobj.OV = struct('Min',{10,10},'Max',{90,90}, ... %y1min y2min   y1max y2max
+                   'MinECR',{1,1},'MaxECR',{1,1}, ...% V^y_1min V^y_2min   V^y_1max V^y_2max (1 = soft constraints)
+                   'ScaleFactor',{80,80}); ... % range of y_1 range of y_2      
 
 % Weights
-mpcobj.Weights.OutputVariables = [1 1]; % phi1 and phi2
+mpcobj.Weights.OutputVariables = [0.5 0.2]; % phi1 and phi2
 mpcobj.Weights.ManipulatedVariablesRate = [0.1 0.1]; % lambda1 and lambda2
 mpcobj.Weights.ECR = 1e5; % rho_epsilon
 

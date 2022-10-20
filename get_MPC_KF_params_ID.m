@@ -9,6 +9,11 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     % Get intput disturbance model
     Gid = getindist(mpcobj);
 
+    % Get scaling factors on MVs, DVs, and CVs
+    MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
+    DV_scale_factors = extractfield(mpcobj.DisturbanceVariables,'ScaleFactor');
+    OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
+
     % Make sure there are no output disturbances
     assert(isempty(getoutdist(mpcobj)))
 
@@ -27,9 +32,6 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     UDs = Gd.InputGroup.Unmeasured;
     nw = numel(UDs);
 
-    % Get dimensions of disturbance model
-    [n_d, nu_d, ny_d, Ts, ~] = check_model(Gid);
-
     % Augment the plant model with the disturbance model
     A = [Gd.A Gd.B(:,MVs); zeros(size(Gid.A,1),size(Gd.A,2)) Gid.A];
     Bu = [Gd.B(:,MVs); zeros(ny,nw)];
@@ -42,7 +44,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     Gpred = ss(A,Bu,Cm,D,Ts);
 
     % Measurement noise model
-    Gmn = ss(eye(ny, ny),'Ts',Ts);
+    Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',Ts);
 
     % Noise input matrix - see equation for w(k)
     B_est = padarray(blkdiag(Gd.B(:,MVs), Gid.B), [0 size(Gmn.B,2)], 'post');
