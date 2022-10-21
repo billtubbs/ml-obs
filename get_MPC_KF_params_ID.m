@@ -1,4 +1,4 @@
-function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
+function [Q,R,Gpred,N] = get_MPC_KF_params_ID(mpcobj)
 % [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
 % Determines the parameters of the Kalman filter of the
 % MPC object in the case of an input disturbance
@@ -7,7 +7,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
 %
 
     % Get scaling factors on MVs, DVs, and CVs
-    %MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
+    MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
     %DV_scale_factors = extractfield(mpcobj.DisturbanceVariables,'ScaleFactor');
     OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
 
@@ -20,7 +20,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     else
         % Default measurement noise model
         ny = size(mpcobj,'mo');
-        Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',mpcobj.Ts);
+        Gmn = ss(eye(ny).*OV_scale_factors,'Ts',mpcobj.Ts);
     end
 
     % Make sure there are no output disturbances
@@ -42,7 +42,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     nw = numel(UDs);
 
     % Augment the plant model with the disturbance model
-    A = [Gd.A Gd.B(:,UDs); zeros(size(Gid.A,1),size(Gd.A,2)) Gid.A];
+    A = [Gd.A Gd.B(:,UDs)*Gid.C; zeros(size(Gid.A,1),size(Gd.A,2)) Gid.A];
     Bu = [Gd.B(:,MVs); zeros(ny,nu)];
     Cm = [Gd.C zeros(ny,nw)];
     D = Gd.D(:,MVs);
@@ -52,11 +52,22 @@ function [Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj)
     % Prediction model 
     Gpred = ss(A,Bu,Cm,D,Ts);
 
+    % Noise input equations
+    %
+    %   w[k] = [ Gd.B*Gid.D  0 ] * [ wn_id ] = B_est * white noise
+    %          [ Gid.B       0 ]   [ wn_mn ]
+    %
+    %   v[k] = [ Gd.D Gmn.D ] * [ wn_id ] = D_est * white noise
+    %                           [ wn_mn ]
+    %
+
     % Noise input matrix - see equation for w(k)
-    B_est = padarray(blkdiag(Gd.B(:,MVs), Gid.B), [0 size(Gmn.B,2)], 'post');
+    B_est = padarray(blkdiag(Gd.B(:,MVs).*MV_scale_factors, Gid.B), [0 size(Gmn.B,2)], 'post');
+    %B_est = padarray([Gd.B(:,MVs).*MV_scale_factors; Gid.B], [0 size(Gmn.B,2)], 'post');
 
     % Noise direct transmission matrix - see equation for v(k)
-    D_est = [Gd.D(:,MVs) Gid.D Gmn.D];
+    D_est = [Gd.D(:,MVs).*MV_scale_factors Gid.D Gmn.D];
+    %D_est = [Gd.D(:,MVs).*MV_scale_factors Gmn.D];
 
     % Kalman filter noise covariance parameters
     Q = B_est * B_est';

@@ -1,5 +1,5 @@
-function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
-% [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
+function [Q,R,Gpred,N] = get_MPC_KF_params_OD(mpcobj)
+% [Q,R,Gpred,N] = get_MPC_KF_params_OD(mpcobj)
 % Determines the parameters of the Kalman filter of the
 % MPC object in the case of an output disturbance
 % model (which is the default if none specified).
@@ -13,7 +13,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
 %
 
     % Get scaling factors on MVs, DVs, and CVs
-    %MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
+    MV_scale_factors = extractfield(mpcobj.ManipulatedVariables,'ScaleFactor');
     OV_scale_factors = extractfield(mpcobj.OutputVariables,'ScaleFactor');
 
     % Get output disturbance model
@@ -25,7 +25,7 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
     else
         % Default measurement noise model
         ny = size(mpcobj,'mo');
-        Gmn = ss(eye(ny, ny).*OV_scale_factors,'Ts',mpcobj.Ts);
+        Gmn = ss(eye(ny).*OV_scale_factors,'Ts',mpcobj.Ts);
     end
 
     % Make sure there are no input disturbances
@@ -51,11 +51,22 @@ function [Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj)
     % Prediction model 
     Gpred = ss(A,Bu,Cm,D,Ts);
 
-    % Noise input matrix - see equation for w(k)
-    B_est = padarray(blkdiag(Gd.B, God.B), [0 size(Gmn.B,2)], 'post');
+    % Noise input equations
+    %
+    %   w[k] = [ Gd.B  0      0 ] * [ wn_u  ] = B_est * white noise
+    %          [ 0     God.B  0 ]   [ wn_od ]
+    %                               [ wn_mn ]
+    %
+    %   v[k] = [ Gd.D God.D Gmn.D ] * [ wn_u  ] = D_est * white noise
+    %                                 [ wn_od ]
+    %                                 [ wn_mn ]
 
-    % Noise direct transmission matrix - see equation for v(k)
-    D_est = [Gd.D God.D Gmn.D];
+    % Noise input matrix - see w(k) eq.n above
+    B_est = padarray(blkdiag(Gd.B.*MV_scale_factors, God.B), ...
+                     [0 size(Gmn.B,2)], 'post');
+
+    % Noise direct transmission matrix - see v(k) eq.n above
+    D_est = [Gd.D.*MV_scale_factors God.D Gmn.D];
 
     % Kalman filter noise covariance parameters
     Q = B_est * B_est';

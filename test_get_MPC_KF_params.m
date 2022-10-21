@@ -25,7 +25,7 @@ mpcobj.Model.Nominal.X = x0;
 mpcobj.Weights.OutputVariables = 0.2;
 
 % Calculate estimator parameters
-[Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj);
+[Q, R, Gpred, N] = get_MPC_KF_params_OD(mpcobj);
 assert(isequal(round(Q, 6), [ ...
     0.000020    0.000408       0
     0.000408    0.008453       0
@@ -54,7 +54,7 @@ mpcobj.Model.Nominal.X = x0;
 mpcobj.Weights.OutputVariables = 0.2;
 
 % Calculate estimator parameters
-[Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj);
+[Q, R, Gpred, N] = get_MPC_KF_params_OD(mpcobj);
 assert(isequal(round(Q, 6), [ ...
     0.000020    0.000408         0
     0.000408    0.008453         0
@@ -81,6 +81,7 @@ mpcverbosity(old_status);
 
 %% Test get_MPC_KF_params_OD on 2x2 system
 
+% Example system used in MPC_Matlab_OD.mlx
 s=tf('s');
 G11=2.9*exp(-2*s)/(1+24*s);
 G12=2.9*exp(-4*s)/(1+12*s);
@@ -107,14 +108,12 @@ mpcobj.model.Nominal.Y=y_op;
 mpcobj.PredictionHorizon = 20;
 mpcobj.ControlHorizon = 1;
 
-% TODO: Need to get it working with scaling factors on MVs. 'ScaleFactor',{50,50}
-
 % Constraints and scaling for Mvs
 mpcobj.MV = struct('Min',{0,0},'Max',{50,50}, ... % u_1min u_2min   u1max u2max
                    'RateMin',{-10,-10},'RateMax',{10,10}, ... % deltau_1min deltau_2min   deltau_1max deltau_2max
                    'RateMinECR',{0,0},'RateMaxECR',{0,0}, ... % V^deltau_1min V^deltau_2min   V^deltau_1max V^deltau_2max (0 = hard constraints)
                    'MinECR',{0,0},'MaxECR',{0,0}, ... % V^u_1min V^u_2min   V^u_1max V^u_2max (0 = hard constraints)
-                   'ScaleFactor',{1,1}); % range of u_1 range of u_2     
+                   'ScaleFactor',{50,50}); % range of u_1 range of u_2     
 
 % Constraints and scaling for OVs (OV = OutputVariables = MO + UO - here we only have MOs)
 mpcobj.OV = struct('Min',{10,10},'Max',{90,90}, ... %y1min y2min   y1max y2max
@@ -126,24 +125,28 @@ mpcobj.Weights.ManipulatedVariablesRate = [0.1 0.1]; % lambda1 and lambda2
 mpcobj.Weights.ECR = 1e5; % rho_epsilon
 %
 
+% Custom measurement noise model
+%mpcobj.Model.Noise = ss(diag([5 10]),'Ts',Ts);
+
 % This should already be set by default
 %setoutdist(mpcobj,'integrators');
 
 % Calculate estimator parameters
-[Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj);
+[Q, R, Gpred, N] = get_MPC_KF_params_OD(mpcobj);
 
-assert(isequal(round(Q, 6), [ ...
-  0  0  0         0         0         0         0  0  0  0  0
-  0  0  0         0         0         0         0  0  0  0  0
-  0  0  0         0         0         0         0  0  0  0  0
-  0  0  0  0.230144  0.223521         0         0  0  0  0  0
-  0  0  0  0.223521  0.217088         0         0  0  0  0  0
-  0  0  0         0         0  0.848443  0.759178  0  0  0  0
-  0  0  0         0         0  0.759178  0.679305  0  0  0  0
-  0  0  0         0         0         0         0  0  0  0  0
-  0  0  0         0         0         0         0  0  0  0  0
-  0  0  0         0         0         0         0  0  0  4  0
-  0  0  0         0         0         0         0  0  0  0  4]))
+assert(isequal(round(Q, 0), [ ...
+     0     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0     0
+     0     0     0   575   559     0     0     0     0     0     0
+     0     0     0   559   543     0     0     0     0     0     0
+     0     0     0     0     0  2121  1898     0     0     0     0
+     0     0     0     0     0  1898  1698     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     4     0
+     0     0     0     0     0     0     0     0     0     0     4
+]))
 assert(isequal(R, [ ...
      80^2  0
      0     80^2
@@ -217,7 +220,7 @@ mpcobj.Model.Nominal.X = x0;
 mpcobj.Weights.OutputVariables = 0.2;
 
 % Calculate estimator parameters
-[Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj);
+[Q, R, Gpred, N] = get_MPC_KF_params_ID(mpcobj);
 assert(isequal(round(Q, 6), [ ...
     0.000020    0.000408       0
     0.000408    0.008453       0
@@ -249,7 +252,7 @@ mpcobj.Model.Nominal.X = x0;
 mpcobj.Weights.OutputVariables = 0.2;
 
 % Calculate estimator parameters
-[Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj);
+[Q, R, Gpred, N] = get_MPC_KF_params_ID(mpcobj);
 assert(isequal(round(Q, 6), [ ...
     0.000020    0.000408       0
     0.000408    0.008453       0
@@ -308,14 +311,12 @@ mpcobj.model.Nominal.Y=y_op;
 mpcobj.PredictionHorizon = 20;
 mpcobj.ControlHorizon = 1;
 
-% TODO: Need to get it working with scaling factors on MVs. 'ScaleFactor',{50,50}
-
 % Constraints and scaling for Mvs
 mpcobj.MV = struct('Min',{0,0},'Max',{50,50}, ... % u_1min u_2min   u1max u2max
                    'RateMin',{-10,-10},'RateMax',{10,10}, ... % deltau_1min deltau_2min   deltau_1max deltau_2max
                    'RateMinECR',{0,0},'RateMaxECR',{0,0}, ... % V^deltau_1min V^deltau_2min   V^deltau_1max V^deltau_2max (0 = hard constraints)
                    'MinECR',{0,0},'MaxECR',{0,0}, ... % V^u_1min V^u_2min   V^u_1max V^u_2max (0 = hard constraints)
-                   'ScaleFactor',{1,1}); % range of u_1 range of u_2     
+                   'ScaleFactor',{50,50}); % range of u_1 range of u_2     
 
 % Constraints and scaling for OVs (OV = OutputVariables = MO + UO - here we only have MOs)
 mpcobj.OV = struct('Min',{10,10},'Max',{90,90}, ... %y1min y2min   y1max y2max
@@ -331,13 +332,13 @@ mpcobj.Weights.ECR = 1e5; % rho_epsilon
 setindist(mpcobj,'integrators');
 
 % Calculate estimator parameters
-[Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj);
+[Q, R, Gpred, N] = get_MPC_KF_params_ID(mpcobj);
 assert(isequal(round(Q, 4), [ ...
-    0.0082    0.0017    0.0171         0         0         0         0
-    0.0017    0.0004    0.0035         0         0         0         0
-    0.0171    0.0035    0.0357         0         0         0         0
-         0         0         0    0.1402    0.1384         0         0
-         0         0         0    0.1384    0.1366         0         0
+   20.5366    4.2441   42.8236         0         0         0         0
+    4.2441    0.8771    8.8500         0         0         0         0
+   42.8236    8.8500   89.2974         0         0         0         0
+         0         0         0  350.5883  346.0575         0         0
+         0         0         0  346.0575  341.5853         0         0
          0         0         0         0         0    0.6400         0
          0         0         0         0         0         0    0.6400
 ]))
@@ -373,6 +374,71 @@ assert(isequal(round(Gpred.C, 4), [ ...
 
 %% Test MPC design using Q and R
 
+% Example system used in MPC_Matlab_OD.mlx
+s=tf('s');
+G11=2.9*exp(-2*s)/(1+24*s);
+G12=2.9*exp(-4*s)/(1+12*s);
+G21=-1.74*exp(-6*s)/(1+14*s);
+G22=1.74*exp(-4*s)/(1+5*s);
+G = [G11 G12; G21 G22];
+Gcont=ss(G);
+Ts = 2; % Sampling period        
+model = c2d(Gcont,Ts);
+model = absorbDelay(model);
+model = minreal(model);
+
+% Estimator model dimensions
+n = length(model.A);
+nu = size(model.B,2);
+ny = size(model.C,1);
+
+mpcverbosity off;
+model = setmpcsignals(model,'MV',1:2); % inputs 1 and 2 are MVs
+model = setmpcsignals(model,'MO',1:2); % outputs 1 and 2 are MOs 
+mpcobj = mpc(model,Ts);
+
+% Augmented model with integrators on each output
+sy = extractfield(mpcobj.OutputVariables,'ScaleFactor');
+Aaug = [model.A zeros(n,ny); zeros(ny,n) eye(ny)]; % augmented model with integrators
+Baug = [model.B; zeros(ny,nu)];
+Caug = [diag(sy)*model.C eye(ny)];
+Daug = [zeros(ny,nu)];
+
+% Matrices G and H: see help kalman 
+G = eye(size(Baug,1));
+H = zeros(size(Caug,1),size(Baug,1));
+
+% Choose covariance matrices
+% Measurement noise
+R = eye(ny);
+mpcobj.Model.Noise = ss(R,'Ts',Ts);
+
+% Process noise
+Q = blkdiag(0.1*eye(n-nu),0.001,0.001);      
+
+% Calculate correction gain (prediction form)
+[~,Kpred] = kalman(ss(Aaug,[Baug G],Caug,[Daug H],Ts),Q,R);
+setEstimator(mpcobj,Kpred);
+
+%TODO: This example doesn't work. L1 ~= L
+% [Q1, R1, Gpred] = get_MPC_KF_params_OD(mpcobj);
+% assert(isequal(round(Q1, 4), [ ...
+%     0.0082    0.0017    0.0171         0         0         0         0
+%     0.0017    0.0004    0.0035         0         0         0         0
+%     0.0171    0.0035    0.0357         0         0         0         0
+%          0         0         0    0.1402    0.1384         0         0
+%          0         0         0    0.1384    0.1366         0         0
+%          0         0         0         0         0    0.6400         0
+%          0         0         0         0         0         0    0.6400
+% ]))
+% assert(isequal(R1, [ ...
+%     6400           0
+%        0        6400 ...
+% ]))
+
+
+%% Test MPC design using Q and R
+
 % Example system used in MPC_Matlab_ID.mlx
 Ts = 0.8; % Sampling period
 s = tf('s');
@@ -399,7 +465,10 @@ mpcverbosity off;
 model = setmpcsignals(model,'MV',1:2,'UD',3:4,'MO',1:2);
 mpcobj = mpc(model,Ts);
 
-% Augmented model with integrators
+% Set default input disturbance model (integrators)
+setindist(mpcobj,'integrators'); 
+
+% Augmented model with integrators on each MV
 Aaug = [model.A model.B(:,1:nu); zeros(nu,n) eye(nu)];
 Baug = [model.B(:,1:nu); zeros(nu,nu)];
 Caug = [model.C zeros(ny,nu)];
@@ -411,7 +480,9 @@ H = zeros(size(Caug,1),size(Baug,1));
 
 % Choose covariance matrices
 % Measurement noise
-R = 0.1*eye(ny);
+R = eye(ny);
+mpcobj.Model.Noise = ss(R,'Ts',Ts);
+
 % Process noise
 Q = blkdiag(0.1*eye(n-nu),0.001,0.001);      
 
@@ -420,7 +491,7 @@ Q = blkdiag(0.1*eye(n-nu),0.001,0.001);
 setEstimator(mpcobj,Kpred);
 
 %TODO: This example doesn't work. L1 ~= L
-%[Q1, R1, Gpred] = get_MPC_KF_params_ID(mpcobj);
+% [Q1, R1, Gpred] = get_MPC_KF_params_ID(mpcobj);
 % assert(isequal(round(Q1, 4), [ ...
 %     0.0082    0.0017    0.0171         0         0         0         0
 %     0.0017    0.0004    0.0035         0         0         0         0
@@ -436,7 +507,7 @@ setEstimator(mpcobj,Kpred);
 % ]))
 
 
-%% Test MPC design with odd-shaped system
+%% Test MPC design with odd-shaped system OD
 
 rng(0)
 n = 6;
@@ -461,7 +532,7 @@ mpcobj.Model.Noise = ss(diag([5 10]),'Ts',Ts);
 
 setEstimator(mpcobj,'default')
 
-[Q, R, Gpred] = get_MPC_KF_params_OD(mpcobj);
+[Q, R, Gpred, N] = get_MPC_KF_params_OD(mpcobj);
 assert(isequal(round(Q, 4), [ ...
     1.8155   -1.4890    0.6373   -0.0460    0.3827   -0.0529         0         0
    -1.4890    3.4479    0.9008    1.1289   -4.4347    0.9182         0         0
@@ -478,44 +549,95 @@ assert(isequal(R, [ ...
 ]))
 
 
-%% Test MPC design with odd-shaped system
+%% Test MPC design with odd-shaped system ID
 
 rng(0)
-n = 6;
 ny = 2;
 nu = 3;
-nw = 2;
+nw = ny;  % has to be equal or additional output
+          % disturbances are automatically added
+n = (nu*2+nw);
 Ts = 0.5;
-Gd = drss(n,ny,nu+nw);
-Gd.Ts = Ts;
+Gd = c2d(rss(n,ny,nu+nw),Ts);
 Gd.D(:, :) = 0;  % no direct transmission
 Gd = absorbDelay(Gd);
 
+% Design MPC
 mpcverbosity off;
 model = setmpcsignals(Gd,'MV',1:nu,'UD',nu+1:nu+nw,'MO',1:ny);
 mpcobj = mpc(model,Ts);
-u_op = [10;20;30];
-y_op = [5;15];
+u_op = 10*(1:nu)';
+y_op = 5+10*(0:ny-1)';
+MV_scale_factors = 40+5*(1:nu);
+OV_scale_factors = 80+10*(1:ny);
 mpcobj.model.Nominal.U = [u_op; zeros(nw,1)];
 mpcobj.model.Nominal.Y = y_op;
+mpcobj.MV = struct('Min',num2cell(u_op'-25),'Max',num2cell(u_op'+25), ... 
+                   'RateMin',repmat({-inf},1,nu),'RateMax',repmat({inf},1,nu), ... 
+                   'RateMinECR',repmat({0},1,nu),'RateMaxECR',repmat({0},1,nu), ... 
+                   'MinECR',repmat({0},1,nu),'MaxECR',repmat({0},1,nu), ... 
+                   'ScaleFactor',num2cell(MV_scale_factors));
+mpcobj.OV = struct('Min',num2cell(y_op'-50),'Max',num2cell(y_op'+50), ... 
+                   'MinECR',repmat({1},1,ny),'MaxECR',repmat({1},1,ny), ...
+                   'ScaleFactor',num2cell(OV_scale_factors)); 
 
 % Custom measurement noise model
-mpcobj.Model.Noise = ss(diag([5 10]),'Ts',Ts);
+sigma_M = 5*(1:ny);
+mpcobj.Model.Noise = ss(diag(sigma_M),'Ts',Ts);
 
-setindist(mpcobj,'integrators');
+% Custom input disturbance model (integrators)
+IDint_gains = [100 200];
+Gid = [tf(IDint_gains(1),[1 0]) 0; 0 tf(IDint_gains(2),[1 0])]; 
+setindist(mpcobj,'model',Gid);
 
-[Q, R, Gpred] = get_MPC_KF_params_ID(mpcobj);
-assert(isequal(round(Q, 4), [ ...
-    1.2559   -0.1282   -0.0274         0    1.4318         0         0         0
-   -0.1282    2.2248    1.1072         0   -3.5059         0         0         0
-   -0.0274    1.1072    1.3417   -0.6797   -2.9550         0         0         0
-         0         0   -0.6797    0.5850    1.0725         0         0         0
-    1.4318   -3.5059   -2.9550    1.0725    8.7024         0         0         0
-         0         0         0         0         0         0         0         0
-         0         0         0         0         0         0    0.2500         0
-         0         0         0         0         0         0         0    0.2500
+% Default disturbance model
+% modindist=[tf(1,[1 0]) 0; 0 tf(1,[1 0])]; 
+% setindist(mpcobj,'model',modindist);
+
+% Default disturbance model
+% setindist(mpcobj,'integrators');
+
+[Q, R, Gpred, N] = get_MPC_KF_params_ID(mpcobj);
+assert(isequal(round(Q, 0), [ ...
+          57         -39          63         127        -147          19          27          79           0           0
+         -39         140         -60         178         196         328        -223          25           0           0
+          63         -60         131         -50        -159          93          56         284           0           0
+         127         178         -50        1289        -151         521        -407        -171           0           0
+        -147         196        -159        -151         464         276        -242         -75           0           0
+          19         328          93         521         276        1294        -615         702           0           0
+          27        -223          56        -407        -242        -615         382        -120           0           0
+          79          25         284        -171         -75         702        -120         901           0           0
+           0           0           0           0           0           0           0           0          16           0
+           0           0           0           0           0           0           0           0           0          64
 ]))
-assert(isequal(R, [ ...
-    5^2  0
-    0    10^2
+assert(isequal(R, diag(sigma_M.^2)))
+
+% Get estimator parameters from MPC
+[L,M,Model,Index] = getEstimator(mpcobj,'sys');
+
+% Check noise transmission matrix matches measurement noise parameters
+assert(isequal(Model.D(end-1:end,end-1:end), diag(sigma_M)))
+
+% Check input disturbance integrator covariance values
+Gid_ssd = c2d(ss(Gid),Ts);
+
+% Check the model is the same
+Gid1 = getindist(mpcobj);
+assert(all([ ...
+    isequal(Gid_ssd.A, Gid1.A) ...
+    isequal(Gid_ssd.B, Gid1.B) ...
+    isequal(Gid_ssd.C, Gid1.C) ...
+    isequal(Gid_ssd.D, Gid1.D) ...
 ]))
+
+% Checking the disturbance integrator gains is a bit tricky...
+% First check that the output matrix of the input disturbance model
+% has been absorbed into the A matrix of the predition model
+GidCgains = mean(Gpred.A(1:end-2,end-1:end) ./ Gd.B(:,end-1:end), 'omitnan')';
+assert(max(abs(GidCgains - diag(Gid1.C))) < 1e-14)
+
+% Now check that the variances in the Q matrix match the values
+% in the B matrix of the input disturbance model
+w_vars = diag(Q(end-1:end,end-1:end));
+assert(max(abs(w_vars - diag(Gid1.B).^2)) < 1e-14)
+
