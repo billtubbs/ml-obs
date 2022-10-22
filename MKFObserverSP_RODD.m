@@ -155,6 +155,7 @@ classdef MKFObserverSP_RODD < MKFObserver
             % Construct observer model without unmeasured disturbance
             % inputs
             Bu = model.B(:, io.u_known);
+            Du = model.D(:, io.u_known);
 
             % Construct process noise covariance matrices for each 
             % possible input disturbance (returns a cell array)
@@ -196,7 +197,7 @@ classdef MKFObserverSP_RODD < MKFObserver
             model_obs.B = Bu;
             model_obs.C = model.C;
             if direct
-                model_obs.D = model.D;
+                model_obs.D = Du;
             end
             model_obs.Ts = model.Ts;
             models = repmat({model_obs}, 1, nj);

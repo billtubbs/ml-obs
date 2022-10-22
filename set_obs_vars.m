@@ -33,7 +33,6 @@ function obs = set_obs_vars(obs, vars)
             % Set variables
             obs.xkp1_est = vars.xkp1_est;
             obs.Pkp1 = vars.Pkp1;
-            obs.rk = vars.rk;
 
         case "SKF_S"  % Switching Kalman filter with sequence
 

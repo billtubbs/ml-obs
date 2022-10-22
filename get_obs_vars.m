@@ -25,11 +25,21 @@ function vars = get_obs_vars(obs)
             vars.ykp1_est = obs.ykp1_est;
             vars.Pkp1 = obs.Pkp1;
 
-        case {"KFF", "SKF", "SKF_S"}  % Kalman filter and switching KF
+        case {"KFF", "SKF"}  % Kalman filters and switching KF
 
             % Get variables
             vars.xkp1_est = obs.xkp1_est;
             vars.Pkp1 = obs.Pkp1;
+
+        case "SKF_S"  % Kalman filters and switching KF
+
+            % Get double variables
+            vars.xkp1_est = obs.xkp1_est;
+            vars.Pkp1 = obs.Pkp1;
+
+            % Get integer variables
+            vars.int16.i = obs.i;
+            vars.int16.i_next = obs.i_next;
 
         case {"MKF_S", "MKF_SF_RODD95"}  % multi-model Kalman filters with sequences
 

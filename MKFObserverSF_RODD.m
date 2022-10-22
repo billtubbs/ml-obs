@@ -99,6 +99,7 @@ classdef MKFObserverSF_RODD < MKFObserverDI
             nw = sum(~u_meas);  % Number of input disturbances
             assert(nw > 0, "ValueError: u_meas");
             Bu = model.B(:, u_meas);
+            Du = model.D(:, u_meas);
             Bw = model.B(:, ~u_meas);
 
             % Probability of at least one shock in a detection interval
@@ -145,6 +146,7 @@ classdef MKFObserverSF_RODD < MKFObserverDI
             % System models are all the same - only Q switches
             model_obs = model;
             model_obs.B = Bu;
+            model_obs.D = Du;
             models = repmat({model_obs}, 1, nj);
             for i = 1:nj
                 models{i}.Q = Q{i};

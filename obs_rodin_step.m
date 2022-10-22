@@ -18,6 +18,7 @@ Du = D(:, u_known);
 
 obs_model = model;
 obs_model.B = Bu;
+obs_model.D = Du;
 
 % Steady-state Luenberger observer 1
 % Specify poles of observer dynamics
@@ -46,12 +47,14 @@ obs_models = {struct, struct};
 obs_models{1}.A = A;
 obs_models{1}.B = Bu;
 obs_models{1}.C = C;
+obs_models{1}.D = Du;
 obs_models{1}.Ts = Ts;
 obs_models{1}.Q = Q1;
 obs_models{1}.R = R;
 obs_models{2}.A = A;
 obs_models{2}.B = Bu;
 obs_models{2}.C = C;
+obs_models{2}.D = Du;
 obs_models{2}.Ts = Ts;
 obs_models{2}.Q = Q2;
 obs_models{2}.R = R;

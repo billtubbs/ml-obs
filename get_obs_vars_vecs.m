@@ -48,13 +48,23 @@ switch obs.type
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
 
-    case "KFF"  % Kalman filter - filtering form
+    case {"KFF", "SKF"}  % Kalman filters and switching KF
 
         vars_double = {vars.xkp1_est, vars.Pkp1};
 
         % Convert variables to vectors
         vdata = make_data_vectors(vars_double);
         varargout{1} = cell2mat(vdata.vecs);
+
+    case {"SKF_S"}  % Kalman filters and switching KF
+
+        vars_double = {vars.xkp1_est, vars.Pkp1};
+
+        % Convert variables to vectors
+        vdata = make_data_vectors(vars_double);
+        vdata_int16 = make_data_vectors(struct2cell(vars.int16)', 'int16');
+        varargout{1} = cell2mat(vdata.vecs);
+        varargout{2} = cell2mat(vdata_int16.vecs);
 
     case {"MKF_SF", "MKF_SF_RODD95"}  % multi-model Kalman filters
 

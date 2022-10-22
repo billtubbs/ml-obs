@@ -179,6 +179,15 @@ assert(isequal(vars.int16.i_next, MKF_SF1.i_next))
 assert(isequal(vars.int16.i2, MKF_SF1.i2))
 assert(isequal(vars.int16.i2_next, MKF_SF1.i2_next))
 [vec_double, vec_int16] = get_obs_vars_vecs(MKF_SF1);
+assert(isequal(vec_double, [ ...
+    MKF_SF1.xkp1_est' MKF_SF1.p_seq_g_Yk' ...
+    reshape(MKF_SF1.filters.Xkp1_est, 1, MKF_SF1.nh*MKF_SF1.n) ...
+    reshape(MKF_SF1.filters.Pkp1,1,MKF_SF1.nh*MKF_SF1.n^2) ...
+]))
+assert(isequal(vec_int16, [ ...
+    MKF_SF1.rk' MKF_SF1.i MKF_SF1.i_next ...
+    MKF_SF1.i2 MKF_SF1.i2_next ...
+]))
 obs_copy = MKF_SF1.copy();
 obs_copy = set_obs_vars_vecs(obs_copy, vec_double', vec_int16');
 
@@ -194,7 +203,40 @@ assert(isequal(vars.int16.rk, MKF_SP1.rk))
 assert(isequal(vars.int16.f_main, MKF_SP1.f_main))
 assert(isequal(vars.int16.f_hold, MKF_SP1.f_hold))
 [vec_double, vec_int16] = get_obs_vars_vecs(MKF_SP1);
+assert(isequal(vec_double, [ ...
+    MKF_SP1.xkp1_est' MKF_SP1.p_seq_g_Yk' ...
+    reshape(MKF_SP1.filters.Xkp1_est, 1, MKF_SP1.nh*MKF_SP1.n) ...
+    reshape(MKF_SP1.filters.Pkp1,1,MKF_SP1.nh*MKF_SP1.n^2) ...
+]))
+assert(isequal(vec_int16, [MKF_SP1.rk' MKF_SP1.f_main MKF_SP1.f_hold]))
 obs_copy = MKF_SP1.copy();
+obs_copy = set_obs_vars_vecs(obs_copy, vec_double', vec_int16');
+
+% Test switching Kalman filter
+SKF = SKFObserver(obs_models,P0,"SKF");
+vars = get_obs_vars(SKF);
+assert(isequal(fieldnames(vars), {'xkp1_est', 'Pkp1'}'))
+assert(isequal(vars.xkp1_est, KF1.xkp1_est))
+assert(isequal(vars.Pkp1, KF1.Pkp1))
+vars_vecs = get_obs_vars_vecs(SKF);
+assert(isequal(vars_vecs, [SKF.xkp1_est' SKF.Pkp1(:)']))
+obs_copy = SKF.copy();
+obs_copy = set_obs_vars_vecs(obs_copy, vars_vecs');
+
+% Test switching Kalman filter - shceduled
+seq = zeros(1, 11);
+SKF_S = SKFObserverS(obs_models,P0,seq,"SKF_S");
+vars = get_obs_vars(SKF_S);
+assert(isequal(fieldnames(vars), {'xkp1_est', 'Pkp1', 'int16'}'))
+assert(isequal(vars.xkp1_est, KF1.xkp1_est))
+assert(isequal(vars.Pkp1, KF1.Pkp1))
+assert(isequal(fieldnames(vars.int16), {'i', 'i_next'}'))
+assert(isequal(vars.int16.i, SKF_S.i))
+assert(isequal(vars.int16.i_next, SKF_S.i_next))
+[vec_double, vec_int16] = get_obs_vars_vecs(SKF_S);
+assert(isequal(vec_double, [SKF_S.xkp1_est' SKF_S.Pkp1(:)']))
+assert(isequal(vec_int16, [SKF_S.i SKF_S.i_next]))
+obs_copy = SKF_S.copy();
 obs_copy = set_obs_vars_vecs(obs_copy, vec_double', vec_int16');
 
 
@@ -212,7 +254,7 @@ nT = 20;
 % Simulate system
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
-Wp = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
+Wp = sample_random_shocks(nT+1, epsilon, sigma_wp{1}(2), sigma_wp{1}(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
 Y = lsim(Gpss,[U Wp],t,X0);
@@ -280,7 +322,7 @@ nT = 20;
 % Simulate system
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
-Wp = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
+Wp = sample_random_shocks(nT+1, epsilon, sigma_wp{1}(2), sigma_wp{1}(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
 Y = lsim(Gpss,[U Wp],t,X0);
@@ -371,7 +413,7 @@ nT = 20;
 % Simulate system
 X0 = zeros(n,1);
 t = Ts*(0:nT)';
-Wp = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
+Wp = sample_random_shocks(nT+1, epsilon, sigma_wp{1}(2), sigma_wp{1}(1));
 U = zeros(nT+1,1);
 U(t>=5) = 1;
 [Y,T,X] = lsim(Gpss,[U Wp],t,X0);
