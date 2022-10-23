@@ -148,6 +148,9 @@ classdef MKFObserverSP_RODD < MKFObserver
                 assert(isequal(size(x0), [n 1]), "ValueError: x0")
             end
 
+            % Number of manipulatable inputs and unmeasured disturbances
+            nu = sum(io.u_known);
+
             % Number of unmeasured disturbances
             nw = sum(~io.u_known);
             assert(nw > 0, "ValueError: io.u_known");
@@ -155,7 +158,11 @@ classdef MKFObserverSP_RODD < MKFObserver
             % Construct observer model without unmeasured disturbance
             % inputs
             Bu = model.B(:, io.u_known);
-            Du = model.D(:, io.u_known);
+            if direct
+                Du = model.D(:, io.u_known);
+            else
+                Du = zeros(ny,nu);
+            end
 
             % Construct process noise covariance matrices for each 
             % possible input disturbance (returns a cell array)
@@ -196,9 +203,7 @@ classdef MKFObserverSP_RODD < MKFObserver
             model_obs.A = model.A;
             model_obs.B = Bu;
             model_obs.C = model.C;
-            if direct
-                model_obs.D = Du;
-            end
+            model_obs.D = Du;
             model_obs.Ts = model.Ts;
             models = repmat({model_obs}, 1, nj);
             for i = 1:nj

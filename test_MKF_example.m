@@ -4,7 +4,7 @@
 
 clear all
 
-%show_plots = true;
+show_plots = true;
 show_plots = false;
 
 % Generate randomly-occurring shocks
@@ -20,7 +20,8 @@ sys_rodin_step
 nT = 100;
 
 % Generate random shock signal
-[Wp, alpha] = sample_random_shocks(nT+1, epsilon, sigma_wp(2), sigma_wp(1));
+[Wp, alpha] = sample_random_shocks(nT+1, epsilon, sigma_wp{1}(2), ...
+    sigma_wp{1}(1));
 
 if show_plots
     figure(1)
@@ -62,9 +63,9 @@ if show_plots
 end
 
 % Observer model without disturbance noise input
-Bu = B(:, u_meas);
-Bw = B(:, ~u_meas);
-Du = D(:, u_meas);
+Bu = B(:, u_known);
+Bw = B(:, ~u_known);
+Du = D(:, u_known);
 
 % Kalman filter parameters
 Q = diag([0.01^2 0.1^2]);
@@ -120,7 +121,6 @@ P0 = eye(n);
 
 % Prediction form
 KFP = KalmanFilterP(obs_model,P0,'KFP');
-KF_old = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF_old');
 
 % Simulate observers
 Xkp1_est = nan(nT+1,n);
@@ -156,6 +156,28 @@ mse_KFP = mean((X(2:end,:) - Xkp1_est(2:end,:)).^2, [1 2]);
 Xkp1_est_KFP = Xkp1_est;
 Ykp1_est_KFP = Ykp1_est;
 
+% Prediction form - old version based on structs
+KF_old = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF_old');
+
+% Simulate observers
+Xkp1_est = nan(nT+1,n);
+Ykp1_est = nan(nT+1,ny);
+obs = KF_old;
+for i = 1:nT
+    uk = U(i,:)';
+    yk = Ym(i,:)';
+    obs = update_KF(obs, uk, yk);
+    Xkp1_est(i+1,:) = obs.xkp1_est';
+    Ykp1_est(i+1,:) = obs.ykp1_est';
+end
+
+% Calculate mean-squared error in state estimates
+mse_KF_old = mean((X(2:end,:) - Xkp1_est(2:end,:)).^2, [1 2]);
+
+% Store results
+Xkp1_est_KF_old = Xkp1_est;
+Ykp1_est_KF_old = Ykp1_est;
+
 % Filtering form
 KFF = KalmanFilterF(obs_model,P0,'KFF');
 
@@ -172,7 +194,7 @@ for i = 1:nT
 end
 
 if show_plots
-    figure(4)
+    figure(5)
     subplot(2,1,1)
     plot(t,[Y Ykp1_est]); grid on
     ylabel('y(k) and y_est(k)')
@@ -238,7 +260,7 @@ Yk_est_KFF = Ykp1_est;
 % end
 % 
 % if show_plots
-%     figure(5)
+%     figure(6)
 %     subplot(2,1,1)
 %     plot(t,[Y Yk_est]); grid on
 %     ylabel('y(k) and y_est(k)')
@@ -274,7 +296,9 @@ Q0 = diag([0.01^2 0]);
 R = 0.1^2;
 nh = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
-MKF2 = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+MKF2 = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp, ...
     Q0,R,nh,n_min,'MKF2');
 
 % Simulate observer
@@ -290,7 +314,7 @@ for i = 1:nT
 end
 
 if show_plots
-    figure(6)
+    figure(7)
     subplot(2,1,1)
     plot(t,[Y Ykp1_est]); grid on
     ylabel('y(k) and y_est(k)')
@@ -309,11 +333,12 @@ mse_MKF2 = mean((X(1:nT,:) - Xkp1_est(1:nT,:)).^2, [1 2]);
 
 % Check MSE values
 % Note: 2022-07-04 Updated result after fixing MKFObserverSF sigma_wp
-assert(round(mse_KFPSS, 4) == 0.0873)
-assert(round(mse_KFP, 4) == 0.0917)
-assert(round(mse_KFF, 4) == 0.0523)
+assert(round(mse_KFPSS, 6) == 0.087294)
+assert(round(mse_KF_old, 6) == 0.091745)
+assert(round(mse_KFP, 6) == 0.091745)
+assert(round(mse_KFF, 6) == 0.052268)
 %assert(round(mse_MKF1, 4) == 0.1280)  % TODO: Not working yet
-assert(round(mse_MKF2, 4) == 0.0299)
+assert(round(mse_MKF2, 6) == 0.029915)
 
 % Store results
 Xk_est_MKF2 = Xkp1_est;
