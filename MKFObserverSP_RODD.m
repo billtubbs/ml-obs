@@ -234,7 +234,7 @@ classdef MKFObserverSP_RODD < MKFObserver
             obj.R = R;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
-            obj.type = "MKF_SP";
+            obj.type = "MKF_SP_RODD";
 
             % Initialize variables
             obj.reset()

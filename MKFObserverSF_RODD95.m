@@ -6,8 +6,8 @@
 % Robertson et al. (1995). This version is slightly 
 % different to that described in Robertson et al. (1998).
 %
-% obs = MKFObserverSF95(A,B,C,Ts,u_meas,P0,epsilon, ...
-%               sigma_wp,Q0,R,f,m,d,label,x0)
+% obs = MKFObserverSF_RODD95(model,u_meas,P0,epsilon, ...
+%                 sigma_wp,Q0,R,f,m,d,label,x0,r0)
 %
 % Arguments:
 %   A, B, C : matrices of the discrete time state-space
@@ -101,6 +101,9 @@ classdef MKFObserverSF_RODD95 < MKFObserverS
             assert(nw > 0, "ValueError: u_meas");
             Bu = model.B(:, u_meas);
             Bw = model.B(:, ~u_meas);
+            if direct
+                Du = model.D(:, u_meas);
+            end
 
             % Convert fusion horizon to number of detection intervals
             assert(rem(f, d) == 0, "ValueError: Fusion horizon and " ...
@@ -145,6 +148,9 @@ classdef MKFObserverSF_RODD95 < MKFObserverS
             % System models are all the same - only Q switches
             model_obs = model;
             model_obs.B = Bu;
+            if direct
+                model_obs.D = Du;
+            end
             models = repmat({model_obs}, 1, nj);
             for i = 1:nj
                 models{i}.Q = Q{i};

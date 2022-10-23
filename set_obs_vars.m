@@ -78,7 +78,7 @@ function obs = set_obs_vars(obs, vars)
             obs.i2 = vars.int16.i2;
             obs.i2_next = vars.int16.i2_next;
 
-        case "MKF_SP"  % MKF observer with sequence pruning
+        case "MKF_SP_RODD"  % MKF observer with sequence pruning
 
             % Set double variables
             obs.xkp1_est = vars.xkp1_est;

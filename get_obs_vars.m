@@ -69,7 +69,7 @@ function vars = get_obs_vars(obs)
             vars.int16.i2 = obs.i2;
             vars.int16.i2_next = obs.i2_next;
 
-        case {"MKF", "MKF_SF", "MKF_SP"}  % multi-model Kalman filters - without sequences
+        case {"MKF", "MKF_SF", "MKF_SP_RODD"}  % multi-model Kalman filters - without sequences
 
             % Get double variables
             vars.xkp1_est = obs.xkp1_est;
@@ -79,7 +79,7 @@ function vars = get_obs_vars(obs)
 
             % Get integer variables
             vars.int16.rk = obs.rk;
-            if startsWith(obs.type, "MKF_SP")
+            if startsWith(obs.type, "MKF_SP_RODD")
                 % Additional variables used by adaptive sequence
                 % pruning algorithms
                 vars.int16.f_main = obs.f_main;

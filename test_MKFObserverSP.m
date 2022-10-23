@@ -1,4 +1,4 @@
-% Test functions MKFObserverSP_RODD.m and update_AFMM.m
+% Test functions MKFObserverSP_RODD.m
 
 clear all
 
@@ -29,7 +29,7 @@ sigma_M = 0.1;
 sigma_W = [0; 0];
 
 % Check observer attributes
-assert(strcmp(MKF_SP1.type, "MKF_SP"))
+assert(strcmp(MKF_SP1.type, "MKF_SP_RODD"))
 assert(MKF_SP1.epsilon == 0.01)
 assert(isequal(MKF_SP1.sigma_wp, sigma_wp))
 assert(isequal(MKF_SP1.Q0, Q0))
@@ -70,7 +70,7 @@ for i = 2:MKF_SP1.nh
 end
 
 % Check observer attributes
-assert(strcmp(MKF_SP2.type, "MKF_SP"))
+assert(strcmp(MKF_SP2.type, "MKF_SP_RODD"))
 assert(MKF_SP2.epsilon == 0.01)
 assert(isequal(MKF_SP2.sigma_wp, sigma_wp))
 assert(isequal(MKF_SP2.Q0, Q0))
@@ -1051,6 +1051,7 @@ Y_m = Y + sigma_MP'.*randn(size(Y));
 % Multiple model filter 1
 obs_model = model;
 obs_model.B = Bu;
+obs_model.D = Du;
 obs_model.R = sigma_M^2;
 models = {obs_model, obs_model};
 P0 = 1000*eye(n);

@@ -10,6 +10,7 @@ rng(seed)
 
 % Load SISO system and disturbance model from file
 sys_rodin_step
+u_meas = u_known;  % variable name changed
 
 % Define sequence fusion observer
 % This example is used in methods section of thesis report
@@ -19,7 +20,7 @@ R = sigma_M^2;
 f = 9;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF_SF = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp{1}, ...
     Q0,R,f,m,d,"MKF_SF");
 
 seq_test = {
@@ -35,6 +36,7 @@ assert(isequal(MKF_SF.seq, seq_test))
 
 % Load SISO system and disturbance model from file
 sys_rodin_step
+u_meas = u_known;  % variable name changed
 
 % Define sequence fusion observer
 % This example is used in methods section of thesis report
@@ -44,7 +46,7 @@ R = sigma_M^2;
 f = 10;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 5;  % spacing parameter
-MKF_SF = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp{1}, ...
     Q0,R,f,m,d,"MKF_SF");
 
 seq_test = { ...
@@ -60,6 +62,7 @@ assert(isequal(MKF_SF.seq, seq_test))
 
 % Load SISO system and disturbance model from file
 sys_rodin_step
+u_meas = u_known;  % variable name changed
 
 % Load observers from file
 obs_rodin_step
@@ -74,7 +77,7 @@ test_seq = { ...
 % Check observer attributes
 assert(strcmp(MKF_SF1.type, "MKF_SF_RODD"))
 assert(MKF_SF1.epsilon == epsilon)
-assert(isequal(MKF_SF1.sigma_wp, sigma_wp))
+assert(isequal(MKF_SF1.sigma_wp, sigma_wp{1}))
 assert(MKF_SF1.nh == 4)
 assert(isequaln([MKF_SF1.i MKF_SF1.i_next], [0 1]))
 assert(isequaln([MKF_SF1.i2 MKF_SF1.i2_next], [0 1]))
@@ -85,8 +88,8 @@ assert(MKF_SF1.nj == 2)
 assert(isequal(MKF_SF1.sys_model, model))
 assert(MKF_SF1.Ts == model.Ts)
 assert(isequaln(MKF_SF1.u_meas, u_meas))
-assert(isequal(MKF_SF1.models{1}.Q, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF_SF1.models{2}.Q, [0.01 0; 0 sigma_wp(2)^2/MKF_SF1.d]))
+assert(isequal(MKF_SF1.models{1}.Q, [0.01 0; 0 sigma_wp{1}(1)^2]))
+assert(isequal(MKF_SF1.models{2}.Q, [0.01 0; 0 sigma_wp{1}(2)^2/MKF_SF1.d]))
 assert(isequal(MKF_SF1.R, R))
 assert(isequal(MKF_SF1.models{1}.R, R))
 assert(isequal(MKF_SF1.models{2}.R, R))
@@ -132,7 +135,7 @@ test_seq = { ...
 
 assert(strcmp(MKF_SF2.type, "MKF_SF_RODD"))
 assert(MKF_SF2.epsilon == epsilon)
-assert(isequal(MKF_SF2.sigma_wp, sigma_wp))
+assert(isequal(MKF_SF2.sigma_wp, sigma_wp{1}))
 assert(MKF_SF2.nh == 16)
 assert(isequaln([MKF_SF2.i MKF_SF2.i_next], [0 1]))
 assert(isequaln([MKF_SF2.i2 MKF_SF2.i2_next], [0 1]))
@@ -141,8 +144,8 @@ assert(MKF_SF2.nu == 1)
 assert(MKF_SF2.ny == 1)
 assert(MKF_SF2.nj == 2)
 assert(isequaln(MKF_SF2.u_meas, u_meas))
-assert(isequal(MKF_SF2.models{1}.Q, [0.01 0; 0 sigma_wp(1)^2]))
-assert(isequal(MKF_SF2.models{2}.Q, [0.01 0; 0 sigma_wp(2)^2/MKF_SF2.d]))
+assert(isequal(MKF_SF2.models{1}.Q, [0.01 0; 0 sigma_wp{1}(1)^2]))
+assert(isequal(MKF_SF2.models{2}.Q, [0.01 0; 0 sigma_wp{1}(2)^2/MKF_SF2.d]))
 assert(isequal(MKF_SF2.R, R))
 assert(isequal(MKF_SF2.models{1}.R, R))
 assert(isequal(MKF_SF2.models{2}.R, R))
@@ -176,7 +179,7 @@ R = sigma_M^2;
 f = 15;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 3;  % spacing parameter
-MKF_testx0 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+MKF_testx0 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp{1}, ...
     Q0,R,f,m,d,label,x0);
 assert(isequal(MKF_testx0.xkp1_est, x0))
 
@@ -190,6 +193,7 @@ assert(isequal(MKF_testx0.xkp1_est, x0))
 
 % Load SISO system and disturbance model from file
 sys_rodin_step
+u_meas = u_known;  % variable name changed
 
 % Simulation settings
 nT = 100;
@@ -203,13 +207,13 @@ f = 15;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 5;  % spacing parameter
 label = 'MKF_SF98';
-MKF_SF98 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF98 = MKFObserverSF_RODD(model,u_meas,P0,epsilon,sigma_wp{1}, ...
     Q0,R,f,m,d,label);
 
 % MKF_SF95 with same parameters as MKF_SF98
 % TODO: Test this one
 label = 'MKF_SF95';
-MKF_SF95 = MKFObserverSF_RODD95(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF95 = MKFObserverSF_RODD95(model,u_meas,P0,epsilon,sigma_wp{1}, ...
     Q0,R,f,m,d,label);
 
 % Multiple model observer with sequence pruning
@@ -217,7 +221,9 @@ f = nT;  % sequence history length
 nh = 5;  % number of filters
 n_min = 2;  % minimum life of cloned filters
 label = 'MKF_SP';
-MKF_SP = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+io.u_known = u_known;
+io.y_meas = true(ny, 1);
+MKF_SP = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp, ...
     Q0,R,nh,n_min,label);
 
 % Choose time and amplitude of input disturbance
@@ -247,27 +253,27 @@ Bu = B(:, u_meas);
 Du = D(:, u_meas);
 
 % Multiple model filter - two sequences, one empty, one correct
-A2 = repmat({A}, 1, 2);
-Bu2 = repmat({Bu}, 1, 2);
-C2 = repmat({C}, 1, 2);
-Du2 = repmat({Du}, 1, 2);
+obs_model = model;
+obs_model.B = Bu;
+obs_model.D = Du;
+obs_model.R = sigma_M.^2;
+obs_models = {obs_model, obs_model};
 Q0 = diag([0.01 1]);
 %P0_init = repmat({P0}, 1, 2);
-Q2 = {diag([Q0(1,1) sigma_wp(1,1)^2]), ...
-      diag([Q0(1,1) sigma_wp(1,2)^2])};
-R2 = {sigma_M.^2, sigma_M.^2};
+obs_models{1}.Q = diag([Q0(1,1) sigma_wp{1}(1,1)^2]);
+obs_models{2}.Q = diag([Q0(1,1) sigma_wp{1}(1,2)^2]);
 seq = {ones(1, nT+1); ones(1, nT+1)};
 seq{2}(t == t_shock) = 1;
 p_rk = [1-epsilon epsilon]';
 T = repmat(p_rk', 2, 1);
-MKF3 = MKFObserverS(models,P0,seq,T,'MKF3');
+MKF3 = MKFObserverS(obs_models,P0,seq,T,'MKF3');
 
 % Multiple model filter - one sequence with correct shock
 seq = {ones(1, nT+1)};
 seq{1}(t == t_shock) = 1;
 p_rk = [1-epsilon epsilon]';
 T = repmat(p_rk', 2, 1);
-MKF4 = MKFObserverS(models,P0,seq,T,'MKF4');
+MKF4 = MKFObserverS(obs_models,P0,seq,T,'MKF4');
 
 % Define scheduled Kalman filter
 % Note: in the case of more than one random input variable, all
@@ -277,7 +283,7 @@ MKF4 = MKFObserverS(models,P0,seq,T,'MKF4');
 % combs = [0 0; 1 0; 0 1];
 % (This is the same as the MKF filters for the RODD).
 % seq = sum(alpha .* 2.^(1:-1:0), 2)';
-SKF = SKFObserverS(models,P0,seq{1},"SKF");
+SKF = SKFObserverS(obs_models,P0,seq{1},"SKF");
 
 % Choose observers to test
 observers = {MKF3, MKF4, SKF, MKF_SF95, MKF_SF98, MKF_SP};
@@ -384,7 +390,7 @@ MSE_test_values = struct( ...
     'KF3', 0.003524, ...
     'MKF_SF95', 0.006052, ...
     'MKF_SF98', 0.011586, ...
-    'MKF_SP', 0.002677, ...
+    'MKF_SP', 0.000488, ...
     'MKF3', 0.002709, ...
     'MKF4', 0.000929, ...
     'SKF', 0.000929 ...
@@ -430,12 +436,17 @@ y_meas = [true; true];
 % Observer model without disturbance noise input
 Bu = B(:, u_meas);
 Du = D(:, u_meas);
+obs_model.A = A;
+obs_model.B = Bu;
+obs_model.C = C;
+obs_model.D = Du;
+obs_model.Ts = Ts;
 nu = sum(u_meas);
+nw = sum(~u_meas);
 nw = sum(~u_meas);
 
 % Disturbance input (used by SKF observer)
 Bw = B(:, ~u_meas);
-nw = sum(~u_meas);
 
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
@@ -471,7 +482,7 @@ R = diag(sigma_M.^2);
 f = 6;  % fusion horizon
 m = 1;  % maximum number of shocks
 d = 2;  % spacing parameter
-MKF_SF1 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF1 = MKFObserverSF_RODD(obs_model,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Multiple model filter 2
@@ -482,7 +493,7 @@ R = diag(sigma_M.^2);
 f = 10;  % fusion horizon
 m = 2;  % maximum number of shocks
 d = 2;  % spacing parameter
-MKF_SF2 = MKFObserverSF98(A,B,C,Ts,u_meas,P0,epsilon,sigma_wp, ...
+MKF_SF2 = MKFObserverSF_RODD(obs_model,u_meas,P0,epsilon,sigma_wp, ...
     Q0,R,f,m,d,label);
 
 % Check observer initialization

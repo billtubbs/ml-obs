@@ -28,8 +28,8 @@ assert(isequal( ...
 G = [0 0 0
      1 0 0
      0 1 0
-     1 1 0
      0 0 1
+     1 1 0
      1 0 1
      0 1 1
      1 1 1];
@@ -67,7 +67,7 @@ assert(isequal( ...
 
 % 3 shock variables
 seq = indseq_from_drvs([Gamma1 Gamma2 Gamma3]);
-assert(isequal(seq, [5 3 2 1 8]))
+assert(isequal(seq, [4 3 2 1 8]))
 
 % Check this matches result of shock_combinations_lte
 S = cell2mat(shock_combinations_lte(3, 3));

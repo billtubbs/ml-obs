@@ -3,6 +3,12 @@
 % Simulates the same system and set of observers as in
 % in test_MKF_example.m and checks the results are
 % identicial
+%
+% NOTE: This test does not work if run from Matlab
+% To run tests involving Simulink models requires the 
+% sltest package which I do not have. Therefore, run 
+% this like a regular Matlab file (not using runtests)
+%
 
 clear all
 

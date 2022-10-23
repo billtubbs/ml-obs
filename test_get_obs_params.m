@@ -34,8 +34,8 @@ assert(isequal(params.K, LB1.K))
 
 % Define a switching Kalman filter
 P0 = 1000*eye(n);
-Q1 = diag([Q0(1,1) sigma_wp(1,1)^2]);
-Q2 = diag([Q0(1,1) sigma_wp(1,2)^2]);
+Q1 = diag([Q0(1,1) sigma_wp{1}(1)^2]);
+Q2 = diag([Q0(1,1) sigma_wp{1}(2)^2]);
 R = sigma_M^2;
 models = {model, model};
 models{1}.Bu = Bu;

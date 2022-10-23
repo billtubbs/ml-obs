@@ -88,7 +88,7 @@ function params = get_obs_params(obs)
             params.nh = obs.nh;
             params.beta = obs.beta;
 
-        case {"MKF_SP", "MKF_SPF"}   % MKF observer with sequence pruning
+        case {"MKF_SP", "MKF_SP_RODD"}   % MKF observer with sequence pruning
 
             % Params to return
             params.model = obs.sys_model;
