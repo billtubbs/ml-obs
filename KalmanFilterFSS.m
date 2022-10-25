@@ -46,7 +46,7 @@ classdef KalmanFilterFSS < AbstractLinearFilter
     properties
         P0 double
         Kf double
-        Pk double
+        Pkp1 double
         Sk double
     end
     methods
@@ -69,11 +69,11 @@ classdef KalmanFilterFSS < AbstractLinearFilter
 
             % Compute the steady-state gain and error covariance matrix
             % This is the gain for the filtering form of the KF:
-            [obj.Kf, obj.Pk] = kalman_gain_ss(obj.model.A, obj.model.C, ...
+            [obj.Kf, obj.Pkp1] = kalman_gain_ss(obj.model.A, obj.model.C, ...
                 obj.model.Q, obj.model.R);
 
             % Error covariance of output estimation error
-            obj.Sk = obj.model.C * obj.Pk * obj.model.C' + obj.model.R;
+            obj.Sk = obj.model.C * obj.Pkp1 * obj.model.C' + obj.model.R;
 
             if reset
                 % Initialize variables

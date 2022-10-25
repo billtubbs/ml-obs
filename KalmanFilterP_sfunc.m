@@ -2,9 +2,9 @@ function KalmanFilterP_sfunc(block)
 %% Simulate a Kalman filter in Simulink
 %
 % This version is for the KalmanFilterP class, which is the
-% prediction version which calculates the predictions (prior
-% estimates) of the states and outputs x_est(k+1|k) and 
-% y_est(k+1|k) at time k.
+% prediction version that calculates the predictions (i.e. 
+% prior estimates) of the states and outputs, x_est(k|k-1) 
+% and y_est(k|k-1) at time k.
 %
 
 setup(block);
@@ -30,7 +30,7 @@ block.NumOutputPorts = 2;
 block.SetPreCompInpPortInfoToDynamic;
 block.SetPreCompOutPortInfoToDynamic;
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 % Input 1: u(k)
@@ -47,13 +47,13 @@ block.InputPort(2).Complexity = 'Real';
 block.InputPort(2).DirectFeedthrough = false;
 block.InputPort(2).SamplingMode = 'Sample';
 
-% Output 1: x_est(k+1|k);
+% Output 1: x_est(k|k-1);
 block.OutputPort(1).Dimensions = obs.n;
 block.OutputPort(1).DatatypeID = 0; % double
 block.OutputPort(1).Complexity = 'Real';
 block.OutputPort(1).SamplingMode = 'Sample';
 
-% Output 2: y_est(k+1|k)
+% Output 2: y_est(k|k-1)
 block.OutputPort(2).Dimensions = obs.ny;
 block.OutputPort(2).DatatypeID = 0; % double
 block.OutputPort(2).Complexity = 'Real';
@@ -98,7 +98,6 @@ block.RegBlockMethod('Terminate', @Terminate); % Required
 %end setup
 
 
-
 function DoPostPropSetup(block)
 %% PostPropagationSetup:
 %   Functionality    : Setup work areas and state variables. Can
@@ -106,7 +105,7 @@ function DoPostPropSetup(block)
 %   Required         : No
 %   C MEX counterpart: mdlSetWorkWidths
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 % Determine system dimensions
@@ -121,7 +120,7 @@ block.Dwork(1).DatatypeID      = 0;      % double
 block.Dwork(1).Complexity      = 'Real'; % real
 block.Dwork(1).UsedAsDiscState = true;
 
-% State prediction error covariance: y_est(k+1|k)
+% Predictions of outputs in next time instant: y_est(k+1|k)
 block.Dwork(2).Name            = 'ykp1_est';
 block.Dwork(2).Dimensions      = obs.ny;
 block.Dwork(2).DatatypeID      = 0;      % double
@@ -176,10 +175,10 @@ function Outputs(block)
 %   Required         : Yes
 %   C MEX counterpart: mdlOutputs
 
-% Output y_est(k+1)
+% Output x_est(k|k-1)
 block.OutputPort(1).Data = block.Dwork(1).Data;
 
-% Output y_est(k+1)
+% Output y_est(k|k-1)
 block.OutputPort(2).Data = block.Dwork(2).Data;
 
 %end Outputs
@@ -192,15 +191,16 @@ function Update(block)
 %   Required         : No
 %   C MEX counterpart: mdlUpdate
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
-
-% Determine system dimensions
-%[n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
 
 % Inputs
 uk = block.InputPort(1).Data;
 yk = block.InputPort(2).Data;
+
+% Check size of input vectors
+assert(isequal(size(uk), [obs.nu 1]))
+assert(isequal(size(yk), [obs.ny 1]))
 
 % Variables from memory
 xkp1_est = block.Dwork(1).Data;

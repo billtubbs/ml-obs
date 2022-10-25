@@ -2,7 +2,8 @@ function KalmanFilterF_sfunc(block)
 %% Simulate a Kalman filter in Simulink
 %
 % This version is for the KalmanFilterF class, which is the
-% filtering version which calculates the posterior estimates
+% filtering version that calculates the updated (i.e. 
+% a posteriori) estimates of the states and outputs,
 % x_est(k|k) and y_est(k|k) at time k.
 %
 
@@ -29,21 +30,21 @@ block.NumOutputPorts = 2;
 block.SetPreCompInpPortInfoToDynamic;
 block.SetPreCompOutPortInfoToDynamic;
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 % Input 1: u(k)
 block.InputPort(1).Dimensions = obs.nu;
 block.InputPort(1).DatatypeID = 0;  % double
 block.InputPort(1).Complexity = 'Real';
-block.InputPort(1).DirectFeedthrough = false;
+block.InputPort(1).DirectFeedthrough = true;
 block.InputPort(1).SamplingMode = 'Sample';
 
 % Input 2: y(k)
 block.InputPort(2).Dimensions = obs.ny;
 block.InputPort(2).DatatypeID = 0;  % double
 block.InputPort(2).Complexity = 'Real';
-block.InputPort(2).DirectFeedthrough = false;
+block.InputPort(2).DirectFeedthrough = true;
 block.InputPort(2).SamplingMode = 'Sample';
 
 % Output 1: x_est(k|k);
@@ -90,7 +91,7 @@ block.RegBlockMethod('PostPropagationSetup', @DoPostPropSetup);
 block.RegBlockMethod('InitializeConditions', @InitializeConditions);
 %block.RegBlockMethod('Start', @Start);
 block.RegBlockMethod('Outputs', @Outputs);     % Required
-block.RegBlockMethod('Update', @Update);
+%block.RegBlockMethod('Update', @Update);
 %block.RegBlockMethod('Derivatives', @Derivatives);
 block.RegBlockMethod('Terminate', @Terminate); % Required
 
@@ -105,7 +106,7 @@ function DoPostPropSetup(block)
 %   Required         : No
 %   C MEX counterpart: mdlSetWorkWidths
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 % Determine system dimensions
@@ -167,29 +168,13 @@ function Outputs(block)
 %   Required         : Yes
 %   C MEX counterpart: mdlOutputs
 
-% Output y_est(k+1)
-block.OutputPort(1).Data = block.Dwork(1).Data;
-
-% Output y_est(k+1)
-block.OutputPort(2).Data = block.Dwork(2).Data;
-
-%end Outputs
-
-
-
-function Update(block)
-%%   Functionality    : Called to update discrete states
-%                      during simulation step
-%   Required         : No
-%   C MEX counterpart: mdlUpdate
-
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 % Determine system dimensions
 %[n, nu, ny] = check_dimensions(obs.A, obs.B, obs.C, obs.D);
 
-% Inputs
+% Get current input values
 uk = block.InputPort(1).Data;
 yk = block.InputPort(2).Data;
 
@@ -202,7 +187,7 @@ obs = block.DialogPrm(1).Data;
 
 % Update variables from Simulink memory
 obs.xkp1_est = xkp1_est;
-obs.Pkp1 = reshape(Pkp1, obs.n, obs,n);
+obs.Pkp1 = reshape(Pkp1, obs.n, obs.n);
 
 % Carry out correction and prediction steps
 obs.update(yk, uk);
@@ -217,6 +202,22 @@ obs.update(yk, uk);
 % Save updated variables as row vectors
 block.Dwork(1).Data = obs.xkp1_est;
 block.Dwork(2).Data = obs.Pkp1(:);
+
+% Output x_est(k|k)
+block.OutputPort(1).Data = obs.xk_est;
+
+% Output y_est(k|k)
+block.OutputPort(2).Data = obs.yk_est;
+
+%end Outputs
+
+
+
+%function Update(block)
+%%   Functionality    : Called to update discrete states
+%                      during simulation step
+%   Required         : No
+%   C MEX counterpart: mdlUpdate
 
 %end Update
 

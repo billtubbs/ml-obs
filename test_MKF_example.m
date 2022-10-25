@@ -1,10 +1,11 @@
-% Demonstrate multi-model Kalman filter observer to estimate 
-% randomly-occurring deterministic disturbance (RODD).
+% Test simulation of Kalman filters and multi-model
+% observers to estimate randomly-occurring deterministic 
+% disturbances (RODDs).
 %
 
 clear all
 
-show_plots = true;
+%show_plots = true;
 show_plots = false;
 
 % Generate randomly-occurring shocks
@@ -79,30 +80,27 @@ obs_model.R = R;
 % Prediction form
 KFPSS = KalmanFilterPSS(obs_model,'KFPSS');
 
-% Filtering form
-KFFSS = KalmanFilterFSS(obs_model,'KFFSS');
-
-% Simulate observer KFPSS
-Xkp1_est = nan(nT+1,n);
-Ykp1_est = nan(nT+1,ny);
+% Simulate observer
+Xk_est = nan(nT+1,n);
+Yk_est = nan(nT+1,ny);
 obs = KFPSS;
-for i = 1:nT
+for i = 1:nT+1
+    Xk_est(i,:) = obs.xkp1_est';
+    Yk_est(i,:) = obs.ykp1_est';
     uk = U(i,:)';
     yk = Ym(i,:)';
     obs.update(yk, uk);
-    Xkp1_est(i+1,:) = obs.xkp1_est';
-    Ykp1_est(i+1,:) = obs.ykp1_est';
 end
 
 if show_plots
     figure(3)
     subplot(2,1,1)
-    plot(t,[Y Ykp1_est]); grid on
+    plot(t,[Y Yk_est]); grid on
     ylabel('y(k) and y_est(k)')
     legend('y(k)','y_est(k)')
     title('Output')
     subplot(2,1,2)
-    plot(t, [X Xkp1_est]); grid on
+    plot(t, [X Xk_est]); grid on
     xlabel('k')
     ylabel('xi(k) and xi_est(k)')
     legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
@@ -110,82 +108,20 @@ if show_plots
 end
 
 % Calculate mean-squared error in state estimates
-mse_KFPSS = mean((X(2:end,:) - Xkp1_est(2:end,:)).^2, [1 2]);
+mse_KFPSS = mean((X - Xk_est).^2, [1 2]);
 
 % Store results
-Xkp1_est_KFPSS = Xkp1_est;
-Ykp1_est_KFPSS = Ykp1_est;
-
-% Dynamic Kalman filters
-P0 = eye(n);
-
-% Prediction form
-KFP = KalmanFilterP(obs_model,P0,'KFP');
-
-% Simulate observers
-Xkp1_est = nan(nT+1,n);
-Ykp1_est = nan(nT+1,ny);
-obs = KFP;
-for i = 1:nT
-    uk = U(i,:)';
-    yk = Ym(i,:)';
-    obs.update(yk, uk);
-    Xkp1_est(i+1,:) = obs.xkp1_est';
-    Ykp1_est(i+1,:) = obs.ykp1_est';
-end
-
-if show_plots
-    figure(4)
-    subplot(2,1,1)
-    plot(t,[Y Ykp1_est]); grid on
-    ylabel('y(k) and y_est(k)')
-    legend('y(k)','y_est(k)')
-    title('Output')
-    subplot(2,1,2)
-    plot(t, [X Xkp1_est]); grid on
-    xlabel('k')
-    ylabel('xi(k) and xi_est(k)')
-    legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
-    title('States')
-end
-
-% Calculate mean-squared error in state estimates
-mse_KFP = mean((X(2:end,:) - Xkp1_est(2:end,:)).^2, [1 2]);
-
-% Store results
-Xkp1_est_KFP = Xkp1_est;
-Ykp1_est_KFP = Ykp1_est;
-
-% Prediction form - old version based on structs
-KF_old = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF_old');
-
-% Simulate observers
-Xkp1_est = nan(nT+1,n);
-Ykp1_est = nan(nT+1,ny);
-obs = KF_old;
-for i = 1:nT
-    uk = U(i,:)';
-    yk = Ym(i,:)';
-    obs = update_KF(obs, uk, yk);
-    Xkp1_est(i+1,:) = obs.xkp1_est';
-    Ykp1_est(i+1,:) = obs.ykp1_est';
-end
-
-% Calculate mean-squared error in state estimates
-mse_KF_old = mean((X(2:end,:) - Xkp1_est(2:end,:)).^2, [1 2]);
-
-% Store results
-Xkp1_est_KF_old = Xkp1_est;
-Ykp1_est_KF_old = Ykp1_est;
+Xk_est_KFPSS = Xk_est;
+Yk_est_KFPSS = Yk_est;
 
 % Filtering form
-KFF = KalmanFilterF(obs_model,P0,'KFF');
+KFFSS = KalmanFilterFSS(obs_model,'KFFSS');
 
-% Simulate observers
+% Simulate observer
 Xk_est = nan(nT+1,n);
 Yk_est = nan(nT+1,ny);
-obs = KFF;
-for i = 1:nT
+obs = KFFSS;
+for i = 1:nT+1
     uk = U(i,:)';
     yk = Ym(i,:)';
     obs.update(yk, uk);
@@ -194,14 +130,14 @@ for i = 1:nT
 end
 
 if show_plots
-    figure(5)
+    figure(4)
     subplot(2,1,1)
-    plot(t,[Y Ykp1_est]); grid on
+    plot(t,[Y Yk_est]); grid on
     ylabel('y(k) and y_est(k)')
     legend('y(k)','y_est(k)')
     title('Output')
     subplot(2,1,2)
-    plot(t, [X Xkp1_est]); grid on
+    plot(t, [X Xk_est]); grid on
     xlabel('k')
     ylabel('xi(k) and xi_est(k)')
     legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
@@ -209,11 +145,152 @@ if show_plots
 end
 
 % Calculate mean-squared error in state estimates
-mse_KFF = mean((X(1:nT,:) - Xk_est(1:nT,:)).^2, [1 2]);
+mse_KFFSS = mean((X - Xk_est).^2, [1 2]);
 
 % Store results
-Xk_est_KFF = Xkp1_est;
-Yk_est_KFF = Ykp1_est;
+Xk_est_KFFSS = Xk_est;
+Yk_est_KFFSS = Yk_est;
+
+% Dynamic Kalman filters
+P0 = eye(n);
+
+% Prediction form
+KFP = KalmanFilterP(obs_model,P0,'KFP');
+
+% Simulate observer
+Xk_est = nan(nT+1,n);
+Yk_est = nan(nT+1,ny);
+obs = KFP;
+for i = 1:nT+1
+    Xk_est(i,:) = obs.xkp1_est';
+    Yk_est(i,:) = obs.ykp1_est';
+    uk = U(i,:)';
+    yk = Ym(i,:)';
+    obs.update(yk, uk);
+end
+
+if show_plots
+    figure(5)
+    subplot(2,1,1)
+    plot(t,[Y Yk_est]); grid on
+    ylabel('y(k) and y_est(k)')
+    legend('y(k)','y_est(k)')
+    title('Output')
+    subplot(2,1,2)
+    plot(t, [X Xk_est]); grid on
+    xlabel('k')
+    ylabel('xi(k) and xi_est(k)')
+    legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
+    title('States')
+end
+
+% Calculate mean-squared error in state estimates
+mse_KFP = mean((X - Xk_est).^2, [1 2]);
+
+% Store results
+Xk_est_KFP = Xk_est;
+Yk_est_KFP = Yk_est;
+
+% Prediction form - old version based on structs
+KF_old = kalman_filter(A,Bu,C,Du,Ts,P0,Q,R,'KF_old');
+
+% Simulate observers
+Xk_est = nan(nT+1,n);
+Yk_est = nan(nT+1,ny);
+obs = KF_old;
+for i = 1:nT+1
+    Xk_est(i,:) = obs.xkp1_est';
+    Yk_est(i,:) = obs.ykp1_est';
+    uk = U(i,:)';
+    yk = Ym(i,:)';
+    obs = update_KF(obs, uk, yk);
+end
+
+% Calculate mean-squared error in state estimates
+mse_KF_old = mean((X - Xk_est).^2, [1 2]);
+
+% Store results
+Xk_est_KF_old = Xk_est;
+Yk_est_KF_old = Yk_est;
+
+% Filtering form
+KFF = KalmanFilterF(obs_model,P0,'KFF');
+
+% Simulate observers
+Xk_est = nan(nT+1,n);
+Yk_est = nan(nT+1,ny);
+obs = KFF;
+for i = 1:nT+1
+    uk = U(i,:)';
+    yk = Ym(i,:)';
+    obs.update(yk, uk);
+    Xk_est(i,:) = obs.xk_est';
+    Yk_est(i,:) = obs.yk_est';
+end
+
+if show_plots
+    figure(6)
+    subplot(2,1,1)
+    plot(t,[Y Yk_est]); grid on
+    ylabel('y(k) and y_est(k)')
+    legend('y(k)','y_est(k)')
+    title('Output')
+    subplot(2,1,2)
+    plot(t, [X Xk_est]); grid on
+    xlabel('k')
+    ylabel('xi(k) and xi_est(k)')
+    legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
+    title('States')
+end
+
+% Calculate mean-squared error in state estimates
+mse_KFF = mean((X - Xk_est).^2, [1 2]);
+
+% Store results
+Xk_est_KFF = Xk_est;
+Yk_est_KFF = Yk_est;
+
+% Switching Kalman filter - scheduled
+obs_models = {obs_model, obs_model};
+P0 = eye(n);
+obs_models{1}.Q = diag([0.01^2 sigma_wp{1}(1)^2]);
+obs_models{2}.Q = diag([0.01^2 sigma_wp{1}(2)^2]);
+seq = alpha' + 1;
+SKF = SKFObserverS(obs_models,P0,seq,"SKF");
+
+% Simulate observers
+Xk_est = nan(nT+1,n);
+Yk_est = nan(nT+1,ny);
+obs = SKF;
+for i = 1:nT+1
+    uk = U(i,:)';
+    yk = Ym(i,:)';
+    obs.update(yk, uk);
+    Xk_est(i,:) = obs.xk_est';
+    Yk_est(i,:) = obs.yk_est';
+end
+
+if show_plots
+    figure(7)
+    subplot(2,1,1)
+    plot(t,[Y Yk_est]); grid on
+    ylabel('y(k) and y_est(k)')
+    legend('y(k)','y_est(k)')
+    title('Output')
+    subplot(2,1,2)
+    plot(t, [X Xk_est]); grid on
+    xlabel('k')
+    ylabel('xi(k) and xi_est(k)')
+    legend('x1(k)','x2(k)','x1_est(k)','x2_est(k)')
+    title('States')
+end
+
+% Calculate mean-squared error in state estimates
+mse_SKF = mean((X - Xk_est).^2, [1 2]);
+
+% Store results
+Xk_est_SKF = Xk_est;
+Yk_est_SKF = Yk_est;
 
 % Sub-optimal multi-model observer 1 simulation
 % Sub-optimal multi-model observer as described by Robertson _et al._ (1995).
@@ -236,7 +313,7 @@ Yk_est_KFF = Ykp1_est;
 % [vec_double, vec_int16] = get_obs_vars_vecs(obs);
 % dlmwrite(sprintf('test-ml-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
 % dlmwrite(sprintf('test-ml-%s-int16.csv', obs.label), vec_int16, 'delimiter', ',');    
-% for i = 1:nT
+% for i = 1:nT+1
 %     uk = U(i,:)';
 %     yk = Ym(i,:)';
 % 
@@ -255,12 +332,12 @@ Yk_est_KFF = Ykp1_est;
 %     dlmwrite(sprintf('test-ml-%s-int16.csv', obs.label), ...
 %         vec_int16, 'delimiter', ',', '-append');
 % 
-%     Xk_est(i+1,:) = obs.xkp1_est';
-%     Yk_est(i+1,:) = obs.ykp1_est';
+%     Xk_est(i,:) = obs.xkp1_est';
+%     Yk_est(i,:) = obs.ykp1_est';
 % end
 % 
 % if show_plots
-%     figure(6)
+%     figure(8)
 %     subplot(2,1,1)
 %     plot(t,[Y Yk_est]); grid on
 %     ylabel('y(k) and y_est(k)')
@@ -275,7 +352,7 @@ Yk_est_KFF = Ykp1_est;
 % end
 % 
 % % Calculate mean-squared error in state estimates
-% mse_MKF1 = mean((X(2:end,:) - Xk_est(2:end,:)).^2, [1 2]);
+% mse_MKF1 = mean((X - Xk_est).^2, [1 2]);
 % 
 % % Store results
 % Xk_est_MKF1 = Xk_est;
@@ -302,26 +379,26 @@ MKF2 = MKFObserverSP_RODD(model,io,P0,epsilon,sigma_wp, ...
     Q0,R,nh,n_min,'MKF2');
 
 % Simulate observer
-Xkp1_est = nan(nT+1,n);
-Ykp1_est = nan(nT+1,ny);
+Xk_est = nan(nT+1,n);
+Yk_est = nan(nT+1,ny);
 obs = MKF2;
-for i = 1:nT
+for i = 1:nT+1
     uk = U(i,:)';
     yk = Ym(i,:)';
     obs.update(yk, uk);
-    Xkp1_est(i,:) = obs.xk_est';
-    Ykp1_est(i,:) = obs.yk_est';
+    Xk_est(i,:) = obs.xk_est';
+    Yk_est(i,:) = obs.yk_est';
 end
 
 if show_plots
-    figure(7)
+    figure(9)
     subplot(2,1,1)
-    plot(t,[Y Ykp1_est]); grid on
+    plot(t,[Y Yk_est]); grid on
     ylabel('y(k) and y_est(k)')
     legend('y(k)','y_est(k)')
     title('Output')
     subplot(2,1,2)
-    plot(t, [X Xkp1_est]); grid on
+    plot(t, [X Xk_est]); grid on
     xlabel('k')
     ylabel('xi(k) and xi_est(k)')
     legend('x1(k)','x2(k)','x1_est(k)',['x2_est(k)'])
@@ -329,27 +406,32 @@ if show_plots
 end
 
 % Calculate mean-squared error in state estimates
-mse_MKF2 = mean((X(1:nT,:) - Xkp1_est(1:nT,:)).^2, [1 2]);
-
-% Check MSE values
-% Note: 2022-07-04 Updated result after fixing MKFObserverSF sigma_wp
-assert(round(mse_KFPSS, 6) == 0.087294)
-assert(round(mse_KF_old, 6) == 0.091745)
-assert(round(mse_KFP, 6) == 0.091745)
-assert(round(mse_KFF, 6) == 0.052268)
-%assert(round(mse_MKF1, 4) == 0.1280)  % TODO: Not working yet
-assert(round(mse_MKF2, 6) == 0.029915)
+mse_MKF2 = mean((X - Xk_est).^2, [1 2]);
 
 % Store results
-Xk_est_MKF2 = Xkp1_est;
-Yk_est_MKF2 = Ykp1_est;
+Xk_est_MKF2 = Xk_est;
+Yk_est_MKF2 = Yk_est;
+
+% Check MSE results for all observer
+% Note: 2022-07-04 Updated result after fixing MKFObserverSF sigma_wp
+assert(round(mse_KFPSS, 6) == 0.086430)
+assert(round(mse_KFFSS, 6) == 0.049202)
+assert(round(mse_KF_old, 6) == 0.090836)
+assert(round(mse_KFP, 6) == 0.090836)
+assert(round(mse_KFF, 6) == 0.052274)
+assert(round(mse_SKF, 6) == 0.022272)
+%assert(round(mse_MKF1, 4) == 0.1280)  % TODO: Not working yet
+assert(round(mse_MKF2, 6) == 0.029665)
 
 % Combine and save all results to csv file
 % These are used by test_MKF_example_sim.m
-sim_results = table(t, Xkp1_est_KFPSS, Ykp1_est_KFPSS, ...
-    Xkp1_est_KFP, Ykp1_est_KFP, ...
+sim_results = table(t, ...
+    Xk_est_KFPSS, Yk_est_KFPSS, ...
+    Xk_est_KFFSS, Yk_est_KFFSS, ...
+    Xk_est_KFP, Yk_est_KFP, ...
     Xk_est_KFF, Yk_est_KFF, ...
-...    Xk_est_MKF1, Yk_est_MKF1, ...
+    Xk_est_SKF, Xk_est_SKF, ...
+...    Xk_est_MKF1, Yk_est_MKF1, ...  % TODO: When fixed
     Xk_est_MKF2, Yk_est_MKF2);
 filename = 'MKF_example.csv';
 results_dir = 'results';

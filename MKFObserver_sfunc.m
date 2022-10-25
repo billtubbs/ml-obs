@@ -28,7 +28,7 @@ block.NumOutputPorts = 2;
 block.SetPreCompInpPortInfoToDynamic;
 block.SetPreCompOutPortInfoToDynamic;
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 % Input 1: u(k)
@@ -104,7 +104,7 @@ function DoPostPropSetup(block)
 %   Required         : No
 %   C MEX counterpart: mdlSetWorkWidths
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 switch obs.type
@@ -124,8 +124,8 @@ switch obs.type
         block.Dwork(1).Complexity      = 'Real'; % real
         block.Dwork(1).UsedAsDiscState = true;
 
-    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP', 'MKF_SF_RODD95', ...
-            'MKF_SF_RODD'}  % observers with double and int16 vars
+    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SF_RODD95', ...
+            'MKF_SF_RODD', 'MKF_SP_RODD'}  % observers with double and int16 vars
 
         % Make data vectors containing all variables
         [vec_double, vec_int16] = get_obs_vars_vecs(obs);
@@ -164,7 +164,7 @@ function InitializeConditions(block)
 %   Required         : No
 %   C MEX counterpart: mdlInitializeConditions  
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 switch obs.type
@@ -180,7 +180,7 @@ switch obs.type
         % For debugging
         %dlmwrite(sprintf('test-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
 
-    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP', 'MKF_SF_RODD95', ...
+    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP_RODD', 'MKF_SF_RODD95', ...
             'MKF_SF_RODD'}  % observers with double and int16 vars
 
         % Get data vectors containing all variables
@@ -220,7 +220,7 @@ function Outputs(block)
 %   Required         : Yes
 %   C MEX counterpart: mdlOutputs
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 switch obs.type
@@ -231,10 +231,10 @@ switch obs.type
         vec_double = block.Dwork(1).Data;
         obs = set_obs_vars_vecs(obs, vec_double);
 
-        % Output y_est(k+1|k)
+        % Output x_est(k|k-1)
         block.OutputPort(1).Data = obs.xkp1_est;
 
-        % Output y_est(k+1|k)
+        % Output y_est(k|k-1)
         block.OutputPort(2).Data = obs.ykp1_est;
 
     case {'KFFSS', 'KFF'}  % observers in filtering form
@@ -264,51 +264,14 @@ switch obs.type
         % Update Dwork memory vectors
         block.Dwork(1).Data = vec_double;
 
-        % Output y_est(k|k)
-        block.OutputPort(1).Data = obs.xk_est;
-
-        % Output y_est(k|k)
-        block.OutputPort(2).Data = obs.yk_est;
-
-    case {'SKF_S'}  % switching Kalman filter with schedule
-
-        % Get current input values
-        uk = block.InputPort(1).Data;
-        yk = block.InputPort(2).Data;
-
-        % Check size of input vectors
-        assert(isequal(size(uk), [obs.nu 1]))
-        assert(isequal(size(yk), [obs.ny 1]))
-
-        % Get variables data from Dwork memory
-        vec_double = block.Dwork(1).Data;
-        vec_int16 = block.Dwork(2).Data;
-        obs = set_obs_vars_vecs(obs, vec_double, vec_int16);
-
-        % Update observer states
-        obs.update(yk, uk);
-
-        % Make data vectors containing all variables
-        [vec_double, vec_int16] = get_obs_vars_vecs(obs);
-
-        % For debugging
-        %dlmwrite(sprintf('test-%s-double.csv', obs.label), ...
-        %    vec_double, 'delimiter', ',', '-append');
-        %dlmwrite(sprintf('test-%s-int16.csv', obs.label), ...
-        %    vec_int16, 'delimiter', ',', '-append');
-
-        % Update Dwork memory vectors
-        block.Dwork(1).Data = vec_double;
-        block.Dwork(2).Data = vec_int16;
-
-        % Output y_est(k|k)
+        % Output x_est(k|k)
         block.OutputPort(1).Data = obs.xk_est;
 
         % Output y_est(k|k)
         block.OutputPort(2).Data = obs.yk_est;
     
-    case {'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP', 'MKF_SF_RODD95', ...
-            'MKF_SF_RODD'}  % observers with double and int16 vars
+    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP_RODD', ...
+          'MKF_SF_RODD95', 'MKF_SF_RODD'}  % observers with double and int16 vars
 
         % Get current input values
         uk = block.InputPort(1).Data;
@@ -361,7 +324,7 @@ function Update(block)
 %   C MEX counterpart: mdlUpdate
 
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
         
 % Note: Only observers in prediction form need this update step.
