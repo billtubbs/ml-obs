@@ -49,13 +49,13 @@
 %       Standard deviations of disturbances. Each element of
 %       the cell array is either a scalar for a standard (Gaussian)
 %       noise or a (2, 1) vector for a random shock disturbance.
-%   Q0 : (n, n) double
-%       Process noise covariance matrix (n, n) with 
-%       variances for each state on the diagonal. The  
-%       values for states impacted by the unmeasured input
-%       disturbances should be set to zero as the
-%       appropriate variances will be added by the
-%       algorithm during observer updates.
+%   Q0 : (n, n)
+%       Matrix containing variance values for process
+%       states. Only values in the rows and columns corresponding 
+%       to the process states are used, usually the upper left
+%       block from (1, 1) to (n-nw, n-nw). The remaining
+%       values corresponding to the covariances of the input 
+%       disturbance model states are over-written at initialization.
 %   R : (ny, ny) double
 %       Output measurement noise covariance matrix.
 %   nh : integer double

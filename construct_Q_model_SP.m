@@ -9,20 +9,23 @@ function [Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp)
 % disturbances.
 %
 % Arguments:
-%   Q0 : [n n]
+%   Q0 : (n, n)
 %       Matrix containing variance values for process
-%       states (only the diagonal elements from 1 to n-nw
-%       are used).
-%   B : [n nu] double
+%       states. Only values in the rows and columns corresponding 
+%       to the process states are used, usually the upper left
+%       block from (1, 1) to (n-nw, n-nw). The remaining
+%       values corresponding to the covariances of the input 
+%       disturbance model states are over-written at initialization.
+%   B : (n, nu) double
 %       System input matrix.
-%   u_known : [nu, 1] logical
+%   u_known : (nu, 1) logical
 %       Boolean vector to indicate which inputs are known
 %   alpha : double
 %       Probability of at least one shock in a detection interval.
-%   sigma_wp : [1 nw] cell array
+%   sigma_wp : (1 nw) cell array
 %       Standard deviations of disturbances. Each element of
 %       the cell array is either a scalar for a standard (Gaussian)
-%       noise or a [2 1] vector for a random shock disturbance.
+%       noise or a (2 1) vector for a random shock disturbance.
 %
 
     % Number of variances for each disturbance input
@@ -31,7 +34,7 @@ function [Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp)
     % TODO: Currently, this function only works for disturbances
     % with up to 2 modes (e.g. shock, no shock). Could be extended
     % to other cases (e.g. no shock, small shock, big shock)
-    assert(all(ns <= 2))
+    assert(all(ns <= 2), "Only binary shocks supported")
 
     % Positions of unmeasured inputs in input signal
     idx_w = find(~u_known);
@@ -51,24 +54,33 @@ function [Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp)
     % Determine which disturbances have a switching variance
     % and construct all combinations of input variances.
     idx_switch = 1 + cumsum(ns-1);
-    var_u = zeros(length(u_known), nj);
+    var_wp = zeros(nw, nj);
     for i = 1:nw
         if ns(i) == 1
             % Standard Gaussian noise input
-            var_u(idx_w(i), :) = sigma_wp{i}^2;  % same for all modes
+            var_wp(i, :) = sigma_wp{i}^2;  % same for all modes
         else
             % Switching Gaussian noise input
-            var_u(idx_w(i), :) = sigma_wp{i}(1)^2;
-            var_u(idx_w(i), idx_switch(i)) = sigma_wp{i}(2)^2;  % different
+            var_wp(i, :) = sigma_wp{i}(1)^2;
+            var_wp(i, idx_switch(i)) = sigma_wp{i}(2)^2;  % different
         end
     end
 
-    % Generate a Q matrix for each system mode
+    % Generate the Q matrix for each system mode
+    Bw = B(:, ~u_known);
+
+    % Set all covariances on rows, cols of disturbance 
+    % model to zero (i.i.d assumption).
+    n = length(Q0);
+    Q0(:, idx_w) = 0;
+    Q0(idx_w, :) = 0;
     Q = cell(1, nj);
     for i = 1:nj
-        var_x = diag(Q0);
-        var_x = var_x + B * var_u(:, i);
-        Q{i} = diag(var_x);
+        Q{i} = Q0;
+        % Scale variances using noise input matrix
+        var_x = Bw * var_wp(:, i);
+        % Add variances to elements of diagonal
+        Q{i}(logical(eye(n))) = diag(Q{i}) + var_x;
     end
 
     if n_switch > 0

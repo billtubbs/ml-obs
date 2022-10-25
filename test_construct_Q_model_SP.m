@@ -82,6 +82,27 @@ Q_test = {
 assert(isequal(Q, Q_test));
 assert(isequal(round(p_rk, 6), [0.99 0.01]'));
 
+% Test with non-zero covariances of process states
+Q0 = [
+    0.0105     0.002         0         0
+     0.003    0.0090         0         0
+         0         0         0         0
+         0         0         0         0
+];
+[Q, p_rk] = construct_Q_model_SP(Q0, B, u_known, alpha, sigma_wp);
+Q_test = {
+    [    0.0105     0.002         0         0
+          0.003    0.0090         0         0
+              0         0    0.0001         0
+              0         0         0    0.0001] ...
+    [    0.0105     0.002         0         0
+          0.003    0.0090         0         0
+              0         0    0.0001         0
+              0         0         0    1.0000]
+};
+assert(isequal(Q, Q_test));
+assert(isequal(round(p_rk, 6), [0.99 0.01]'));
+
 
 %% Test on 2x2 system with two RODDs
 
