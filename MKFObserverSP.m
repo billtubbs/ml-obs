@@ -20,6 +20,48 @@
 %   Let there be a certain minimum life length for all 
 %   branches.
 %
+% obs = MKFObserverSP(model,u_meas,P0,epsilon,sigma_wp, ...
+%     Q0,R,nh,n_min,label,x0,r0)
+%
+% Creates a struct for simulating a multi-model observer
+% using the adaptive forgetting through multiple models 
+% (AFMM) method for state estimation in the presence of 
+% infrequently-occurring deterministic disturbances, as 
+% described in Eriksson and Isaksson (1996).
+%
+% Arguments:
+%   model : struct
+%       Struct containing the parameters of a linear
+%       model of the system dynamics including disturbances
+%       and unmeasured inputs. These include: A, B, 
+%       and C for the system matrices, and the sampling 
+%       period, Ts.
+%   u_meas : (:, 1) logical
+%       Binary vector indicating which inputs are measured.
+%   P0 : (n, n) double
+%       Initial value of covariance matrix of the state
+%       estimates.
+%   epsilon : (nw, 1) double
+%       Probability(s) of shock disturbance(s).
+%   sigma_wp : (nw, 2) double
+%       Standard deviation(s) of shock disturbance(s).
+%   Q0 : (n, n) double
+%       Process noise covariance matrix (n, n) with 
+%       variances for each state on the diagonal. The  
+%       values for states impacted by the unmeasured input
+%       disturbances should be set to zero as the
+%       appropriate variances will be added by the
+%       algorithm during observer updates.
+%   R : (ny, ny) double
+%       Output measurement noise covariance matrix.
+%   nh : integer double
+%       Number of models (Kalman filters) to utilise.
+%   n_min : integer double
+%       Minimum life of cloned filters in number of sample
+%       periods.
+%   label : String name.
+%   x0 : Initial state estimates (optional, default zeros)
+%
 % NOTE:
 % - The adaptive forgetting component of the AFMM
 %   (Andersson, 1985) is not yet implemented.
@@ -29,20 +71,24 @@
 %    of Infrequent Disturbances. IFAC Proceedings Volumes, 29(1), 
 %     6614-6619. https://doi.org/10.1016/S1474-6670(17)58744-3
 %  - Andersson, P. (1985). Adaptive forgetting in recursive
-%    identification through multiple models?. International
-%    Journal of Control, 42(5), 1175?1193. 
+%    identification through multiple models. International
+%    Journal of Control, 42(5), 1175-1193. 
 %    https://doi.org/10.1080/00207178508933420
 %
 
 classdef MKFObserverSP < MKFObserver
     properties (SetAccess = immutable)
-        u_meas {mustBeNumericOrLogical}
+        u_meas (:, 1) logical {mustBeNumericOrLogical}
         n_min double {mustBeInteger, mustBeNonnegative}
     end
     properties
+        sys_model struct
+        %seq (:, 1) cell
+        %i (1, 1) {mustBeInteger, mustBeNonnegative}
+        %i_next (1, 1) {mustBeInteger, mustBeNonnegative}
         p_seq double
-        p_gamma double
-        Q0 {mustBeNumeric}
+        Q0 double
+        R double
         epsilon double
         sigma_wp double
         n_main
@@ -51,142 +97,107 @@ classdef MKFObserverSP < MKFObserver
         f_hold
     end
     methods
-        function obj = MKFObserverSP(A,B,C,D,Ts,u_meas,P0,epsilon, ...
-            sigma_wp,Q0,R,n_filt,f,n_min,label,x0)
-        % obs = mkf_observer_AFMM(A,B,C,D,Ts,u_meas,P0,epsilon,sigma_wp, ...
-        %     Q0,R,n_filt,f,n_min,label,x0)
-        %
-        % Creates a struct for simulating a multi-model observer
-        % using the adaptive forgetting through multiple models 
-        % (AFMM) method for state estimation in the presence of 
-        % infrequently-occurring deterministic disturbances, as 
-        % described in Eriksson and Isaksson (1996).
-        %
-        % Arguments:
-        %   A, B, C, D : matrices of the discrete time state-space
-        %       system representing the augmented system (including
-        %       disturbances and unmeasured inputs).
-        %   Ts : sample period.
-        %   u_meas : binary vector indicating measured inputs.
-        %   P0 : Initial value of covariance matrix of the state
-        %       estimates.
-        %   epsilon : probability of a shock disturbance.
-        %   sigma_wp : standard deviation of shock disturbances.
-        %   Q0 : Process noise covariance matrix (n, n) with 
-        %        variances for each state on the diagonal. The  
-        %        values for states impacted by the unmeasured
-        %        input disturbances should be set to zero as the
-        %        appropriate variances will be added by the
-        %        algorithm during observer updates.
-        %   R : output measurement noise covariance matrix (ny, ny).
-        %   n_filt : number of models (Kalman filters) to utilise.
-        %   f : length of disturbance sequences to record.
-        %   n_min : minimum life of cloned filters in number of
-        %       sample periods.
-        %   label : string name.
-        %   x0 : intial state estimates (optional).
-        %
-
-            % TODO: Expose spacing parameter d as an argument
+        function obj = MKFObserverSP(model,u_meas,P0,epsilon, ...
+                sigma_wp,Q0,R,nh,n_min,label,x0,r0)
+            arguments
+                model struct
+                u_meas (:, 1) logical
+                P0 double
+                epsilon double
+                sigma_wp double
+                Q0 (:, :) double
+                R (:, :) double
+                nh (1, 1) double {mustBeInteger}
+                n_min (1, 1) double {mustBeInteger}
+                label (1, 1) string = ""
+                x0 = []
+                r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)} = 1
+            end
 
             % Number of states
-            n = check_dimensions(A, B, C, D);
+            [n, nu, ny] = check_dimensions(model.A, model.B, model.C);
+            if isprop(model, "D")
+                assert(isequal(model.D, zeros(ny, nu)), ...
+                    "ValueError: direct transmission (model.D)")
+            end
 
-            % Detection interval length in number of sample periods.
-            d = 1;  % TODO: Make this a specified parameter.
+            % Check size of initial process covariance matrix
+            assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
 
-            % Initial state estimates
-            if nargin == 15
-                x0 = zeros(n,1);
+            % Determine initial state values
+            if isscalar(r0)
+                % By default, assume initial hypothesis sequences 
+                % at time k = -1 all start with 1 (i.e. no shocks)
+                r0 = repmat(r0, nh, 1);
+            else
+                assert(isequal(size(r0), [nh 1]), "ValueError: r0")
+            end
+
+            % Determine initial state values
+            if isempty(x0)
+                x0 = zeros(n, 1);  % default initial states
+            else
+                assert(isequal(size(x0), [n 1]), "ValueError: x0")
             end
 
             % Observer model without disturbance noise input
-            Bu = B(:, u_meas);
-            Bw = B(:, ~u_meas);
-            Du = D(:, u_meas);
             nw = sum(~u_meas);  % Number of input disturbances
             assert(nw > 0, "ValueError: u_meas");
-
-            % Modified variances of shock signal over detection
-            % interval (see (16) on p.264 of Robertson et al. 1998)
-            var_wp = sigma_wp.^2 ./ d;
+            Bu = model.B(:, u_meas);
+            Bw = model.B(:, ~u_meas);
 
             % Construct process noise covariance matrices for each 
             % possible input disturbance (returns a cell array)
-            Q = construct_Q(Q0, Bw, var_wp, u_meas);
+            [Q, p_rk_g_rkm1] = construct_Q_model_SP(Q0, Bw, epsilon, ...
+                sigma_wp.^2, nw);
 
-            % Number of switching models
+            % Number of models (each with a different hypothesis sequence)
             nj = numel(Q);
 
-            % Probabilities of no-shock, shock
-            p_gamma = [1-epsilon epsilon]';
-
-            if nw > 1
-
-                % Possible combinations of each disturbance input:
-                % Assume only one may occur in the same sample period
-                Z = [zeros(1, nw); eye(nw)];
-
-                % Modified indicator value probabilities
-                p_gamma = prod(prob_gamma(Z', p_gamma), 1)';
-
-                % Normalize so that sum(Pr(gamma(k))) = 1
-                % TODO: Is this the right thing to do for sub-optimal approach?
-                p_gamma = p_gamma ./ sum(p_gamma);
-
-            end
-
             % Transition probability matrix
-            % Note that for RODD disturbances Pr(gamma(k)) is
+            % Note that for RODD disturbances Pr(r(k)) is
             % assumed to be an independent random variable.
-            T = repmat(p_gamma', nj, 1);
+            T = repmat(p_rk_g_rkm1', nj, 1);
 
-            % Initialize indicator sequences
-            seq = mat2cell(int16(zeros(n_filt, f)), int16(ones(1, n_filt)), f);
+            % Initialize indicator sequences with 1s
+            %seq = mat2cell(int16(ones(nh, nf)), int16(ones(1, nh)), nf);
 
             % Define filter groups ('main', 'holding' and 'unused')
             n_min = int16(n_min);
             assert(n_min > 0)
-            assert(n_filt > 0)
-            n_hold = nw*n_min;
-            n_main = n_filt - n_hold;
-            
+            assert(nh > 0)
+            n_hold = nw * n_min;
+            n_main = nh - n_hold;
+
             % Check there are enough filters in total to accommodate
             % those in the holding group + at least one in main group
-            assert(n_main >= nw, "ValueError: n_filt is too low.")
+            assert(n_main >= nw, "ValueError: nh is too low.")
 
             % Filter indices
             f_main = int16(1:n_main);
             f_hold = int16(n_main+1:n_main+n_hold);
 
-            % TODO: Remove this
-            assert(isequal(sort(unique([f_main f_hold])), 1:(n_main+n_hold)))
-
-            % System model doesn't change over time
-            A = repmat({A}, 1, nj);
-            Bu = repmat({Bu}, 1, nj);
-            C = repmat({C}, 1, nj);
-            Du = repmat({Du}, 1, nj);
-            R = repmat({R}, 1, nj);
-
-            % Initial covariance matrix is the same for all filters
-            %P0_init = repmat({P0}, 1, n_filt);
-
-            % Create MKF super-class observer instance
-            obj = obj@MKFObserver(A,Bu,C,Du,Ts,P0,Q,R,seq,T,d,label,x0);
-
-            % Sequence pruning algorithm initialization
-            % Assign all probability to first filter
-            obj.p_seq_g_Yk = [1; zeros(obj.n_filt-1, 1)];
-
-            % Set estimate covariances to high values for the
-            % rest of the filters
-            for i = 2:obj.n_filt
-                obj.filters{i}.P = 1e10*eye(obj.n);
+            % System models are all the same - only Q switches
+            model_obs = model;
+            model_obs.B = Bu;
+            models = repmat({model_obs}, 1, nj);
+            for i = 1:nj
+                models{i}.Q = Q{i};
+                models{i}.R = R;
             end
 
-            % Add additional variables used by AFMM observer
+            % Sequence pruning algorithm initialization
+            % Assign all probability to first filter.
+            p_seq_g_Yk_init = [1; zeros(nh-1, 1)];
+
+            % Create MKF super-class observer instance
+            obj = obj@MKFObserver(models,P0,T,r0,label,x0, ...
+                p_seq_g_Yk_init,false);
+
+            % Add additional variables used by SP observer
+            obj.sys_model = model;
             obj.u_meas = u_meas;
+            %obj.seq = seq;
             obj.n_min = n_min;
             obj.n_main = n_main;
             obj.n_hold = n_hold;
@@ -194,12 +205,57 @@ classdef MKFObserverSP < MKFObserver
             obj.f_hold = f_hold;
             obj.P0 = P0;
             obj.Q0 = Q0;
+            obj.R = R;
             obj.epsilon = epsilon;
             obj.sigma_wp = sigma_wp;
-            obj.p_gamma = p_gamma;
             obj.type = "MKF_SP";
-        end
 
+            % Initialize variables
+            obj.reset()
+
+        end
+        function reset(obj)
+        % obj.reset()
+        % Initialize all variables to initial values specified
+        % when observer object was created.
+        %
+
+            % Call reset method of super class object
+            reset@MKFObserver(obj);
+
+            % Set estimate covariances to high values for all the
+            % filters except the first
+            for i = 2:obj.nh
+                obj.filters.Pkp1(:,:,i) = 1e10 * eye(obj.n);
+            end
+
+            % Reset sequence index
+            %obj.i = int16(0);
+            %obj.i_next = int16(1);
+
+        end
+        function copy_filters(obj, a, b)
+        % Make a copy of filter in position a and save it
+        % in position b.
+
+            % Transfer filter variables from a to b
+            obj.filters.Xkp1_est(:, :, b) = obj.filters.Xkp1_est(:, :, a);
+            obj.filters.Pkp1(:, :, b) = obj.filters.Pkp1(:, :, a);
+            obj.filters.Xk_est(:, :, b) = obj.filters.Xk_est(:, :, a);
+            obj.filters.Pk(:, :, b) = obj.filters.Pk(:, :, a);
+            obj.filters.Yk_est(:, :, b) = obj.filters.Yk_est(:, :, a);
+
+            % Transfer probability information
+            obj.p_seq_g_Yk(b) = obj.p_seq_g_Yk(a);
+            obj.p_rk_g_rkm1(b) = obj.p_rk_g_rkm1(a);
+            obj.p_seq_g_Ykm1(b) = obj.p_seq_g_Ykm1(a);
+
+            % Sequence history - not yet implemented
+            %obj.seq{f_to_prune(i)} = obj.seq{f_max};
+            % Set next sequence value to index of the shock
+            %obj.seq{f_to_prune(i)}(:, obj.i_next(1)) = i + 1;
+
+        end
         function update(obj, yk, uk)
         % obs.update(yk, uk)
         % updates the multi-model Kalman filter and calculates the
@@ -207,12 +263,10 @@ classdef MKFObserverSP < MKFObserver
         % time.
         %
         % Arguments:
-        %   obs : struct containing the multi-model Kalman filter
-        %       variables (see function mkf_filter).
-        %   uk : vector (nu, 1) of system inputs at the current 
-        %       sample time.
         %   yk : vector (ny, 1) of system output measurements
         %       at the current sample time.
+        %   uk : vector (nu, 1) of system inputs at the current 
+        %       sample time.
         %
 
             % Implementation of filter pruning algorithm
@@ -240,19 +294,14 @@ classdef MKFObserverSP < MKFObserver
             % Index of current most likely sequence
             [~, f_max] = max(obj.p_seq_g_Yk);
 
-            % Set next sequence value to 0 (no shock) for all
+            % Set next sequence value to 1 (no shock) for all
             % sequences
-            for f = 1:obj.n_filt
-                obj.seq{f}(:, obj.i_next(1)) = 0;
-            end
+            %for f = 1:obj.nh
+            %    obj.seq{f}(:, obj.i_next(1)) = 1;
+            %end
 
             % Number of disturbances
             nw = size(obj.epsilon, 1);
-
-            % Consistency checks - can be removed later
-            assert(size(obj.f_hold, 2) == obj.n_hold)
-            assert(size(obj.f_main, 2) == obj.n_main)
-            assert(isequal(sort(unique([obj.f_main obj.f_hold])), 1:obj.n_filt))
 
             % Left-shift all filters in holding group. This causes
             % the last nw values to 'roll-over' to the left of f_hold.
@@ -274,19 +323,17 @@ classdef MKFObserverSP < MKFObserver
             % group
             obj.f_main(end-nw+1:end) = f_move;
 
-            % Make clone(s) of most probable sequence and fitler
-            % put new filter(s) at start of holding group
+            % Set all mode indicator values to 1 (no shock)
+            rk = ones(obj.nh, 1);
+
+            % Make clone(s) of most probable sequence and filter
+            % and put new filter(s) at start of holding group
             obj.f_hold(end-nw+1:end) = f_to_prune;
             for i = 1:nw
-                label = obj.filters{f_to_prune(i)}.label;
-                obj.filters{f_to_prune(i)} = obj.filters{f_max}.copy();
-                obj.filters{f_to_prune(i)}.label = label;  % keep label
-                obj.p_seq_g_Yk(f_to_prune(i)) = obj.p_seq_g_Yk(f_max);
-                obj.p_gamma_k(f_to_prune(i)) = obj.p_gamma_k(f_max);
-                obj.p_seq_g_Ykm1(f_to_prune(i)) = obj.p_seq_g_Ykm1(f_max);
-                obj.seq{f_to_prune(i)} = obj.seq{f_max};
-                % Set next sequence value to index of the random input
-                obj.seq{f_to_prune(i)}(:, obj.i_next(1)) = i;
+                obj.copy_filters(f_max, f_to_prune(i))
+                % Set mode indicator of cloned filter to shock 
+                % occurs value
+                rk(f_to_prune(i)) = i + 1;
             end
 
             % TODO: Add online noise variance estimation with
@@ -294,71 +341,8 @@ classdef MKFObserverSP < MKFObserver
             % equation (4.3).
 
             % Run MKF super-class updates and probability calcs
-            update@MKFObserver(obj, yk, uk);
+            update@MKFObserver(obj, yk, uk, rk);
 
         end
     end
-end
-
-
-function Q = construct_Q(Q0, Bw, var_wp, u_meas)
-% Q = construct_Q(Q0, B, var_wp, u_meas) 
-% returns a cell array of different process noise 
-% covariance matrices Qj for each filter model j = 
-% 1:nj for the tracking of infrequently-occurring
-% input disturbances.
-%
-% Arguments:
-%   Q0 : nxn matrix containing variances for measured
-%        states on the diagonal (all other elements 
-%        are ignored).
-%   Bw : system input matrix for the random shock signals
-%       (n x nw).
-%   var_wp : variances of shock disturbances over 
-%       detection interval.
-%   u_meas : binary vector indicating which inputs are
-%        measured.
-%
-
-    % Number of states
-    n = size(Bw, 1);
-
-    % Check size of initial process covariance matrix
-    assert(isequal(size(Q0), [n n]), "ValueError: size(Q0)")
-
-    % Number of input disturbances
-    nw = sum(~u_meas);
-    % Check size of disturbance input matrix
-    assert(isequal(size(Bw), [n nw]))
-
-    % TODO: This only works for disturbances with 2
-    % states (i.e. shock/no shock). Could be extended
-    % to other cases (e.g. no shock, small shock, big
-    % shock)
-    assert(size(var_wp, 2) == 2)
-
-    % Number of switching models required. Assume only 
-    % one shock per detection period is possible.
-    nj = 1 + nw;
-
-    % Array of variances of each shock combination
-    var_x = repmat(diag(Q0), 1, nj);
-
-    % Add noise variances for model 1 assuming no shocks
-    % occurred
-    var_x(:, 1) = var_x(:, 1) + Bw * var_wp(:, 1);
-
-    % Add variances for models 2 to nj to reflect one
-    % of each shocks occuring.
-    for i = 1:nw
-        var_i = var_wp(:, 1);  % no shock
-        var_i(i) = var_wp(i, 2);  % shock
-        var_x(:, i+1) = var_x(:, i+1) + Bw * var_i;
-    end
-
-    Q = cell(1, nj);
-    for j = 1:nj
-        Q{j} = diag(var_x(:, j));
-    end
-
 end

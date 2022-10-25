@@ -1,7 +1,59 @@
 % Multi-model Kalman Filter class definition
 %
+% obs = MKFObserver(models,P0,T,r0,label,x0,p_seq_g_Yk_init,reset)
 % Class for simulating a multi-model Kalman filter for state
-% estimation of a Markov jump linear system.
+% estimation of a Markov jump linear system. 
+% 
+% This is the filtering form of the observer, which 
+% produces posterior estimates of the states and outputs 
+% at the current time instant given the data at the 
+% current time:
+%
+%  x_hat(k|k) : estimate of states at time k
+%  y_hat(k|k) : estimate of outputs at time k
+%
+% Prior estimates of the states and outputs at the next
+% time instant given the data at the current time are
+% also calculated:
+%
+%  x_hat(k+1|k) : estimate of states at time k + 1
+%  y_hat(k+1|k) : estimate of outputs at time k + 1
+%
+% The system model is defined as:
+%
+%   x(k+1) = A(k) x(k) + B(k) u(k) + w(k)
+%     y(k) = C(k) x(k) + v(k)
+%
+% Note: there is no direct transmission (D = 0).
+%
+% Arguments:
+%   models : (1, nj) cell array of structs
+%       Each struct contains the parameters of a linear
+%       model of the system dynamics. These include: A, B, 
+%       and C for the system matrices, Q and R for the
+%       state error covariance and output measurement 
+%       noise covariance, and Ts for the sample period.
+%   P0 : (n, n) double
+%       Initial covariance matrix of the state estimates
+%       (same for each filter).
+%   T : Transition probabity matrix of the Markov switching
+%       process.
+%   label : string
+%       Arbitrary name to identify the observer.
+%   x0 : (n, 1) double (optional, default zeros)
+%       Initial state estimates.
+%   r0 : (nh, 1) integer (optional, default ones)
+%       Integer in the range {1, ..., nj} which indicates
+%       the prior system mode at time k = -1.
+%   p_seq_g_Yk_init : (optional, default uniform)
+%       Initial prior hypothesis probabilities at time k-1.
+%       If not specified, default is equal, i.e. uniform,
+%       probability assigned to each hypothesis.
+%   reset : logical (default, true)
+%       If true, the objects reset method is called after
+%       initialization (this is mainly intended for use by
+%       other objects instantiating an instance without
+%       reseting).
 %
 
 classdef MKFObserver < matlab.mixin.Copyable
@@ -11,117 +63,109 @@ classdef MKFObserver < matlab.mixin.Copyable
         nu (1, 1) double {mustBeInteger, mustBeNonnegative}
         ny (1, 1) double {mustBeInteger, mustBeNonnegative}
         nj (1, 1) double {mustBeInteger, mustBeNonnegative}
-        d (1, 1) double {mustBeInteger, mustBeNonnegative}
-        f (1, 1) double {mustBeInteger, mustBeNonnegative}
-        n_filt (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nh (1, 1) double {mustBeInteger, mustBeNonnegative}
     end
     properties
-        A cell
-        B cell
-        C cell
-        D cell
+        models (1, :) cell
         P0 double
-        Q cell
-        R cell
-        seq cell
-        gamma0 double {mustBeInteger, mustBeNonnegative}
         T double
+        r0 (:, 1) int16 {mustBeGreaterThanOrEqual(r0, 1)}
         label (1, 1) string
         x0 (:, 1) double
-        i (1, 2) {mustBeInteger, mustBeNonnegative}
-        i_next (1, 2) {mustBeInteger, mustBeNonnegative}
-        gamma_k double
+        p_seq_g_Yk_init double
+        p_seq_g_Ykm1 double
         p_seq_g_Yk double
         p_yk_g_seq_Ykm1 double
-        p_gammak_g_Ykm1 double
-        p_gamma_k double
-        p_seq_g_Ykm1 double
-        filters  cell
+        p_rk_g_Ykm1 double
+        p_rk_g_rkm1 double
+        filters  struct
+        xk_est (:, 1) double
+        Pk double
+        yk_est (:, 1) double
         xkp1_est (:, 1) double
-        ykp1_est (:, 1) double
+        Pkp1 double
+        rk (:, 1) int16 {mustBeGreaterThanOrEqual(rk, 1)}
+        rkm1 (:, 1) int16 {mustBeInteger, mustBeGreaterThanOrEqual(rkm1, 1)}
         type (1, 1) string
     end
     methods
-        function obj = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
-        % obs = MKFObserver(A,B,C,D,Ts,P0,Q,R,seq,T,d,label,x0,gamma0)
-        %
-        % Arguments:
-        %	A, B, C, D : cell arrays containing discrete-time system
-        %       matrices for each switching system modelled.
-        %   Ts : sample period.
-        %   P0 : Initial covariance matrix of the state estimates
-        %       (same for each filter).
-        %   Q : cell array of process noise covariance matrices for
-        %       each switching system.
-        %   R : cell array of output measurement noise covariance
-        %       matrices for each switching system.
-        %   seq : model indicator sequences for each filter (in rows).
-        %   T : transition probabity matrix of the Markov switching
-        %       process.
-        %   d : detection interval length in number of sample periods.
-        %   label : string name.
-        %   x0 : intial state estimates (optional, default zeros)
-        %   gamma0 : initial model indicator value (zero-based)
-        %       (optional, default zeros).
-
-            % Number of switching systems
-            nj = numel(A);
-
-            % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
-            if nargin < 14
-                gamma0 = 0;
+        function obj = MKFObserver(models,P0,T,r0,label,x0, ...
+                p_seq_g_Yk_init,reset)
+            arguments
+                models (1, :) cell
+                P0 double
+                T double
+                r0 (:, 1) double {mustBeInteger, mustBeGreaterThanOrEqual(r0, 1)}
+                label (1, 1) string = ""
+                x0 = []
+                p_seq_g_Yk_init = []
+                reset logical = true
             end
-            if nargin < 13
-                x0 = zeros(n,1);
+
+            % Get number of system models and check their dimensions
+            [nj, n, nu, ny, Ts] = check_models(models);
+
+            % Number of hypotheses to be modelled
+            nh = size(r0, 1);
+
+            % Check dimensions of other parameters
+            assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
+            for j = 1:nj
+                assert(isequal(size(models{j}.Q), [n n]))
+                assert(isequal(size(models{j}.R), [ny ny]))
             end
-            obj.A = A;
-            obj.B = B;
-            obj.C = C;
-            obj.D = D;
-            obj.Ts = Ts;
-            obj.P0 = P0;
-            obj.Q = Q;
-            obj.R = R;
-            obj.seq = seq;
-            obj.T = T;
-            obj.d = d;
-            obj.label = label;
-            obj.x0 = x0;
 
-            % Number of filters required
-            obj.n_filt = size(obj.seq, 1);
-
-            % Assumption about initial model indicator
-            if isscalar(gamma0)
-                % In case single value specified
-                gamma0 = gamma0 * ones(obj.n_filt, 1);
+            if isempty(p_seq_g_Yk_init)
+                % Initial values of prior conditional probabilities at 
+                % k = -1. In absence of prior knowledge, assume all 
+                % equally likely
+                p_seq_g_Yk_init = ones(nh, 1) ./ nh;
             end
-            obj.gamma0 = gamma0;
 
-            % Fusion horizon length
-            obj.f = size(cell2mat(obj.seq), 2);
+            % Determine initial state values
+            if isempty(x0)
+                x0 = zeros(n, 1);  % default initial states
+            else
+                assert(isequal(size(x0), [n 1]), "ValueError: x0")
+            end
 
             % Check transition probability matrix
+            assert(isequal(size(T), [nj nj]), "ValueError: size(T)")
             assert(all(abs(sum(obj.T, 2) - 1) < 1e-15), "ValueError: T")
 
-            % Check all other system matrix dimensions have same 
-            % input/output dimensions and number of states.
-            for j = 2:nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
-                assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: size of A, B, C, and D")
-            end
+            % Create struct to store Kalman filter variables
+            obj.filters = struct();
+            obj.filters.Xkp1_est = nan(n, 1, obj.nh);
+            obj.filters.Pkp1 = nan(n, n, obj.nh);
+            obj.filters.Xk_est = nan(obj.n, 1, obj.nh);
+            obj.filters.Pk = nan(obj.n, obj.n, obj.nh);
+            obj.filters.Yk_est = nan(obj.ny, 1, obj.nh);
+            obj.filters.Kf = nan(obj.n, obj.ny, obj.nh);
+            obj.filters.Sk = nan(obj.ny, obj.ny, obj.nh);
 
-            % Initialize all variables
-            obj.reset()
-
-            % Add other useful variables
-            obj.n = n;
+            % Store parameters
+            obj.Ts = Ts;
             obj.nu = nu;
+            obj.n = n;
             obj.ny = ny;
+            obj.T = T;
             obj.nj = nj;
+            obj.models = models;
+            obj.nh = nh;
+            obj.r0 = int16(r0);
+            obj.P0 = P0;
+            obj.x0 = x0;
+            obj.p_seq_g_Yk_init = p_seq_g_Yk_init;
             obj.type = "MKF";
+            if label == ""
+                label = obj.type;
+            end
+            obj.label = label;
+
+            if reset
+                % Initialize variables
+                obj.reset()
+            end
 
         end
         function reset(obj)
@@ -129,52 +173,150 @@ classdef MKFObserver < matlab.mixin.Copyable
         % Initialize all variables to initial values specified
         % when observer object was created.
         %
-            % Switching variable at previous time instant
-            obj.gamma_k = obj.gamma0;
 
-            % Sequence index and counter for prob. updates
-            % obj.i(1) is the sequence index (1 <= i(1) <= obj.f)
-            % obj.i(2) is the counter for prob. updates (1 <= i(2) <= obj.d)
-            obj.i = int16([0 0]);
-            obj.i_next = int16([1 1]);
+            % Initialize estimate covariance
+            obj.Pkp1 = obj.P0;
 
-            % Initialize conditional probabilities: all equally likely
-            obj.p_seq_g_Yk = ones(obj.n_filt, 1) ./ double(obj.n_filt);
+            % Initialize state and output estimates
+            % Note: At initialization at time k = 0, xkp1_est and
+            % ykp1_est represent prior estimates of the states,
+            % i.e. x_est(k|k-1) and y_est(k|k-1).
+            obj.xkp1_est = obj.x0;
+            obj.Pkp1 = obj.P0;
+            obj.rk = obj.r0;
+            obj.rkm1 = [];
+
+            % Initial values of prior conditional probabilities at k = -1 
+            obj.p_seq_g_Yk = obj.p_seq_g_Yk_init;
 
             % Empty vectors to store values for filter calculations
-            % p(y(k)|Gamma(k),Y(k-1))
-            obj.p_yk_g_seq_Ykm1 = zeros(obj.n_filt, 1);
-            % Pr(gamma(k)|Y(k-1))
-            obj.p_gammak_g_Ykm1 = zeros(obj.n_filt, 1);
-            % Pr(gamma(k))
-            obj.p_gamma_k = zeros(obj.n_filt, 1);
-            % Pr(Gamma(k)|Y(k-1))
-            obj.p_seq_g_Ykm1 = zeros(obj.n_filt, 1);
+            % p(y(k)|R(k),Y(k-1))
+            obj.p_yk_g_seq_Ykm1 = nan(obj.nh, 1);
+            % Pr(r(k)|Y(k-1))
+            obj.p_rk_g_Ykm1 = nan(obj.nh, 1);
+            % Pr(R(k))
+            obj.p_rk_g_rkm1 = nan(obj.nh, 1);
+            % Pr(R(k)|Y(k-1))
+            obj.p_seq_g_Ykm1 = nan(obj.nh, 1);
 
-            % Create multi-model observer
-            obj.filters = cell(obj.n_filt, 1);
-            fmt = strcat('%s%0', ...
-                char(string(strlength(string(obj.n_filt)))), 'd');
-            % Initialize each filter
-            for i = 1:obj.n_filt
-                label_i = sprintf(fmt,obj.label,i);
-                % Index of system model
-                ind = obj.gamma_k(i) + 1;
-                obj.filters{i} = KalmanFilter(obj.A{ind},obj.B{ind}, ...
-                    obj.C{ind},obj.D{ind},obj.Ts,obj.P0, obj.Q{ind}, ...
-                    obj.R{ind},label_i,obj.x0);
-            end
+            % Reset Kalman filter variables
+            obj.filters.Xkp1_est = repmat(obj.xkp1_est, 1, 1, obj.nh);
+            obj.filters.Pkp1 = repmat(obj.Pkp1, 1, 1, obj.nh);
+            obj.filters.Xk_est = nan(obj.n, 1, obj.nh);
+            obj.filters.Pk = nan(obj.n, obj.n, obj.nh);
+            obj.filters.Yk_est = nan(obj.ny, 1, obj.nh);
+            obj.filters.Kf = nan(obj.n, obj.ny, obj.nh);
+            obj.filters.Sk = nan(obj.ny, obj.ny, obj.nh);
 
-            % Initialize estimates
-            obj.xkp1_est = obj.x0;
-            obj.ykp1_est = obj.C{1} * obj.xkp1_est;
+            % At initialization at time k = 0, x_est(k|k)
+            % and y_est(k|k) have not yet been computed.
+            obj.xk_est = nan(obj.n, 1);
+            obj.yk_est = nan(obj.ny, 1);
+            obj.Pk = nan(obj.n);
 
         end
-        function update(obj, yk, uk, show_plots)
-        % obj.update(yk, uk, show_plots)
-        % updates the multi-model Kalman filter and calculates the
-        % estimates of the states and output at the next sample
-        % time.
+        function KF_update(obj, yk, rk)
+        % Update Kalman filter estimates using current 
+        % measurement, y(k).
+            for f = 1:obj.nh
+                m = obj.models{rk(f)};
+                [obj.filters.Xk_est(:,:,f), obj.filters.Pk(:,:,f), ...
+                    obj.filters.Yk_est(:,:,f), obj.filters.Kf(:,:,f), ...
+                    obj.filters.Sk(:,:,f)] = ...
+                        kalman_update_f( ...
+                            m.C, m.R, ...
+                            obj.filters.Xkp1_est(:,:,f), ...
+                            obj.filters.Pkp1(:,:,f), ...
+                            yk ...
+                        );
+            end
+            % TODO: For testing only - remove later
+            assert(~any(isnan(obj.filters.Xk_est), 'all'))
+            assert(~any(isnan(obj.filters.Pk), 'all'))
+        end
+        function KF_predict(obj, uk, rk)
+        % Calculate Kalman filter predictions of
+        % states at next time instant using current
+        % input u(k).
+            for f = 1:obj.nh
+                m = obj.models{rk(f)};
+                [obj.filters.Xkp1_est(:,:,f), obj.filters.Pkp1(:,:,f)] = ...
+                    kalman_predict_f( ...
+                        m.A, m.B, m.Q, ...
+                        obj.filters.Xk_est(:,:,f), ...
+                        obj.filters.Pk(:,:,f), ...
+                        uk ...
+                    );
+            end
+            % TODO: For testing only - remove later
+            assert(~any(isnan(obj.filters.Xkp1_est(:,:,f)), 'all'))
+            assert(~any(isnan(obj.filters.Pkp1(:,:,f)), 'all'))
+        end
+        function MKF_prob_update(obj, yk)
+        % % Bayesian updates to conditional probability
+        % estimates of each hypothesis
+
+            % Compute Pr(r(k)|r(k-1)) based on Markov transition
+            % probability matrix
+            obj.p_rk_g_rkm1 = prob_rk(obj.rk, obj.T(obj.rkm1, :)');
+
+            % Loop over each hypothesis
+            for f = 1:obj.nh
+
+                % Current system mode for this hypothesis
+                r = obj.rk(f);
+
+                % Select system model for this mode
+                m = obj.models{r};
+
+                % Output prediction y_f_est(k|k-1)
+                yk_pred = m.C * obj.filters.Xkp1_est(:,:,f);
+
+                % Covariance of the output prediction error
+                cov_yk = m.C * obj.filters.Pkp1(:,:,f) * m.C' + m.R;
+
+                % Make sure covariance matrix is symmetric
+                if ~isscalar(cov_yk)
+                    cov_yk = triu(cov_yk.',1) + tril(cov_yk);
+                end
+
+%                 % Check if it is symmteric, positive definite
+%                 tf = issymmetric(cov_yk);
+%                 if ~tf
+%                     error("ValueError: cov_yk not symmetric")
+%                 end
+%                 d = eig(cov_yk);
+%                 isposdef = all(d > 0);
+%                 if ~isposdef
+%                     error("ValueError: cov_yk not positive definite")
+%                 end
+
+                % Probability density of output prediction (assuming a
+                % multivariate normal distribution) based on prior
+                % estimates computed in previous timestep
+                obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_pred, cov_yk);
+
+            end
+            assert(~any(isnan(obj.p_yk_g_seq_Ykm1)))
+            assert(~all(obj.p_yk_g_seq_Ykm1 == 0))
+
+            % Compute Pr(r(k)|Y(k-1)) in current timestep from
+            % previous estimate (Pr(r(k-1)|Y(k-1))) and transition
+            % probabilities
+            obj.p_seq_g_Ykm1 = obj.p_rk_g_rkm1 .* obj.p_seq_g_Yk;
+
+            % Bayesian update of Pr(r(k)|Y(k))
+            cond_pds = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;
+            obj.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
+            % Note: above calculation normalizes p_seq_g_Yk so that
+            % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
+
+        end
+        function update(obj, yk, uk, rk, rkm1)
+        % obj.update(yk, uk, rk, rkm1)
+        % updates the estimates of the multi-model Kalman filter
+        % and calculates the predictions of the states and output
+        % at the next sample time.
         %
         % Arguments:
         %   obs : struct containing the multi-model Kalman filter
@@ -183,172 +325,60 @@ classdef MKFObserver < matlab.mixin.Copyable
         %       sample time.
         %   yk : vector (ny, 1) of system output measurements
         %       at the current sample time.
+        %   rk : vector, size (nj, 1)
+        %       System modes at current time k.
+        %   rkm1 : vector, size (nj, 1) (optional)
+        %       System modes at time k - 1. If not specified,
+        %       rkm1 is set to the values stored in obj.rk
+        %       from the last call to this function.
         %
 
-            % Debugging option
-            if nargin < 4
-                show_plots = false;
-            end
-
+            % Check size of arguments passed
             assert(isequal(size(uk), [obj.nu 1]), "ValueError: size(uk)")
             assert(isequal(size(yk), [obj.ny 1]), "ValueError: size(yk)")
+            assert(isequal(size(rk), [obj.nh 1]), "ValueError: size(rk)")
 
-            % Increment sequence index and update counter
-            % obj.i(1) is the sequence index (1 <= i(1) <= obj.f)
-            % obj.i(2) is the counter for prob. updates (1 <= i(2) <= obj.d)
-            % Whenever obj.i(2) exceeds obj.d (the spacing parameter), it is
-            % reset to 1, and the sequence index obj.i(1) is incremented.
-            obj.i = obj.i_next;
-            obj.i_next = [mod(obj.i(1) - 1 + ...
-                          idivide(obj.i(2), obj.d), obj.f) + 1, ...
-                          mod(obj.i(2), obj.d) + 1];
-
-            % Arrays to store model indicator sequence values
-            obj.p_gamma_k = nan(obj.n_filt, 1);
-
-            % Arrays to collect estimates from each filter
-            Xkf_est = zeros(obj.n_filt, obj.n);
-            Ykf_est = zeros(obj.n_filt, obj.ny);
-
-            % Bayesian update to conditional probabilities
-            for f = 1:obj.n_filt
-
-                % Compute posterior probability density of y(k)
-                % using posterior PDF (normal distribution) and
-                % estimates computed in previous timestep
-
-                % Get y_est(k/k-1) estimated in previous time step
-                yk_est = obj.filters{f}.ykp1_est;
-
-                % Calculate covariance of the output estimation errors
-                P = obj.filters{f}.P;
-                C = obj.filters{f}.C;
-                yk_cov = C*P*C' + obj.filters{f}.R;
-
-                % Make sure covariance matrix is symmetric
-                if ~isscalar(yk_cov)
-                    yk_cov = triu(yk_cov.',1) + tril(yk_cov);
-                end
-
-                % Calculate normal probability density (multivariate)
-                obj.p_yk_g_seq_Ykm1(f) = mvnpdf(yk, yk_est, yk_cov);
-
-                % Display pdf and yk
-                if show_plots && f <= 7
-                    figure(50+f); clf
-                    %s3 = 3*sqrt(yk_cov);  % no. of std. dev. to show
-                    s3 = 1;  % or specify value
-                    x = linspace(yk_est - s3, yk_est + s3, 101);
-                    y = normpdf(x, yk_est, sqrt(diag(yk_cov)));
-                    plot(x, y); hold on
-                    p_yk_est = normpdf(0, 0, sqrt(diag(yk_cov)));
-                    stem(yk_est, p_yk_est)
-                    p_yk = normpdf(yk, yk_est, sqrt(diag(yk_cov)));
-                    plot(yk, p_yk, 'ok', 'MarkerFaceColor', 'k')
-                    xlim([yk_est-s3 yk_est+s3])
-                    ylim([0 5])  % Specify max prob.
-                    grid on
-                    title(sprintf('Filter %d',f))
-                    legend('$p(y(k))$', '$\hat{y}(k)$', '$y_m(k)$', ...
-                        'Interpreter','Latex')
-                    set(gcf,'Position',[f*250-150 50 250 150])
-                end
-
-                % Index of model used in previous sample time
-                ind_km1 = obj.gamma_k(f) + 1;  % MATLAB indexing
-
-                % Update model indicator value gamma(k) with the
-                % current value from the filter's sequence
-                obj.gamma_k(f) = obj.seq{f}(:, obj.i(1));
-
-                % Model index at current sample time
-                ind = obj.gamma_k(f) + 1;  % MATLAB indexing
-
-                % Compute Pr(gamma(k)) based on Markov transition
-                % probability matrix
-                % TODO: Can this be computed prior to the for loop for 
-                % efficiency?
-                obj.p_gamma_k(f) = prob_gamma(obj.gamma_k(f), ...
-                    obj.T(ind_km1, :)');
-
-                % Update filter covariances if at start of a detection
-                % interval.
-                % Note: Currently, this update must happen every sample 
-                % period so that S-functions do not have to memorize all
-                % the model parameters each timestep.
-                %if obj.i(2) == 1
-                % Select filter system model based on current
-                % model indicator value
-                % TODO: only need to change these if ind changed?
-                obj.filters{f}.A = obj.A{ind};
-                obj.filters{f}.B = obj.B{ind};
-                obj.filters{f}.C = obj.C{ind};
-                obj.filters{f}.D = obj.D{ind};
-                obj.filters{f}.Q = obj.Q{ind};
-                obj.filters{f}.R = obj.R{ind};
-                %end
-
-                % Update observer estimates, gain and covariance matrix
-                obj.filters{f}.update(yk, uk);
-                assert(~any(isnan(obj.filters{f}.xkp1_est)))
-
-                % Save state and output estimates for next timestep
-                Xkf_est(f, :) = obj.filters{f}.xkp1_est';
-                Ykf_est(f, :) = obj.filters{f}.ykp1_est';
-
+            if nargin < 5
+                % Default: set r(k-1) to previous values of r(k)
+                obj.rkm1 = obj.rk;
+            else
+                % Use provided value for r(k-1)
+                obj.rkm1 = rkm1;
             end
 
-            assert(~any(isnan(obj.p_yk_g_seq_Ykm1)))
-            assert(~all(obj.p_yk_g_seq_Ykm1 == 0))
+            % Store system modes at current time r(k)
+            obj.rk = rk;
 
-            % Compute Pr(Gamma(k)|Y(k-1)) in current timestep from
-            % previous estimate (Pr(Gamma(k-1)|Y(k-1))) and transition
+            % Kalman filter update step
+            obj.KF_update(yk, rk)
+
+            % Bayesian updating of hypothesis probabilities
+            obj.MKF_prob_update(yk)
+
+            % Merge the Kalman filter estimates and error covariances
+            % using a weighted-average based on the hypothesis
             % probabilities
-            obj.p_seq_g_Ykm1 = obj.p_gamma_k .* obj.p_seq_g_Yk;
+            [obj.xk_est, obj.Pk, obj.yk_est, ~] = ...
+                merge_estimates( ...
+                    obj.filters.Xk_est, ...
+                    obj.filters.Pk, ...
+                    obj.filters.Yk_est, ...
+                    obj.p_seq_g_Yk ...
+                );
 
-            % Bayesian update of Pr(Gamma(k)|Y(k))
-            cond_pds = obj.p_yk_g_seq_Ykm1 .* obj.p_seq_g_Ykm1;
-            obj.p_seq_g_Yk = cond_pds ./ sum(cond_pds);
-            % Note: above calculation normalizes p_seq_g_Yk so that
-            % assert(abs(sum(obj.p_seq_g_Yk) - 1) < 1e-15) % is always true
+            % Kalman filter prediction step - computes estimates
+            % of states and error covariances at the next time
+            % instant
+            obj.KF_predict(uk, rk)
 
-            if show_plots
-                % Plot gamma_k, p_yk_g_seq_Ykm1 and 
-                figure(50)
-                subplot(3,1,1)
-                bar(1:obj.n_filt, obj.p_yk_g_seq_Ykm1)
-                title('$p(y(k)|\Gamma(k),Y(k-1))$','Interpreter','Latex')
-                subplot(3,1,2)
-                bar(1:obj.n_filt, obj.p_gamma_k)
-                ylim([0, 1])
-                title('Shock probabilities $\gamma(k)$','Interpreter','Latex')
-                subplot(3,1,3)
-                bar(1:obj.n_filt, obj.p_seq_g_Yk)
-                xlabel('Filter')
-                title('$p(\Gamma(k)|Y(k))$','Interpreter','Latex')
-            end
-
-            % Compute multi-model observer state and output estimates
-            obj.xkp1_est = sum(Xkf_est .* obj.p_seq_g_Yk, 1)';
-            obj.ykp1_est = sum(Ykf_est .* obj.p_seq_g_Yk, 1)';
+            % TODO: Do we still need a merged xkp1 estimate?
+            weights = reshape(obj.p_seq_g_Yk, 1, 1, []);
+            obj.xkp1_est = sum(weights .* obj.filters.Xkp1_est, 3);
             assert(~any(isnan(obj.xkp1_est)))
-            assert(~any(isnan(obj.ykp1_est)))
-            % TODO: Calculate multi-model state covariance estimate
+            Xkp1_devs = obj.xkp1_est - obj.filters.Xkp1_est;
+            obj.Pkp1 = sum(weights .* (obj.filters.Pkp1 + ...
+                pagemtimes(Xkp1_devs, pagetranspose(Xkp1_devs))), 3);
 
-            if show_plots 
-                disp(obj.label);
-                disp('stop')
-            end
         end
     end
-% TODO: Should do a deep copy automatically (i.e. without this)
-% - https://www.mathworks.com/help/matlab/matlab_oop/custom-copy-behavior.html
-%     methods (Access = protected)
-%         function cp = copyElement(obj)
-%             % Shallow copy object
-%             cp = copyElement@matlab.mixin.Copyable(obj);
-%            cp.Prop1 = obj.Prop1;
-%            cp.Prop2 = datestr(now);
-%         end
-%     end
 end

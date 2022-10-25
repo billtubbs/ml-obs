@@ -40,6 +40,8 @@ function p = prob_Gammas(S, epsilon)
 % >> p = prob_Gammas(S, epsilon)
 % >> assert(p(1) == 0.01*0.99*0.99*0.05*0.95*0.95)
 
+%TODO: Delete this with mkf_observer objects
+
     p = nan(numel(S), 1);
     for i = 1:numel(S)
         p(i) = prod(prob_gamma(S{i}, epsilon), [2 1]);

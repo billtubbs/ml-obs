@@ -66,7 +66,10 @@ function obs = mkf_observer_RODD(A,B,C,D,Ts,u_meas,P0,epsilon, ...
     n_filt = n_filters(m, f, nw);
 
     % Generate indicator sequences
-    seq = combinations_lte(f*nw, m);
+    seq = shock_combinations_lte(f*nw, m);
+
+    % Need to convert back to 0-based index for this old code
+    seq = cellfun(@(x) x-1, seq, 'UniformOutput', false);
 
     % Probability of shock over a detection interval
     % (Detection interval is d sample periods in length).

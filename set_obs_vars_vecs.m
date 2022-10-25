@@ -24,7 +24,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
 
     switch obs.type
 
-        case {'KFSS', 'LB'}  % steady-state filters
+        case {"LB", "KFPSS"}  % steady-state filters
 
             assert(nargin == 2)
             vec_double = varargin{1};
@@ -49,7 +49,30 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case 'KF'  % standard Kalman filter
+        case "KFFSS"  % steady-state Kalman filter - filtering form
+
+            assert(nargin == 2)
+            vec_double = varargin{1};
+
+            % double vector contents:
+            % 1. xkp1_est : size(n, 1)
+
+            vdata.types = {'double'};
+            vdata.dims = {[n 1]};
+            vdata.n_els = {n};
+
+            % Add variables data
+            vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
+
+            % Unpack data vectors - doubles
+            vars_double = unpack_data_vectors(vdata);
+            vars = struct();
+            vars.xkp1_est = vars_double{1};
+
+            % Set all dynamic variables
+            obs = set_obs_vars(obs, vars);
+
+        case "KFP"  % Kalman filter - prediction form
 
             assert(nargin == 2)
             vec_double = varargin{1};
@@ -57,7 +80,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % double vector contents:
             % 1. xkp1_est : size(n, 1)
             % 2. ykp1_est : size(ny, 1)
-            % 3. P : size(n, n)
+            % 3. Pkp1 : size(n, n)
 
             vdata.types = {'double', 'double', 'double'};
             vdata.dims = {[n 1], [ny 1], [n n]};
@@ -71,52 +94,102 @@ function obs = set_obs_vars_vecs(obs, varargin)
             vars = struct();
             vars.xkp1_est = vars_double{1};
             vars.ykp1_est = vars_double{2};
-            vars.P = vars_double{3};
+            vars.Pkp1 = vars_double{3};
 
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case {'MKF', 'MKF_SF'}
+        case {"KFF", "SKF"}  % Kalman filters and switching KF
+
+            assert(nargin == 2)
+            vec_double = varargin{1};
+
+            % double vector contents:
+            % 1. xkp1_est : size(n, 1)
+            % 2. Pkp1 : size(n, n)
+
+            vdata.types = {'double', 'double'};
+            vdata.dims = {[n 1], [n n]};
+            vdata.n_els = {n, n*n};
+
+            % Add variables data
+            vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
+
+            % Unpack data vectors - doubles
+            vars_double = unpack_data_vectors(vdata);
+            vars = struct();
+            vars.xkp1_est = vars_double{1};
+            vars.Pkp1 = vars_double{2};
+
+            % Set all dynamic variables
+            obs = set_obs_vars(obs, vars);
+
+%         case "SKF"  % Switching Kalman filter
+% 
+%             assert(nargin == 3)
+%             vec_double = varargin{1};
+%             vec_int16 = varargin{2};
+% 
+%             % double vector contents:
+%             % 1. xkp1_est : size(n, 1)
+%             % 2. Pkp1 : size(n, n)
+%             % 3. rk : size(1, 1)
+% 
+%             % int16 vector contents:
+%             % 1. rk : size(1, 1)
+% 
+%             vdata.types = {'double', 'double', 'double'};
+%             vdata.dims = {[n 1], [n n], [1 1]};
+%             vdata.n_els = {n, n*n, 1};
+%             vdata_int16.types = {'int16'};
+%             vdata_int16.dims = {[1 1]};
+%             vdata_int16.n_els = {1};
+% 
+%             % Add variables data
+%             vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
+%             vdata_int16.vecs = mat2cell(vec_int16', 1, ...
+%                 cell2mat(vdata_int16.n_els));
+% 
+%             % Unpack data vectors - doubles
+%             vars_double = unpack_data_vectors(vdata);
+%             vars = struct();
+%             vars.xkp1_est = vars_double{1};
+%             vars.Pk = vars_double{2};
+%             vars.rk = vars_double{3};
+% 
+%             % Unpack data vectors - integers
+%             vars_int16 = unpack_data_vectors(vdata_int16);
+%             vars.int16.rk = vars_int16{1};
+% 
+%             % Set all dynamic variables
+%             obs = set_obs_vars(obs, vars);
+
+        case "SKF_S"  % Switching Kalman filter with schedule
 
             assert(nargin == 3)
             vec_double = varargin{1};
             vec_int16 = varargin{2};
 
-            n_filt = obs.n_filt;
-            f = obs.f;
-
             % double vector contents:
             % 1. xkp1_est : size(n, 1)
-            % 2. ykp1_est : size(ny, 1)
-            % 3. p_seq_g_Yk : size(n_filt, 1)
-            % 4. xkp1_est for each KF : cell(1, n_filt)
-            % 5. ykp1_est for each KF : cell(1, n_filt)
-            % 6. P for each KF : cell(1, n_filt)
+            % 2. Pkp1 : size(n, n)
 
             % int16 vector contents:
-            % 1. i : size(1, 2)
-            % 2. i_next : size(1, 2)
+            % 1. i : size(1, 1)
+            % 2. i_next : size(1, 1)
 
             % Static data to unpack vectors
-            % TODO: Could this be stored in the block somewhere
-            %       other than Dwork memory.
-            vdata.types = {'double', 'double', 'double', 'double', ...
-                repmat({'double'}, 1, n_filt), ...
-                repmat({'double'}, 1, n_filt), ...
-                repmat({'double'}, 1, n_filt)};
-            vdata.dims = {[n 1], [ny 1], [n_filt 1], [n_filt 1], ...
-                repmat({[n 1]}, 1, n_filt), ...
-                repmat({[ny 1]}, 1, n_filt), ...
-                repmat({[n n]}, 1, n_filt)};
-            vdata.n_els = {n, ny, n_filt, n_filt, n_filt*n, n_filt*ny, ...
-                n_filt*n*n};
+            vdata.types = {'double', 'double'};
+            vdata.dims = {[n 1], [n n]};
+            vdata.n_els = {n, n*n};
             vdata_int16.types = {'int16', 'int16'};
-            vdata_int16.dims = {[1 2], [1 2]};
-            vdata_int16.n_els = {2, 2};
+            vdata_int16.dims = {[1 1], [1 1]};
+            vdata_int16.n_els = {1, 1};
 
             % Add variables data
             vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
-            vdata_int16.vecs = mat2cell(vec_int16', 1, cell2mat(vdata_int16.n_els));
+            vdata_int16.vecs = mat2cell(vec_int16', 1, ...
+                cell2mat(vdata_int16.n_els));
 
             % Unpack data vectors - doubles
             % TODO: Maybe this is unnecessary, just set the obs
@@ -124,12 +197,7 @@ function obs = set_obs_vars_vecs(obs, varargin)
             vars_double = unpack_data_vectors(vdata);
             vars = struct();
             vars.xkp1_est = vars_double{1};
-            vars.ykp1_est = vars_double{2};
-            vars.p_seq_g_Yk = vars_double{3};
-            vars.gamma_k = vars_double{4};
-            vars.xkp1_est_f = vars_double{5};
-            vars.ykp1_est_f = vars_double{6};
-            vars.P_f = vars_double{7};
+            vars.Pkp1 = vars_double{2};
 
             % Unpack data vectors - integers
             vars_int16 = unpack_data_vectors(vdata_int16);
@@ -139,76 +207,174 @@ function obs = set_obs_vars_vecs(obs, varargin)
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
-        case 'MKF_SP'
+        case {"MKF_SF", "MKF_SF_RODD95"}
 
             assert(nargin == 3)
             vec_double = varargin{1};
             vec_int16 = varargin{2};
 
-            n_filt = obs.n_filt;
-            f = obs.f;
+            nh = obs.nh;
 
             % double vector contents:
             % 1. xkp1_est : size(n, 1)
-            % 2. ykp1_est : size(ny, 1)
-            % 3. p_seq_g_Yk : size(n_filt, 1)
-            % 4. gamma_k : size(n_filt, 1)
-            % 5. xkp1_est for each KF : cell(1, n_filt)
-            % 6. ykp1_est for each KF : cell(1, n_filt)
-            % 7. P matrix for each filter : cell(1, n_filt)
+            % 2. p_seq_g_Yk : size(nh, 1)
+            % 3. xkp1_est_f (xkp1_est for each KF) : cell(1, nh)
+            % 4. Pkp1_f (Pkp1 for each KF) : cell(1, nh)
 
             % int16 vector contents:
-            % 1. i : size(1, 2)
-            % 2. i_next : size(1, 2)
-            % 3. f_main : size(1, n_main)
-            % 4. f_hold : size(1, n_hold)
-            % 5. seq for each KF : cell(n_filt, 1)
+            % 1. rk : size(nh, 1)
+            % 2. i : size(1, 1)
+            % 3. i_next : size(1, 1)
 
             % Static data to unpack vectors
-            vdata.types = {'double', 'double', 'double', 'double', ...
-                repmat({'double'}, 1, n_filt), ...
-                repmat({'double'}, 1, n_filt), ...
-                repmat({'double'}, 1, n_filt)};
-            vdata.dims = {[n 1], [ny 1], [n_filt 1], [n_filt 1], ...
-                repmat({[n 1]}, 1, n_filt), ...
-                repmat({[ny 1]}, 1, n_filt), ...
-                repmat({[n n]}, 1, n_filt)};
-            vdata.n_els = {n, ny, n_filt, n_filt, n_filt*n, n_filt*ny, ...
-                n_filt*n*n};
-            vdata_int16.types = {'int16', 'int16', 'int16', 'int16', ...
-                repmat({'int16'}, n_filt, 1)};
-            vdata_int16.dims = {[1 2], [1 2], [1 obs.n_main], [1 obs.n_hold], ...
-                repmat({[1 f]}, n_filt, 1)};
-            vdata_int16.n_els = {int16(2), int16(2), obs.n_main, obs.n_hold, ...
-                int16(n_filt)*f};
+            % TODO: Could this be stored in the block somewhere
+            %       other than Dwork memory.
+            vdata.types = {'double', 'double', 'double', 'double'};
+            vdata.dims = {[n 1], [nh 1], [n 1 nh], [n n nh]};
+            vdata.n_els = {n, nh, nh*n, nh*n*n};
+            vdata_int16.types = {'int16', 'int16', 'int16'};
+            vdata_int16.dims = {[nh 1], [1 1], [1 1], [1 1], [1 1]};
+            vdata_int16.n_els = {nh, 1, 1, 1, 1};
 
             % Add variables data
             vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
-            vdata_int16.vecs = mat2cell(vec_int16', 1, cell2mat(vdata_int16.n_els));
+            vdata_int16.vecs = mat2cell(vec_int16', 1, ...
+                cell2mat(vdata_int16.n_els));
 
             % Unpack data vectors - doubles
+            % TODO: Maybe this is unnecessary, just set the obs
+            % attributes directly.
             vars_double = unpack_data_vectors(vdata);
             vars = struct();
             vars.xkp1_est = vars_double{1};
-            vars.ykp1_est = vars_double{2};
-            vars.p_seq_g_Yk = vars_double{3};
-            vars.gamma_k = vars_double{4};
-            vars.xkp1_est_f = vars_double{5};
-            vars.ykp1_est_f = vars_double{6};
-            vars.P_f = vars_double{7};
+            vars.p_seq_g_Yk = vars_double{2};
+            vars.xkp1_est_f = vars_double{3};
+            vars.Pkp1_f = vars_double{4};
 
             % Unpack data vectors - integers
             vars_int16 = unpack_data_vectors(vdata_int16);
-            vars.int16.i = vars_int16{1};
-            vars.int16.i_next = vars_int16{2};
-            vars.int16.f_main = vars_int16{3};
-            vars.int16.f_hold = vars_int16{4};
-            vars.int16.seq = vars_int16{5};
+            vars.int16.rk = vars_int16{1};
+            vars.int16.i = vars_int16{2};
+            vars.int16.i_next = vars_int16{3};
+
+            % Set all dynamic variables
+            obs = set_obs_vars(obs, vars);
+
+        case {"MKF_SF_RODD"}
+
+            assert(nargin == 3)
+            vec_double = varargin{1};
+            vec_int16 = varargin{2};
+
+            nh = obs.nh;
+
+            % {vars.xkp1_est, vars.p_seq_g_Yk, ...
+            %  vars.rk, vars.xkp1_est_f, vars.Pkp1_f}
+
+            % double vector contents:
+            % 1. xkp1_est : size(n, 1)
+            % 2. p_seq_g_Yk : size(nh, 1)
+            % 3. xkp1_est_f (xkp1_est for each KF) : cell(1, nh)
+            % 4. Pkp1_f (Pkp1 for each KF) : cell(1, nh)
+
+            % int16 vector contents:
+            % 1. rk : size(nh, 1)
+            % 2. i : size(1, 1)
+            % 3. i_next : size(1, 1)
+            % 4. i2 : size(1, 1)
+            % 5. i2_next : size(1, 1)
+
+            % Static data to unpack vectors
+            % TODO: Could this be stored in the block somewhere
+            %       other than Dwork memory.
+            vdata.types = {'double', 'double', 'double', 'double'};
+            vdata.dims = {[n 1], [nh 1], [n 1 nh], [n n nh]};
+            vdata.n_els = {n, nh, nh*n, nh*n*n};
+            vdata_int16.types = {'int16', 'int16', 'int16', 'int16', 'int16'};
+            vdata_int16.dims = {[nh 1], [1 1], [1 1], [1 1], [1 1]};
+            vdata_int16.n_els = {nh, 1, 1, 1, 1};
+
+            % Add variables data
+            vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
+            vdata_int16.vecs = mat2cell(vec_int16', 1, ...
+                cell2mat(vdata_int16.n_els));
+
+            % Unpack data vectors - doubles
+            % TODO: Maybe this is unnecessary, just set the obs
+            % attributes directly.
+            vars_double = unpack_data_vectors(vdata);
+            vars = struct();
+            vars.xkp1_est = vars_double{1};
+            vars.p_seq_g_Yk = vars_double{2};
+            vars.xkp1_est_f = vars_double{3};
+            vars.Pkp1_f = vars_double{4};
+
+            % Unpack data vectors - integers
+            vars_int16 = unpack_data_vectors(vdata_int16);
+            vars.int16.rk = vars_int16{1};
+            vars.int16.i = vars_int16{2};
+            vars.int16.i_next = vars_int16{3};
+            vars.int16.i2 = vars_int16{4};
+            vars.int16.i2_next = vars_int16{5};
+
+            % Set all dynamic variables
+            obs = set_obs_vars(obs, vars);
+
+        case "MKF_SP_RODD"
+
+            assert(nargin == 3)
+            vec_double = varargin{1};
+            vec_int16 = varargin{2};
+
+            nh = obs.nh;
+
+            % double vector contents:
+            % 1. xkp1_est : size(n, 1)
+            % 2. p_seq_g_Yk : size(nh, 1)
+            % 3. xkp1_est for each KF : cell(1, nh)
+            % 4. Pkp1 for each KF : cell(1, nh)
+
+            % int16 vector contents:
+            % 1. rk : size(nh, 1)
+            % 2. i : size(1, 1)
+            % 3. i_next : size(1, 1)
+            % 4. f_main : size(1, n_main)
+            % 5. f_hold : size(1, n_hold)
+
+            % Static data to unpack vectors
+            vdata.types = {'double', 'double', 'double', 'double'};
+            vdata.dims = {[n 1], [nh 1], [n 1 nh], [n n nh]};
+            vdata.n_els = {n, nh, nh*n, nh*n*n};
+            vdata_int16.types = {'int16', 'int16', 'int16'};
+            vdata_int16.dims = {[nh 1], [1 obs.n_main], [1 obs.n_hold]};
+            % Note all elements of this cell array must be of same class
+            vdata_int16.n_els = {int16(nh), obs.n_main, obs.n_hold};
+
+            % Add variables data
+            vdata.vecs = mat2cell(vec_double', 1, cell2mat(vdata.n_els));
+            vdata_int16.vecs = mat2cell(vec_int16', 1, ...
+                cell2mat(vdata_int16.n_els));
+
+            % Unpack data vectors - doubles
+            % TODO: Maybe this is unnecessary, just set the obs
+            % attributes directly.
+            vars_double = unpack_data_vectors(vdata);
+            vars = struct();
+            vars.xkp1_est = vars_double{1};
+            vars.p_seq_g_Yk = vars_double{2};
+            vars.xkp1_est_f = vars_double{3};
+            vars.Pkp1_f = vars_double{4};
+
+            % Unpack data vectors - integers
+            vars_int16 = unpack_data_vectors(vdata_int16);
+            vars.int16.rk = vars_int16{1};
+            vars.int16.f_main = vars_int16{2};
+            vars.int16.f_hold = vars_int16{3};
 
             % Set all dynamic variables
             obs = set_obs_vars(obs, vars);
 
         otherwise
-            error('Value error: observer type not recognized')
+            error("Value error: observer type not recognized")
 
     end

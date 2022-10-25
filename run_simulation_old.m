@@ -1,4 +1,5 @@
-function sim_out = run_simulation(Ts, data, u_meas, observers)
+function sim_out = run_simulation_old(Ts, data, u_meas, observers)
+% DEPRECATED: Use run_simulation_obs instead.
 % sim_out = run_simulation(Ts, data, u_meas, observers)
 % Runs a simulation of a set of pre-defined observers fed with
 % input data U and output data Y.

@@ -119,8 +119,8 @@ R2 = 0.1^2;
 assert(isequal(size(Q1), size(Q2)))
 assert(isequal(size(R1), size(R2)))
 
-KF1 = KalmanFilter(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
-KF2 = KalmanFilter(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
+KF1 = kalman_filter(A1,B1,C1,D1,Ts,P0,Q1,R1,'KF1',x0);
+KF2 = kalman_filter(A2,B2,C2,D2,Ts,P0,Q2,R2,'KF2',x0);
 
 % Define an observer with a switching system
 Q = {Q1,Q2};
@@ -332,7 +332,7 @@ function [Xkp1_est,Ykp1_est,MKF_K_obs,MKF_trP_obs,MKF_i,MKF_p_seq_g_Yk,observers
             obs = observers{f};
             switch obs.type
                 case 'KF'
-                    obs.update(yk, uk);
+                    obs = update_KF(obs, uk, yk);
                 case 'MKF'
                     obs = update_MKF(obs, uk, yk, false);
                 otherwise

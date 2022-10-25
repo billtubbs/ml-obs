@@ -1,6 +1,8 @@
 function MKFObserver_sfunc(block)
 %% Simulate a process observer in Simulink
 %
+% This is a general purpose S-function for simulating different
+% classes of process observers.
 %
 
 setup(block);
@@ -26,30 +28,30 @@ block.NumOutputPorts = 2;
 block.SetPreCompInpPortInfoToDynamic;
 block.SetPreCompOutPortInfoToDynamic;
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 % Input 1: u(k)
 block.InputPort(1).Dimensions = obs.nu;
 block.InputPort(1).DatatypeID = 0;  % double
 block.InputPort(1).Complexity = 'Real';
-block.InputPort(1).DirectFeedthrough = false;
+block.InputPort(1).DirectFeedthrough = true;  % Necessary for observers
 block.InputPort(1).SamplingMode = 'Sample';
 
 % Input 2: y(k)
 block.InputPort(2).Dimensions = obs.ny;
 block.InputPort(2).DatatypeID = 0;  % double
 block.InputPort(2).Complexity = 'Real';
-block.InputPort(2).DirectFeedthrough = false;
+block.InputPort(2).DirectFeedthrough = true;  % Necessary for observers
 block.InputPort(2).SamplingMode = 'Sample';
 
-% Output 1: x_est(k+1);
+% Output 1: x_est(k|k);
 block.OutputPort(1).Dimensions = obs.n;
 block.OutputPort(1).DatatypeID = 0; % double
 block.OutputPort(1).Complexity = 'Real';
 block.OutputPort(1).SamplingMode = 'Sample';
 
-% Output 2: y_est(k+1)
+% Output 2: y_est(k|k)
 block.OutputPort(2).Dimensions = obs.ny;
 block.OutputPort(2).DatatypeID = 0; % double
 block.OutputPort(2).Complexity = 'Real';
@@ -102,12 +104,12 @@ function DoPostPropSetup(block)
 %   Required         : No
 %   C MEX counterpart: mdlSetWorkWidths
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 switch obs.type
 
-    case {'KF', 'KFSS', 'LB'}  % obs with only double vars
+    case {'KFPSS', 'KFP', 'KFFSS', 'KFF', 'LB', 'SKF'}  % observers with only double vars
 
         % Make data vectors containing all variables
         vec_double = get_obs_vars_vecs(obs);
@@ -122,7 +124,8 @@ switch obs.type
         block.Dwork(1).Complexity      = 'Real'; % real
         block.Dwork(1).UsedAsDiscState = true;
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}  % obs with double and int16
+    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SF_RODD95', ...
+            'MKF_SF_RODD', 'MKF_SP_RODD'}  % observers with double and int16 vars
 
         % Make data vectors containing all variables
         [vec_double, vec_int16] = get_obs_vars_vecs(obs);
@@ -144,9 +147,10 @@ switch obs.type
         block.Dwork(2).Complexity      = 'Real'; % real
         block.Dwork(2).UsedAsDiscState = true;
 
+    otherwise
+        error('Value error: observer type not recognized')
+
 end
-
-
 
 %end PostPropagationSetup
 
@@ -160,12 +164,12 @@ function InitializeConditions(block)
 %   Required         : No
 %   C MEX counterpart: mdlInitializeConditions  
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 switch obs.type
-    
-    case {'KF', 'KFSS', 'LB'}
+
+    case {'KFPSS', 'KFP', 'KFFSS', 'KFF', 'LB'}  % observers with only double vars
 
         % Get data vectors containing all variables
         vec_double = get_obs_vars_vecs(obs);
@@ -174,9 +178,10 @@ switch obs.type
         block.Dwork(1).Data = vec_double;
 
         % For debugging
-        dlmwrite(sprintf('test-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
+        %dlmwrite(sprintf('test-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}
+    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP_RODD', 'MKF_SF_RODD95', ...
+            'MKF_SF_RODD'}  % observers with double and int16 vars
 
         % Get data vectors containing all variables
         [vec_double, vec_int16] = get_obs_vars_vecs(obs);
@@ -186,11 +191,13 @@ switch obs.type
         block.Dwork(2).Data = vec_int16;
 
         % For debugging
-        dlmwrite(sprintf('test-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
-        dlmwrite(sprintf('test-%s-int16.csv', obs.label), vec_int16, 'delimiter', ',');
+        %dlmwrite(sprintf('test-%s-double.csv', obs.label), vec_double, 'delimiter', ',');
+        %dlmwrite(sprintf('test-%s-int16.csv', obs.label), vec_int16, 'delimiter', ',');
+
+    otherwise
+        error('Value error: observer type not recognized')
 
 end
-
 
 %end InitializeConditions
 
@@ -213,59 +220,32 @@ function Outputs(block)
 %   Required         : Yes
 %   C MEX counterpart: mdlOutputs
 
-% Get observer struct
+% Get observer object
 obs = block.DialogPrm(1).Data;
 
 switch obs.type
 
-    case {'KF', 'KFSS', 'LB'}
+    case {'KFPSS', 'KFP', 'LB'}  % observers in prediction form
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
         obs = set_obs_vars_vecs(obs, vec_double);
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}
+        % Output x_est(k|k-1)
+        block.OutputPort(1).Data = obs.xkp1_est;
 
-        % Get variables data from Dwork memory
-        vec_double = block.Dwork(1).Data;
-        vec_int16 = block.Dwork(2).Data;
-        obs = set_obs_vars_vecs(obs, vec_double, vec_int16);
+        % Output y_est(k|k-1)
+        block.OutputPort(2).Data = obs.ykp1_est;
 
-    otherwise
-        error('Value error: observer type not recognized')
+    case {'KFFSS', 'KFF'}  % observers in filtering form
 
-end
+        % Get current input values
+        uk = block.InputPort(1).Data;
+        yk = block.InputPort(2).Data;
 
-% Output y_est(k+1)
-block.OutputPort(1).Data = obs.xkp1_est;
-
-% Output y_est(k+1)
-block.OutputPort(2).Data = obs.ykp1_est;
-
-%end Outputs
-
-
-
-function Update(block)
-%%   Functionality    : Called to update discrete states
-%                      during simulation step
-%   Required         : No
-%   C MEX counterpart: mdlUpdate
-
-% Get observer struct
-obs = block.DialogPrm(1).Data;
-
-% Inputs
-uk = block.InputPort(1).Data;
-yk = block.InputPort(2).Data;
-
-% Check size of input vectors
-assert(isequal(size(uk), [obs.nu 1]))
-assert(isequal(size(yk), [obs.ny 1]))
-
-switch obs.type
-
-    case {'KF', 'KFSS', 'LB'}
+        % Check size of input vectors
+        assert(isequal(size(uk), [obs.nu 1]))
+        assert(isequal(size(yk), [obs.ny 1]))
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
@@ -278,13 +258,28 @@ switch obs.type
         vec_double = get_obs_vars_vecs(obs);
 
         % For debugging
-        dlmwrite(sprintf('test-%s-double.csv', obs.label), ...
-            vec_double, 'delimiter', ',', '-append');
+        %dlmwrite(sprintf('test-%s-double.csv', obs.label), ...
+        %    vec_double, 'delimiter', ',', '-append');
 
         % Update Dwork memory vectors
         block.Dwork(1).Data = vec_double;
 
-    case {'MKF', 'MKF_SF', 'MKF_SP'}
+        % Output x_est(k|k)
+        block.OutputPort(1).Data = obs.xk_est;
+
+        % Output y_est(k|k)
+        block.OutputPort(2).Data = obs.yk_est;
+    
+    case {'SKF_S', 'MKF', 'MKF_S', 'MKF_SF', 'MKF_SP_RODD', ...
+          'MKF_SF_RODD95', 'MKF_SF_RODD'}  % observers with double and int16 vars
+
+        % Get current input values
+        uk = block.InputPort(1).Data;
+        yk = block.InputPort(2).Data;
+
+        % Check size of input vectors
+        assert(isequal(size(uk), [obs.nu 1]))
+        assert(isequal(size(yk), [obs.ny 1]))
 
         % Get variables data from Dwork memory
         vec_double = block.Dwork(1).Data;
@@ -298,17 +293,70 @@ switch obs.type
         [vec_double, vec_int16] = get_obs_vars_vecs(obs);
 
         % For debugging
-        dlmwrite(sprintf('test-%s-double.csv', obs.label), ...
-            vec_double, 'delimiter', ',', '-append');
-        dlmwrite(sprintf('test-%s-int16.csv', obs.label), ...
-            vec_int16, 'delimiter', ',', '-append');
+        %dlmwrite(sprintf('test-%s-double.csv', obs.label), ...
+        %    vec_double, 'delimiter', ',', '-append');
+        %dlmwrite(sprintf('test-%s-int16.csv', obs.label), ...
+        %    vec_int16, 'delimiter', ',', '-append');
 
         % Update Dwork memory vectors
         block.Dwork(1).Data = vec_double;
         block.Dwork(2).Data = vec_int16;
 
+        % Output y_est(k|k)
+        block.OutputPort(1).Data = obs.xk_est;
+
+        % Output y_est(k|k)
+        block.OutputPort(2).Data = obs.yk_est;
+
     otherwise
         error('Value error: observer type not recognized')
+
+end
+
+%end Outputs
+
+
+
+function Update(block)
+%%   Functionality    : Called to update discrete states
+%                      during simulation step
+%   Required         : No
+%   C MEX counterpart: mdlUpdate
+
+
+% Get observer object
+obs = block.DialogPrm(1).Data;
+        
+% Note: Only observers in prediction form need this update step.
+
+switch obs.type
+
+    case {'KFPSS', 'KFP', 'LB'}  % observers in prediction form
+
+        % Inputs
+        uk = block.InputPort(1).Data;
+        yk = block.InputPort(2).Data;
+
+        % Check size of input vectors
+        assert(isequal(size(uk), [obs.nu 1]))
+        assert(isequal(size(yk), [obs.ny 1]))
+
+        % Get variables data from Dwork memory
+        vec_double = block.Dwork(1).Data;
+        obs = set_obs_vars_vecs(obs, vec_double);
+
+        % Update observer states
+        obs.update(yk, uk);
+
+        % Make data vectors containing all variables
+        vec_double = get_obs_vars_vecs(obs);
+
+        % For debugging
+        %dlmwrite(sprintf('test-%s-double.csv', obs.label), ...
+        %    vec_double, 'delimiter', ',', '-append');
+
+        % Update Dwork memory vectors
+        block.Dwork(1).Data = vec_double;
 
 end
 

@@ -28,11 +28,11 @@ Delta = [1 -delta1];
 Gd = tf(Omega, Delta, Ts);
 
 % ARIMA noise process
-thetaN0 = 1;
-phiN1 = 0.2;
-ThetaN = [0 thetaN0];  % direct transmission
-PhiN = [1 -phiN1];
-HNd = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+% thetaN0 = 1;
+% phiN1 = 0.2;
+% ThetaN = [0 thetaN0];  % direct transmission
+% PhiN = [1 -phiN1];
+% HNd = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
 
 % RODD step disturbance process
 ThetaD = 1;
@@ -70,14 +70,22 @@ D = zeros(1, 2);
 Gpss = ss(A,B,C,D,Ts);
 
 % Designate which input and output variables are measured
-u_meas = [true; false];
+u_known = [true; false];
 y_meas = true;
 
 % Dimensions
 n = size(A, 1);
-nu = sum(u_meas);
-nw = sum(~u_meas);
+nu = sum(u_known);
+nw = sum(~u_known);
 ny = size(C, 1);
+
+% Model parameter struct used by observers
+model = struct();
+model.A = A;
+model.B = B;
+model.C = C;
+model.D = D;
+model.Ts = Ts;
 
 % Default initial condition
 x0 = zeros(n, 1);
@@ -85,7 +93,7 @@ x0 = zeros(n, 1);
 % Parameters for random inputs
 % RODD random variable parameters
 epsilon = 0.01;
-sigma_wp = [0.01 1];
+sigma_wp = {[0.01 1]};
 
 % Process noise standard deviation
 sigma_W = [0; 0];

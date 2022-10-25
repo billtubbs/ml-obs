@@ -28,16 +28,18 @@ G12 = -G11;
 G21 = 1.5 / (1 + 16*s);
 G22 = G21;
 Gc = [G11 G12; G21 G22];
+Gc.InputName = ["CW flow", "HW flow"];
+Gc.OutputName = ["Temperature", "Level"];
 Gd = c2d(Gc,Ts,'zoh');
 
 % ARIMA noise process
-% thetaN0 = 1;
-% phiN1 = 0.2;
-% ThetaN = [0 thetaN0];  % direct transmission
-% PhiN = [1 -phiN1];
-% HNd1 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
-% HNd2 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
-% HNd = [HNd1 0; 0 HNd2];
+thetaN0 = 1;
+phiN1 = 0.2;
+ThetaN = [0 thetaN0];  % direct transmission
+PhiN = [1 -phiN1];
+HNd1 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+HNd2 = tf(ThetaN, conv(PhiN, [1 -1]), Ts);
+HNd = [HNd1 0; 0 HNd2];
 
 % RODD step disturbance process
 ThetaD = 1;
@@ -83,16 +85,25 @@ C = [-0.07769  0       0  0;
 D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 
+% Designate measured input and output signals
+u_known = [true; true; false; false];
+y_meas = [true; true];
+nu = sum(u_known);
+nw = sum(~u_known);
+
 % Dimensions
 n = size(A, 1);
-nu = size(B, 2);
+nu = sum(u_known);
+nw = sum(~u_known);
 ny = size(C, 1);
 
-% Designate measured input and output signals
-u_meas = [true; true; false; false];
-y_meas = [true; true];
-nu = sum(u_meas);
-nw = sum(~u_meas);
+% Model parameter struct used by observers
+model = struct();
+model.A = A;
+model.B = B;
+model.C = C;
+model.D = D;
+model.Ts = Ts;
 
 % Default initial condition
 x0 = zeros(n, 1);
@@ -100,7 +111,7 @@ x0 = zeros(n, 1);
 % Parameters for random inputs
 % RODD random variable parameters
 epsilon = [0.01; 0.01];
-sigma_wp = [0.01 1; 0.01 1];
+sigma_wp = {[0.01 1], [0.01 1]};
 
 % Process noise standard deviation
 sigma_W = zeros(n, 1);

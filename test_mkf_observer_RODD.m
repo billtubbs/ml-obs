@@ -11,6 +11,8 @@ rng(seed)
 
 % Load system and disturbance model from file
 sys_rodin_step
+u_meas = u_known;  % variable name was changed
+sigma_wp = sigma_wp{1};  % variable was changed to cell array
 
 % Observer model without disturbance noise input
 Bu = B(:, u_meas);

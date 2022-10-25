@@ -19,12 +19,12 @@ U_test = reshape(idinput(11*2), 11, 2);
 [y_test2, t_test] = lsim(Gpd, U_test, t_test);
 assert(all(abs(y_test - y_test2) < 1e-6))
 
-assert(isequal(u_meas, [true; false]));
+assert(isequal(u_known, [true; false]));
 assert(isequal(y_meas, true));
 
 % Check disturbance parameters
 assert(epsilon == 0.01);
-assert(isequal(sigma_wp, [0.01 1]));
+assert(isequal(sigma_wp, {[0.01 1]}));
 
 % Process noise standard deviation
 assert(isequal(sigma_W, [0; 0]));

@@ -33,7 +33,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         Q cell
         R cell
         K double
-        P double
+        Pkp1 double
         seq (1, :) double
         label (1, 1) string
         x0 (:, 1) double
@@ -46,11 +46,11 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         type (1, 1) string
     end
     methods
-        function obj = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
-        % obs = MKFObserverSched(A,B,C,D,Ts,P0,Q,R,seq,label,x0)
+        function obj = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,label,x0)
+        % obs = MKFObserverSched(A,B,C,Ts,P0,Q,R,seq,label,x0)
         %
         % Arguments:
-        %	A, B, C, D : cell arrays
+        %	A, B, C : cell arrays
         %       discrete-time system matrices for each switching
         %       system modelled.
         %   Ts : double
@@ -75,12 +75,11 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         %
 
             % System dimensions
-            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1}, D{1});
+            [n, nu, ny] = check_dimensions(A{1}, B{1}, C{1});
 
             obj.A = A;
             obj.B = B;
             obj.C = C;
-            obj.D = D;
             obj.Ts = Ts;
             obj.P0 = P0;
             obj.Q = Q;
@@ -88,7 +87,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             obj.seq = seq;
             obj.label = label;
 
-            if nargin < 11
+            if nargin < 10
                 x0 = zeros(n,1);
             end
             obj.x0 = x0;
@@ -99,14 +98,14 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             % Check all other system matrix dimensions have same 
             % input/output dimensions and number of states.
             for j = 2:obj.nj
-                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j}, D{j});
+                [n_j, nu_j, ny_j] = check_dimensions(A{j}, B{j}, C{j});
                 assert(isequal([n_j, nu_j, ny_j], [n, nu, ny]), ...
-                    "ValueError: size of A, B, C, and D")
+                    "ValueError: size of A, B, and C")
             end
 
             % Initialize Kalman filter
-            obj.filter = KalmanFilter(A{1},B{1},C{1},D{1},Ts,P0,Q{1}, ...
-                R{1},label,x0);
+            obj.filter = KalmanFilter(A{1},B{1},C{1},Ts,P0,Q{1},R{1}, ...
+                "KF",x0);
 
             % System model indicator sequence
             obj.seq = seq;
@@ -137,6 +136,9 @@ classdef MKFObserverSched < matlab.mixin.Copyable
         % when observer object was created.
         %
 
+            % Switching variable at previous time instant
+            obj.gamma_k = 0;
+
             % Initialize sequence index and counter
             % obj.i(1) is the sequence index (1 <= i(1) <= obj.f)
             % obj.i(2) is the counter for prob. updates (1 <= i(2) <= obj.d)
@@ -149,6 +151,9 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             % Initialize estimates
             obj.xkp1_est = obj.filter.xkp1_est;
             obj.ykp1_est = obj.filter.ykp1_est;
+
+            % Initialize covariance matrix
+            obj.Pkp1 = obj.filter.Pkp1;
 
         end
         function update(obj, yk, uk)
@@ -198,7 +203,6 @@ classdef MKFObserverSched < matlab.mixin.Copyable
             obj.filter.A = obj.A{ind};
             obj.filter.B = obj.B{ind};
             obj.filter.C = obj.C{ind};
-            obj.filter.D = obj.D{ind};
             obj.filter.Q = obj.Q{ind};
             obj.filter.R = obj.R{ind};
 
@@ -207,7 +211,7 @@ classdef MKFObserverSched < matlab.mixin.Copyable
 
             % Copy gain and covariance matrix
             obj.K = obj.filter.K;
-            obj.P = obj.filter.P;
+            obj.Pkp1 = obj.filter.Pkp1;
 
             % Copy filter estimates
             obj.xkp1_est = obj.filter.xkp1_est;

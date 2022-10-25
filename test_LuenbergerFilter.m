@@ -34,11 +34,20 @@ Q = diag([0.1; 0.1]);
 R = 0.5;
 N = zeros(n,ny);
 
+% Prepare a struct of model parameters
+model = struct();
+model.A = A;
+model.B = B;
+model.C = C;
+model.Ts = Ts;
+model.Q = Q;
+model.R = R;
+
 % Define Luenberger observer
 label = "LB1";
 poles = [0.9; 0.9];
 x0 = [0.1; 0.5];
-LB = LuenbergerFilter(A,B,C,D,Ts,poles,label,x0);
+LB = LuenbergerFilter(model,poles,label,x0);
 assert(strcmp(LB.type, "LB"))
 assert(isequal(LB.xkp1_est, x0))
 assert(LB.ykp1_est == C * x0)
@@ -48,7 +57,7 @@ assert(LB.nu == nu)
 assert(LB.ny == ny)
 
 % Re-define with no initial state specified (should be set to zero)
-LB = LuenbergerFilter(A,B,C,D,Ts,poles,label);
+LB = LuenbergerFilter(model,poles,label);
 assert(isequal(LB.xkp1_est, zeros(n, 1)))
 assert(LB.ykp1_est == 0)
 K_test = [0.16; 0];

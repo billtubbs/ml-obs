@@ -80,14 +80,23 @@ C = [ 0.1110       0  0  0;
 D = zeros(2, 4);
 Gpss = ss(A,B,C,D,Ts);
 
+% Designate measured input and output signals
+u_known = [true; true; false; false];
+y_meas = [true; true];
+
 % Dimensions
 n = size(A, 1);
-nu = size(B, 2);
+nu = sum(u_known);
+nw = sum(~u_known);
 ny = size(C, 1);
 
-% Designate measured input and output signals
-u_meas = [true; true; false; false];
-y_meas = [true; true];
+% Model parameter struct used by observers
+model = struct();
+model.A = A;
+model.B = B;
+model.C = C;
+model.D = D;
+model.Ts = Ts;
 
 % Default initial condition
 x0 = zeros(n, 1);
@@ -97,7 +106,7 @@ x0 = zeros(n, 1);
 
 % RODD random variable parameters
 epsilon = [0.005; 0.005];
-sigma_wp = [0.01 1; 0.01 1];
+sigma_wp = {[0.01 1], [0.01 1]};
 
 % Process noise standard deviation
 sigma_W = zeros(n, 1);

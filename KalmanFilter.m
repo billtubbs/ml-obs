@@ -1,10 +1,26 @@
 % Kalman Filter class definition
-
-classdef KalmanFilter < AbstractLinearFilter
-% obs = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
+%
+% TODO: Delete this. Superceded by KalmanFilterP and KalmanFilterF
+%
+% obs = KalmanFilter(A,B,C,Ts,P0,Q,R,label,x0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance).
+%
+% This is the prediction form of the KF which 
+% produces prior estimates of the states and
+% outputs in the next time instant given the data
+% at the current time instant:
+%
+%  x_hat(k+1|k) : estimate of states at time k+1
+%  y_hat(k+1|k) : estimate of outputs at time k+1
+%
+% The system model is defined as:
+%
+%   x(k+1) = A(k) x(k) + B(k) u(k) + w(k)
+%     y(k) = C(k) x(k) + v(k)
+%
+% Note: there is no direct transmission (D = 0).
 %
 % Arguments:
 %   A, B, C, D : matrices
@@ -21,30 +37,82 @@ classdef KalmanFilter < AbstractLinearFilter
 %   label : string (optional)
 %       Name.
 %   x0 : vector, size(n, 1), (optional)
-%       Intial state estimates.
+%       Initial state estimates.
 %
+
+% TODO: Could rename this KalmanFilterP
+
+classdef KalmanFilter < matlab.mixin.Copyable
+    properties (SetAccess = immutable)
+        n (1, 1) double {mustBeInteger, mustBeNonnegative}
+        nu (1, 1) double {mustBeInteger, mustBeNonnegative}
+        ny (1, 1) double {mustBeInteger, mustBeNonnegative}
+    end
     properties
+        A double
+        B double
+        C double
+        Ts (1, 1) double {mustBeNonnegative}
+        xkp1_est (:, 1) double
+        ykp1_est (:, 1) double
+        Pkp1 double
+        K double
         Q double
         R double
         P0 double
+        label (1, 1) string = ""
+        x0 (:, 1) double
+        type (1, 1) string
     end
     methods
-        function obj = KalmanFilter(A,B,C,D,Ts,P0,Q,R,varargin)
+        function obj = KalmanFilter(A,B,C,Ts,P0,Q,R,label,x0)
+            arguments
+                A double
+                B double
+                C double
+                Ts (1, 1) double {mustBeNonnegative}
+                P0 double
+                Q double
+                R double
+                label (1, 1) string = ""
+                x0 (:, 1) double = []
+            end
 
-            % Call super-class constuctor
-            obj = obj@AbstractLinearFilter(A,B,C,D,Ts,varargin{:});
-            n = obj.n;
-            ny = obj.ny;
+            % Check model struct is specified correctly
+            [n, nu, ny] = check_dimensions(A,B,C);
 
-            % Set additional properties for dynamic KF
+            % Check sizes of other matrices
             assert(isequal(size(P0), [n n]), "ValueError: size(P0)")
+            assert(isequal(size(Q), [n n]), "ValueError: size(Q)")
+            assert(isequal(size(R), [ny ny]), "ValueError: size(R)")
+
+            % Determine initial state values
+            if isempty(x0)
+                x0 = zeros(n, 1);  % default initial values
+            else
+                assert(isequal(size(x0), [n 1]), ...
+                    "ValueError: size(x0)")
+            end
+            if label == ""
+                label = "KF";
+            end
+
+            % Store parameters
+            obj.A = A;
+            obj.B = B;
+            obj.C = C;
+            obj.Ts = Ts;
             obj.P0 = P0;
             obj.Q = Q;
-            assert(isequal(size(Q), [n n]))
             obj.R = R;
-            assert(isequal(size(R), [ny ny]))
+            obj.label = label;
+            obj.x0 = x0;
+            obj.n = n;
+            obj.nu = nu;
+            obj.ny = ny;
+
             obj.type = "KF";
-            if nargin < 9
+            if nargin < 8
                 obj.label = obj.type;
             end
 
@@ -59,19 +127,21 @@ classdef KalmanFilter < AbstractLinearFilter
         %
 
             % Initialize estimate covariance
-            obj.P = obj.P0;
+            obj.Pkp1 = obj.P0;
 
             % Gain will be calculated dynamically
             obj.K = nan(obj.n, 1);
 
-            % Initialize estimates
-            reset@AbstractLinearFilter(obj);
+            % Initialize state and output estimates
+            obj.xkp1_est = obj.x0;
+            obj.ykp1_est = obj.C * obj.xkp1_est;
 
         end
         function update(obj, yk, uk)
-        % obs.update(yk, uk) updates the gain and covariance matrix
+        % obj.update(yk, uk) updates the gain and covariance matrix
         % of the Kalman filter and calculates the estimates of the
-        % states and output at the next sample time.
+        % states and output at the next sample time given the 
+        % current measurement and inputs.
         %
         % Arguments:
         %   yk : vector, size (ny, 1)
@@ -80,11 +150,14 @@ classdef KalmanFilter < AbstractLinearFilter
         %       System inputs at current time k.
         %
 
-            % Update observer gain and covariance matrix
-            [obj.K, obj.P] = kalman_update(obj.P, obj.A, obj.C, obj.Q, obj.R);
+            % Update correction gain and covariance matrix
+            [obj.K, obj.Pkp1] = kalman_update(obj.Pkp1, obj.A, obj.C, ...
+                obj.Q, obj.R);
 
-            % Update state and output estimates for next timestep
-            update@AbstractLinearFilter(obj, yk, uk);
+            % Update state and output estimates in next timestep
+            obj.xkp1_est = obj.A * obj.xkp1_est + obj.B * uk + ...
+                obj.K * (yk - obj.C * obj.xkp1_est);
+            obj.ykp1_est = obj.C * obj.xkp1_est;
 
         end
     end

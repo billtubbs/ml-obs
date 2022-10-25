@@ -10,6 +10,14 @@ B = [1; 0];
 C = [-0.05 0.5];
 D = 0;
 
+% Model parameter struct used by observers
+model = struct();
+model.A = A;
+model.B = B;
+model.C = C;
+model.D = D;
+model.Ts = Ts;
+
 % Dimensions
 n = size(A, 1); % number of states
 nu = size(B, 2);  % number of inputs
