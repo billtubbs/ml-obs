@@ -225,7 +225,8 @@ The following scripts provide more detailed examples of how to use the observers
 
 - [kalman_example_SISO.mlx](kalman_example_SISO.mlx) - Kalman filter simulation on a simple single-input, single-output system
 - [RODD_code_tutorial.mlx](RODD_code_tutorial.mlx) - Kalman filter and multi-model observer examples on a 2x2 multivariable system
-- [MMKF_example.m](MMKF_example.m) - Simulates two Kalman filters and two multi-model observers on a SISO system with a RODD input step disturbance and compares the mean-squared estimation errors.
+- [test_MKF_example.m](test_MKF_example.m) - Simulates different Kalman filters and multi-model observers on a SISO system with a RODD input step disturbance and calculates the root-mean-squared estimation errors.
+- [test_MKF_example_sim.m](test_MKF_example_sim.m) - Simulates the same observers as above in Simulink and compares the results.
 
 ## Help
 
