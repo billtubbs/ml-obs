@@ -2,7 +2,7 @@
 %
 % TODO: Delete this. Superceded by KalmanFilterP and KalmanFilterF
 %
-% obs = KalmanFilter(A,B,C,D,Ts,P0,Q,R,label,x0)
+% obs = KalmanFilter(A,B,C,Ts,P0,Q,R,label,x0)
 % Class for simulating a dynamic Kalman filter
 % (i.e. with time-varying gain and estimation error
 % covariance).
