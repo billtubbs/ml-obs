@@ -72,11 +72,11 @@ KFFSS = KalmanFilterFSS(model,label,x0_est);
 assert(strcmp(KFFSS.type, "KFFSS"))
 assert(isequal(KFFSS.model, model))
 assert(max(abs((A * KFFSS.Kf) - KFSS_old.K), [], [1 2]) < 1e-12)
-assert(max(abs(KFFSS.Pk - KFSS_old.P), [], [1 2]) < 1e-12)
-Kf_calc = KFFSS.Pk * C' * (C * KFFSS.Pk * C' + R)^-1;
+assert(max(abs(KFFSS.Pkp1 - KFSS_old.P), [], [1 2]) < 1e-12)
+Kf_calc = KFFSS.Pkp1 * C' * (C * KFFSS.Pkp1 * C' + R)^-1;
 assert(max(abs(KFFSS.Kf - Kf_calc)) < 1e-12)
 assert(isequal(round(KFFSS.Kf, 6), [0.755731; 0.669133]))
-assert(isequal(round(KFFSS.Pk, 6), [1.509786 1.216953; 1.216953 1.219071]))
+assert(isequal(round(KFFSS.Pkp1, 6), [1.509786 1.216953; 1.216953 1.219071]))
 assert(isequal(KFFSS.label, label))
 assert(isequal(KFFSS.xkp1_est, x0_est))
 assert(KFFSS.ykp1_est == C*x0_est)
@@ -94,7 +94,7 @@ assert(isequal(KFPSSx0.xkp1_est, zeros(n, 1)))
 assert(KFPSSx0.ykp1_est == 0)
 KFFSSx0 = KalmanFilterFSS(model,"KFFSSx0");
 assert(isequal(round(KFFSS.Kf, 6), round(KFFSSx0.Kf, 6)))
-assert(isequal(round(KFFSS.Pk, 6), round(KFFSSx0.Pk, 6)))
+assert(isequal(round(KFFSS.Pkp1, 6), round(KFFSSx0.Pkp1, 6)))
 assert(isequal(KFFSSx0.xkp1_est, zeros(n, 1)))
 assert(KFFSSx0.ykp1_est == 0)
 
@@ -543,7 +543,7 @@ for i = 1:nT
     KNkalman1(:, i) = KF_old.K;
     diagPNkalman1(:, i) = diag(KF_old.Pkp1);
     KNkalman2(:, i) = KFF.Kf;
-    diagPNkalman2(:, i) = diag(KFF.Pk);
+    diagPNkalman2(:, i) = diag(KFF.Pkp1);
 
     % Process states in next timestep
     xk = A*xk + B*U(i) + W(i,:)';
@@ -815,7 +815,7 @@ for i = 1:nT
         end
         switch obs.type
             case {"KFF", "KFFSS"}
-                trPk_obs{f}(i, :) = trace(obs.Pk);
+                trPk_obs{f}(i, :) = trace(obs.Pkp1);
         end
 
         % TODO: Remove this once not using structs any more

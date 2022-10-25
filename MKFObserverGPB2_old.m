@@ -1,6 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverGPB2(models,Ts,P0,T,label,x0,y0, ...
+% obs = MKFObserverGPB2_old(models,Ts,P0,T,label,x0,y0, ...
 %                 p_seq_g_Yk_init)
 % 
 % Class for simulating the generalised pseudo-Bayes multi-
@@ -51,7 +51,7 @@
 %       probability assigned to each hypothesis.
 %
 
-classdef MKFObserverGPB2 < AbstractMKFObserver
+classdef MKFObserverGPB2_old < AbstractMKFObserver
     properties
         T double
         gamma_k double {mustBeInteger, mustBeNonnegative}

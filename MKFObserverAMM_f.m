@@ -1,6 +1,6 @@
 % Multi-model Kalman Filter class definition
 %
-% obs = MKFObserverAMM(A,B,C,Ts,P0,Q,R,label,x0,p_seq_g_Yk_init)
+% obs = MKFObserverAMM_f(A,B,C,Ts,P0,Q,R,label,x0,p_seq_g_Yk_init)
 % Class for simulating an autonomous multi-model (AMM)
 % Kalman filter for state estimation of system with more than
 % one possible mode (multiple models). This is used as the base
@@ -49,7 +49,7 @@
 %       probability assigned to each hypothesis.
 %
 
-classdef MKFObserverAMM < matlab.mixin.Copyable
+classdef MKFObserverAMM_f < matlab.mixin.Copyable
     properties (SetAccess = immutable)
         Ts (1, 1) double {mustBeNonnegative}
         n (1, 1) double {mustBeInteger, mustBeNonnegative}
