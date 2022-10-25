@@ -104,8 +104,8 @@ There are also extended Kalman filter (EKF) versions — *these are currently st
 - [MEKF_observer_AFMM.m](MEKF_observer_AFMM.m) - multi-model observer as described in Eriksson and Isaksson [[4]](#4).
 
 Simulink simulation tools:
-- [KalmanFilter_sfunc.m](KalmanFilter_sfunc.m) - S-function for standard Kalman filter.
-- [KalmanFilterSS_sfunc.m](KalmanFilterSS_sfunc.m) - S-function for steady-state Kalman filter.
+- [KalmanFilterP_sfunc.m](KalmanFilterP_sfunc.m) - S-function for dynamic and steady-state Kalman filters in prediction form.
+- [KalmanFilterF_sfunc.m](KalmanFilterF_sfunc.m) - S-function for dynamic and steady-state Kalman filters in filtering form.
 - [MKFObserver_sfunc.m](MKFObserver_sfunc.m) - general-purpose S-function that works with all observer types.
 - [MKF_example_sim.slx](MKF_example_sim.slx) - Simulink model file containing S-function blocks.
 
@@ -232,7 +232,7 @@ The following scripts provide more detailed examples of how to use the observers
 All the classes in this repository are well documented.  Use MATLAB's help command to view the help text. E.g.:
 
 ```Matlab
->> help KalmanFilter
+>> help KalmanFilterP
 ```
 
 
